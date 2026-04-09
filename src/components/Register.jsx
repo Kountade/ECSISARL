@@ -164,7 +164,7 @@ const Register = () => {
                             Créer un compte professionnel
                         </Typography>
                         <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5, fontSize: isMobile ? '0.7rem' : '0.875rem' }}>
-                            Rejoignez l'écosystème GALSENSHOP ERP
+                            Rejoignez l'écosystème  ECSI SARL
                         </Typography>
                     </Box>
 
