@@ -362,7 +362,7 @@ export default function Navbar(props) {
                 letterSpacing: '1px', textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 fontFamily: "'Montserrat', 'Roboto', sans-serif", fontSize: { xs: '1.2rem', sm: '1.5rem' }
               }}>
-                GALSENSHOP ERP
+                ECSI SARL
               </Typography>
             </Box>
             <Tooltip title={roleConfig.description}>
@@ -564,11 +564,11 @@ export default function Navbar(props) {
         )}
         <Box sx={{ p: 2, borderTop: `2px solid ${COMPANY_COLORS.lightCyan}`, backgroundColor: COMPANY_COLORS.darkCyan, color: COMPANY_COLORS.white }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.8 }}>v3.0.0</Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.8 }}>v1.0.0</Typography>
             <Chip label="ERP 2025" size="small" sx={{ fontSize: '0.65rem', height: 20, fontWeight: 'bold', backgroundColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.white }} />
           </Box>
           <Typography variant="caption" align="center" sx={{ display: 'block', fontWeight: 'bold', fontSize: '0.7rem' }}>{roleConfig.label}</Typography>
-          <Typography variant="caption" align="center" sx={{ display: 'block', fontSize: '0.65rem', mt: 0.5, opacity: 0.8 }}>© 2025 GALSENSHOP ERP</Typography>
+          <Typography variant="caption" align="center" sx={{ display: 'block', fontSize: '0.65rem', mt: 0.5, opacity: 0.8 }}>© 2026 ECSI SARL</Typography>
         </Box>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3, backgroundColor: mode === 'dark' ? '#121212' : '#f5f7fa', minHeight: '100vh' }}>
