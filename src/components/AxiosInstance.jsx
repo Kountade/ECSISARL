@@ -1,45 +1,56 @@
-// src/components/AxiosInstance.js
 import axios from 'axios'
 
-const baseUrl = 'http://127.0.0.1:8000/'
+// Configuration pour Vite.js
+const getBaseUrl = () => {
+  // Priorité 1 : Variable d'environnement explicite
+  const envApiUrl = import.meta.env.VITE_API_URL
+  
+  if (envApiUrl) {
+    return envApiUrl
+  }
+  
+  // Priorité 2 : Détection selon le mode
+  if (import.meta.env.PROD) {
+    return 'https://ecsisarl-backed.onrender.com'
+  }
+  
+  // Développement local
+  return 'http://127.0.0.1:8000'
+}
+
+const baseUrl = getBaseUrl()
+
+console.log(`🚀 Environnement: ${import.meta.env.MODE}`)
+console.log(`🔗 URL API: ${baseUrl}`)
+console.log(`📦 Production: ${import.meta.env.PROD}`)
 
 const AxiosInstance = axios.create({
     baseURL: baseUrl,
-    timeout: 10000, // Augmenté à 10 secondes
+    timeout: 10000,
     headers: {
         "Content-Type": "application/json",
         "accept": "application/json"
     }
 })
 
+// Intercepteurs (gardez les mêmes)
 AxiosInstance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('Token')
-        console.log('📤 Making request to:', config.url, 'with token:', !!token)
+        console.log('📤 Making request to:', config.url)
         
         if(token){
             config.headers.Authorization = `Token ${token}`
-        } else {
-            config.headers.Authorization = ``
         }
         return config
     },
-    (error) => {
-        console.error('❌ Request interceptor error:', error)
-        return Promise.reject(error)
-    }
+    (error) => Promise.reject(error)
 )
 
 AxiosInstance.interceptors.response.use(
-    (response) => {
-        console.log('✅ Response received:', response.status, response.config.url)
-        return response
-    }, 
+    (response) => response,
     (error) => {
-        console.error('❌ Response error:', error.response?.status, error.config?.url)
-        
-        if(error.response && error.response.status === 401){
-            console.log('🔒 Unauthorized, removing token')
+        if(error.response?.status === 401){
             localStorage.removeItem('Token')
             localStorage.removeItem('User')
         }
