@@ -13,6 +13,11 @@ import Brands from './components/products/Brands'
 import BrandForm from './components/products/BrandForm'
 import Units from './components/products/Units'
 import UnitForm from './components/products/UnitForm'
+import Variants from './components/products/Variants'
+import VariantForm from './components/products/VariantForm'
+import Users from './components/users/Users'
+import UserForm from './components/users/UserForm'
+import Roles from './components/users/Roles'
 
 
 import { Routes, Route , useLocation} from 'react-router-dom'
@@ -70,9 +75,11 @@ function App() {
                         <Route path="/units/nouveau" element={<UnitForm />} />
                         <Route path="/units/:id/modifier" element={<UnitForm />} />
 
-                        {/* Variantes (si page dédiée) 
+                        {/* Variantes (si page dédiée)  */}
                         <Route path="/variants" element={<Variants />} />
-*/}
+                        <Route path="/variants/nouveau" element={<VariantForm />} />
+                         <Route path="/variants/:id/modifier" element={<VariantForm />} />
+
                         {/* Gestion des clients 
                         <Route path="/clients" element={<Customers />} />
                         <Route path="/clients/nouveau" element={<CustomerForm />} />
@@ -81,6 +88,14 @@ function App() {
 */}
                         {/* Profil utilisateur 
                         <Route path="/profile" element={<Profile />} />*/}
+                        <Route path="/utilisateurs" element={<Users />} />
+                        <Route path="/utilisateurs/nouveau" element={<UserForm />} />
+                        <Route path="/utilisateurs/:id/modifier" element={<UserForm />} />
+                         <Route path="/roles" element={<Roles />} />
+
+
+
+
             </Route>
           </Routes>
         }
