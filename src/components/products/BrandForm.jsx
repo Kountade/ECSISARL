@@ -54,6 +54,7 @@ const BrandForm = () => {
   })
 
   const [logoPreview, setLogoPreview] = useState(null)
+  const [existingLogoUrl, setExistingLogoUrl] = useState(null)
 
   const fetchData = async () => {
     if (!isEditMode) return
@@ -64,11 +65,12 @@ const BrandForm = () => {
       setFormData({
         name: brand.name || '',
         description: brand.description || '',
-        logo: brand.logo || null,
+        logo: null, // On ne garde pas l'ancien logo dans formData
         website: brand.website || '',
         is_active: brand.is_active !== undefined ? brand.is_active : true
       })
       if (brand.logo) {
+        setExistingLogoUrl(brand.logo)
         setLogoPreview(brand.logo)
       }
     } catch (error) {
@@ -92,9 +94,25 @@ const BrandForm = () => {
   const handleLogoChange = (e) => {
     const file = e.target.files[0]
     if (file) {
+      // Validation du fichier
+      if (!file.type.match('image.*')) {
+        setSnackbar({ open: true, message: 'Veuillez sélectionner une image (JPG, PNG, GIF)', severity: 'error' })
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setSnackbar({ open: true, message: "L'image ne doit pas dépasser 5MB", severity: 'error' })
+        return
+      }
       setFormData(prev => ({ ...prev, logo: file }))
       setLogoPreview(URL.createObjectURL(file))
+      setExistingLogoUrl(null)
     }
+  }
+
+  const handleRemoveLogo = () => {
+    setFormData(prev => ({ ...prev, logo: null }))
+    setLogoPreview(null)
+    setExistingLogoUrl(null)
   }
 
   const handleSubmit = async () => {
@@ -106,29 +124,58 @@ const BrandForm = () => {
     setSubmitting(true)
     try {
       const payload = new FormData()
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== null && formData[key] !== undefined) {
-          if (key === 'logo' && formData[key] instanceof File) {
-            payload.append(key, formData[key])
-          } else {
-            payload.append(key, formData[key])
-          }
-        }
-      })
+      
+      // Ajouter les champs textuels
+      payload.append('name', formData.name)
+      
+      if (formData.description) {
+        payload.append('description', formData.description)
+      }
+      
+      if (formData.website) {
+        payload.append('website', formData.website)
+      }
+      
+      payload.append('is_active', formData.is_active)
+      
+      // Gérer le logo
+      if (formData.logo instanceof File) {
+        // Nouveau logo sélectionné
+        payload.append('logo', formData.logo)
+      } else if (isEditMode && existingLogoUrl && !formData.logo) {
+        // En mode édition, si on n'a pas changé le logo, ne rien envoyer
+        // L'API gardera le logo existant
+        console.log('Conservation du logo existant')
+      } else if (isEditMode && !existingLogoUrl && !formData.logo) {
+        // L'utilisateur a supprimé le logo
+        payload.append('logo', '')
+      }
+
+      // Configuration explicite pour multipart/form-data
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
 
       if (isEditMode) {
-        await AxiosInstance.put(`/brands/${id}/`, payload)
+        await AxiosInstance.put(`/brands/${id}/`, payload, config)
         setSnackbar({ open: true, message: 'Marque modifiée avec succès', severity: 'success' })
       } else {
-        await AxiosInstance.post('/brands/', payload)
+        await AxiosInstance.post('/brands/', payload, config)
         setSnackbar({ open: true, message: 'Marque créée avec succès', severity: 'success' })
       }
       setTimeout(() => navigate('/brands'), 1500)
     } catch (error) {
-      console.error(error)
+      console.error('Erreur détaillée:', error)
+      console.error('Response:', error.response?.data)
       let errorMsg = 'Erreur lors de l\'enregistrement'
       if (error.response?.data) {
-        errorMsg = Object.entries(error.response.data).map(([k, v]) => `${k}: ${v}`).join(', ')
+        if (typeof error.response.data === 'object') {
+          errorMsg = Object.entries(error.response.data).map(([k, v]) => `${k}: ${v}`).join(', ')
+        } else {
+          errorMsg = error.response.data
+        }
       }
       setSnackbar({ open: true, message: errorMsg, severity: 'error' })
     } finally {
@@ -281,32 +328,35 @@ const BrandForm = () => {
                     <BusinessIcon sx={{ fontSize: 60, color: COMPANY_COLORS.darkCyan }} />
                   </Avatar>
                 )}
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<UploadIcon />}
-                  sx={{ borderColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.vividOrange }}
-                >
-                  {formData.logo ? 'Changer le logo' : 'Ajouter un logo'}
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                  />
-                </Button>
-                {formData.logo && (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
                   <Button
-                    size="small"
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, logo: null }))
-                      setLogoPreview(null)
-                    }}
-                    sx={{ mt: 1 }}
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadIcon />}
+                    sx={{ borderColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.vividOrange }}
                   >
-                    Supprimer
+                    {logoPreview ? 'Changer le logo' : 'Ajouter un logo'}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                    />
                   </Button>
-                )}
+                  {logoPreview && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={handleRemoveLogo}
+                    >
+                      Supprimer
+                    </Button>
+                  )}
+                </Box>
+                <Typography variant="caption" color="textSecondary" sx={{ mt: 2, textAlign: 'center' }}>
+                  Formats acceptés: JPG, PNG, GIF<br />
+                  Taille maximale: 5MB
+                </Typography>
               </Box>
             </CardContent>
           </Card>
@@ -319,7 +369,9 @@ const BrandForm = () => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>{snackbar.message}</Alert>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled" sx={{ width: '100' }}>
+          {snackbar.message}
+        </Alert>
       </Snackbar>
     </Box>
   )

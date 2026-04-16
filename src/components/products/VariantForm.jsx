@@ -64,6 +64,7 @@ const VariantForm = () => {
   })
 
   const [imagePreview, setImagePreview] = useState(null)
+  const [existingImageUrl, setExistingImageUrl] = useState(null)
   const [attributeKey, setAttributeKey] = useState('')
   const [attributeValue, setAttributeValue] = useState('')
 
@@ -83,10 +84,13 @@ const VariantForm = () => {
           purchase_price: variant.purchase_price || '',
           sale_price: variant.sale_price || '',
           stock_quantity: variant.stock_quantity || 0,
-          image: variant.image || null,
+          image: null, // On ne garde pas l'ancienne image dans formData
           is_active: variant.is_active !== undefined ? variant.is_active : true
         })
-        if (variant.image) setImagePreview(variant.image)
+        if (variant.image) {
+          setExistingImageUrl(variant.image)
+          setImagePreview(variant.image)
+        }
       }
     } catch (error) {
       console.error(error)
@@ -109,9 +113,24 @@ const VariantForm = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
+      if (!file.type.match('image.*')) {
+        setSnackbar({ open: true, message: 'Veuillez sélectionner une image (JPG, PNG, GIF)', severity: 'error' })
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setSnackbar({ open: true, message: "L'image ne doit pas dépasser 5MB", severity: 'error' })
+        return
+      }
       setFormData(prev => ({ ...prev, image: file }))
       setImagePreview(URL.createObjectURL(file))
+      setExistingImageUrl(null)
     }
+  }
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, image: null }))
+    setImagePreview(null)
+    setExistingImageUrl(null)
   }
 
   const addAttribute = () => {
@@ -142,31 +161,54 @@ const VariantForm = () => {
     setSubmitting(true)
     try {
       const payload = new FormData()
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== null && formData[key] !== undefined) {
-          if (key === 'attributes') {
-            payload.append(key, JSON.stringify(formData[key]))
-          } else if (key === 'image' && formData[key] instanceof File) {
-            payload.append(key, formData[key])
-          } else {
-            payload.append(key, formData[key])
-          }
-        }
-      })
+      
+      // Ajouter les champs textuels
+      payload.append('product', formData.product)
+      payload.append('sku', formData.sku)
+      payload.append('attributes', JSON.stringify(formData.attributes))
+      payload.append('purchase_price', formData.purchase_price)
+      payload.append('sale_price', formData.sale_price)
+      payload.append('stock_quantity', formData.stock_quantity)
+      payload.append('is_active', formData.is_active)
+      
+      // Gérer l'image
+      if (formData.image instanceof File) {
+        // Nouvelle image sélectionnée
+        payload.append('image', formData.image)
+      } else if (isEditMode && existingImageUrl && !formData.image) {
+        // En mode édition, si on n'a pas changé l'image, ne rien envoyer
+        // L'API gardera l'image existante
+        console.log('Conservation de l\'image existante')
+      } else if (isEditMode && !existingImageUrl && !formData.image) {
+        // L'utilisateur a supprimé l'image
+        payload.append('image', '')
+      }
+
+      // Configuration explicite pour multipart/form-data
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
 
       if (isEditMode) {
-        await AxiosInstance.put(`/variants/${id}/`, payload)
+        await AxiosInstance.put(`/variants/${id}/`, payload, config)
         setSnackbar({ open: true, message: 'Variante modifiée avec succès', severity: 'success' })
       } else {
-        await AxiosInstance.post('/variants/', payload)
+        await AxiosInstance.post('/variants/', payload, config)
         setSnackbar({ open: true, message: 'Variante créée avec succès', severity: 'success' })
       }
       setTimeout(() => navigate('/variants'), 1500)
     } catch (error) {
-      console.error(error)
+      console.error('Erreur détaillée:', error)
+      console.error('Response:', error.response?.data)
       let errorMsg = 'Erreur lors de l\'enregistrement'
       if (error.response?.data) {
-        errorMsg = Object.entries(error.response.data).map(([k, v]) => `${k}: ${v}`).join(', ')
+        if (typeof error.response.data === 'object') {
+          errorMsg = Object.entries(error.response.data).map(([k, v]) => `${k}: ${v}`).join(', ')
+        } else {
+          errorMsg = error.response.data
+        }
       }
       setSnackbar({ open: true, message: errorMsg, severity: 'error' })
     } finally {
@@ -365,27 +407,30 @@ const VariantForm = () => {
                     <VariantIcon sx={{ fontSize: 60, color: COMPANY_COLORS.darkCyan }} />
                   </Avatar>
                 )}
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<UploadIcon />}
-                  sx={{ borderColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.vividOrange }}
-                >
-                  {formData.image ? 'Changer l\'image' : 'Ajouter une image'}
-                  <input type="file" hidden accept="image/*" onChange={handleImageChange} />
-                </Button>
-                {formData.image && (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
                   <Button
-                    size="small"
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, image: null }))
-                      setImagePreview(null)
-                    }}
-                    sx={{ mt: 1 }}
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadIcon />}
+                    sx={{ borderColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.vividOrange }}
                   >
-                    Supprimer
+                    {imagePreview ? 'Changer l\'image' : 'Ajouter une image'}
+                    <input type="file" hidden accept="image/*" onChange={handleImageChange} />
                   </Button>
-                )}
+                  {imagePreview && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={handleRemoveImage}
+                    >
+                      Supprimer
+                    </Button>
+                  )}
+                </Box>
+                <Typography variant="caption" color="textSecondary" sx={{ mt: 2, textAlign: 'center' }}>
+                  Formats acceptés: JPG, PNG, GIF<br />
+                  Taille maximale: 5MB
+                </Typography>
               </Box>
             </CardContent>
           </Card>
@@ -398,7 +443,9 @@ const VariantForm = () => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled">
+          {snackbar.message}
+        </Alert>
       </Snackbar>
     </Box>
   )

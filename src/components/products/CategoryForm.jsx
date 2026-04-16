@@ -110,29 +110,56 @@ const CategoryForm = () => {
     setSubmitting(true)
     try {
       const payload = new FormData()
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== null && formData[key] !== undefined) {
-          if (key === 'image' && formData[key] instanceof File) {
-            payload.append(key, formData[key])
-          } else {
-            payload.append(key, formData[key])
-          }
+      
+      // Ajouter les champs un par un avec vérification
+      payload.append('name', formData.name)
+      
+      if (formData.description) {
+        payload.append('description', formData.description)
+      }
+      
+      if (formData.parent) {
+        payload.append('parent', formData.parent)
+      }
+      
+      payload.append('is_active', formData.is_active)
+      
+      // Gérer l'image correctement
+      if (formData.image) {
+        if (formData.image instanceof File) {
+          payload.append('image', formData.image)
+        } else if (typeof formData.image === 'string' && formData.image !== 'null') {
+          // Si c'est une URL existante (en mode édition), ne rien faire
+          // ou vous pouvez conserver l'image existante en ne l'envoyant pas
+          console.log('Image existante conservée')
         }
-      })
+      }
+
+      // Configuration Axios explicite pour multipart/form-data
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
 
       if (isEditMode) {
-        await AxiosInstance.put(`/categories/${id}/`, payload)
+        await AxiosInstance.put(`/categories/${id}/`, payload, config)
         setSnackbar({ open: true, message: 'Catégorie modifiée', severity: 'success' })
       } else {
-        await AxiosInstance.post('/categories/', payload)
+        await AxiosInstance.post('/categories/', payload, config)
         setSnackbar({ open: true, message: 'Catégorie créée', severity: 'success' })
       }
       setTimeout(() => navigate('/categories'), 1500)
     } catch (error) {
-      console.error(error)
+      console.error('Erreur détaillée:', error)
+      console.error('Response:', error.response?.data)
       let errorMsg = 'Erreur lors de l\'enregistrement'
       if (error.response?.data) {
-        errorMsg = Object.entries(error.response.data).map(([k, v]) => `${k}: ${v}`).join(', ')
+        if (typeof error.response.data === 'object') {
+          errorMsg = Object.entries(error.response.data).map(([k, v]) => `${k}: ${v}`).join(', ')
+        } else {
+          errorMsg = error.response.data
+        }
       }
       setSnackbar({ open: true, message: errorMsg, severity: 'error' })
     } finally {
