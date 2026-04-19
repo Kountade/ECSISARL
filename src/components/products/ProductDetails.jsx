@@ -1,10 +1,29 @@
+// src/components/ProductDetails.jsx
 import React, { useEffect, useState } from 'react'
-import { Box, Grid, Card, CardContent, Typography, Button, Chip, Avatar, CircularProgress, Snackbar, Alert, Divider, alpha, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ImageList, ImageListItem, Stack, Tooltip } from '@mui/material'
-import { Edit as EditIcon, ArrowBack as ArrowBackIcon, Inventory as InventoryIcon, AttachMoney as MoneyIcon, Warning as WarningIcon, CheckCircle as CheckCircleIcon, Cancel as CancelIcon, Info as InfoIcon } from '@mui/icons-material'
-import AxiosInstance from '../AxiosInstance'
 import { useNavigate, useParams } from 'react-router-dom'
-
-const COMPANY_COLORS = { darkCyan: '#0A2647', vividOrange: '#C9A03D', lightCyan: '#E9F1FA', lightOrange: '#FDF6E3', white: '#FFFFFF' }
+import AxiosInstance from '../AxiosInstance'
+import {
+  Edit,
+  ArrowLeft,
+  Package,
+  DollarSign,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Info,
+  Barcode,
+  MapPin,
+  Weight,
+  Box,
+  Tag,
+  Building2,
+  Layers,
+  AlertCircle,
+  X,
+  RefreshCw,
+  Image as ImageIcon,
+  Hash
+} from 'lucide-react'
 
 const ProductDetails = () => {
   const navigate = useNavigate()
@@ -14,13 +33,27 @@ const ProductDetails = () => {
   const [images, setImages] = useState([])
   const [variants, setVariants] = useState([])
   const [loading, setLoading] = useState(true)
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+  const [selectedImage, setSelectedImage] = useState(null)
 
-  const productTypes = { simple: 'Simple', variable: 'Variable', service: 'Service', digital: 'Numérique' }
+  const productTypes = { 
+    simple: 'Simple', 
+    variable: 'Variable', 
+    service: 'Service', 
+    digital: 'Numérique' 
+  }
 
   const formatNumber = (number) => {
     if (typeof number !== 'number') number = parseFloat(number) || 0
-    return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number)
+    return new Intl.NumberFormat('fr-FR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(number)
+  }
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type })
+    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 4000)
   }
 
   const fetchData = async () => {
@@ -36,69 +69,471 @@ const ProductDetails = () => {
       setVariants(varRes.data || [])
     } catch (error) {
       console.error(error)
-      setSnackbar({ open: true, message: 'Erreur de chargement', severity: 'error' })
-    } finally { setLoading(false) }
+      showNotification('Erreur de chargement du produit', 'error')
+    } finally { 
+      setLoading(false) 
+    }
   }
 
-  useEffect(() => { fetchData() }, [id])
+  useEffect(() => { 
+    fetchData() 
+  }, [id])
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><CircularProgress size={60} sx={{ color: COMPANY_COLORS.darkCyan }} /></Box>
-  if (!product) return null
+  const calculateMargin = () => {
+    if (!product) return { amount: 0, percentage: 0 }
+    const purchase = parseFloat(product.purchase_price) || 0
+    const sale = parseFloat(product.sale_price) || 0
+    const margin = sale - purchase
+    const percentage = purchase > 0 ? (margin / purchase) * 100 : 0
+    return { amount: margin, percentage }
+  }
 
-  const mainImage = product.main_image || (images.length > 0 ? images.find(img => img.is_main)?.image : null)
+  const margin = calculateMargin()
+  const mainImage = product?.main_image || (images.length > 0 ? images.find(img => img.is_main)?.image : null)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center space-y-4">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+          <p className="text-base font-medium text-base-content/70 animate-pulse">
+            Chargement du produit...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center">
+          <Package className="w-16 h-16 mx-auto mb-4 text-base-content/30" />
+          <p className="text-lg font-medium text-base-content/50">Produit non trouvé</p>
+          <button 
+            onClick={() => navigate('/produits')}
+            className="btn btn-primary btn-sm mt-4"
+          >
+            Retour à la liste
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <Box sx={{ p: 3, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton onClick={() => navigate('/produits')} sx={{ bgcolor: alpha(COMPANY_COLORS.darkCyan, 0.1), color: COMPANY_COLORS.darkCyan }}><ArrowBackIcon /></IconButton>
-          <Typography variant="h4" fontWeight="bold" sx={{ color: COMPANY_COLORS.darkCyan }}>{product.name}</Typography>
-          <Chip label={product.reference} variant="outlined" />
-          <Chip label={productTypes[product.product_type] || 'Simple'} color="primary" size="small" />
-          {!product.is_active && <Chip label="Inactif" color="error" size="small" />}
-        </Box>
-        <Button variant="contained" startIcon={<EditIcon />} onClick={() => navigate(`/produits/${id}/modifier`)} sx={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.darkCyan} 0%, ${COMPANY_COLORS.vividOrange} 100%)` }}>Modifier</Button>
-      </Box>
+    <div className="space-y-4 lg:space-y-6 p-3 lg:p-6">
+      {/* Notification */}
+      {notification.show && (
+        <div className="fixed top-16 lg:top-20 right-3 lg:right-6 z-50 animate-slideDown w-[calc(100%-1.5rem)] lg:w-auto max-w-md">
+          <div className={`alert ${notification.type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg`}>
+            {notification.type === 'success' ? (
+              <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+            )}
+            <span className="text-sm lg:text-base font-medium">{notification.message}</span>
+            <button 
+              className="btn btn-ghost btn-xs btn-circle"
+              onClick={() => setNotification({ ...notification, show: false })}
+            >
+              <X className="w-3 h-3 lg:w-4 lg:h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ borderRadius: 3, boxShadow: 2 }}><CardContent>
-            {mainImage ? <Box component="img" src={mainImage} alt={product.name} sx={{ width: '100%', borderRadius: 2, mb: 2 }} /> : <Box sx={{ width: '100%', height: 250, bgcolor: alpha(COMPANY_COLORS.darkCyan, 0.05), borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}><InventoryIcon sx={{ fontSize: 80, color: COMPANY_COLORS.darkCyan }} /></Box>}
-            <Typography variant="body1" sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>{product.description}</Typography>
-          </CardContent></Card>
-          {images.length > 0 && <Card sx={{ borderRadius: 3, boxShadow: 2, mt: 2 }}><CardContent><Typography variant="h6" sx={{ color: COMPANY_COLORS.darkCyan }}>Galerie</Typography><ImageList cols={3} gap={8}>{images.map(img => <ImageListItem key={img.id}><img src={img.image} alt={img.alt_text} loading="lazy" style={{ borderRadius: 8, height: 100, objectFit: 'cover' }} /></ImageListItem>)}</ImageList></CardContent></Card>}
-        </Grid>
+      {/* En-tête */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate('/produits')}
+            className="btn btn-ghost btn-sm btn-circle"
+          >
+            <ArrowLeft className="w-4 h-4 lg:w-5 lg:h-5" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl lg:text-2xl font-bold text-base-content truncate">
+              {product.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <span className="badge badge-outline gap-1">
+                <Hash className="w-3 h-3" />
+                {product.reference}
+              </span>
+              <span className={`badge ${product.product_type === 'simple' ? 'badge-primary' : 'badge-secondary'} badge-sm`}>
+                {productTypes[product.product_type] || 'Simple'}
+              </span>
+              {!product.is_active && (
+                <span className="badge badge-error badge-sm gap-1">
+                  <XCircle className="w-3 h-3" />
+                  Inactif
+                </span>
+              )}
+              {product.is_featured && (
+                <span className="badge badge-warning badge-sm gap-1">
+                  ★ En avant
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <button 
+          onClick={() => navigate(`/produits/${id}/modifier`)}
+          className="btn btn-primary btn-sm lg:btn-md gap-2"
+        >
+          <Edit className="w-3 h-3 lg:w-4 lg:h-4" />
+          Modifier le produit
+        </button>
+      </div>
 
-        <Grid item xs={12} md={8}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}><Card sx={{ borderRadius: 3, boxShadow: 2 }}><CardContent><Typography variant="h6" sx={{ color: COMPANY_COLORS.darkCyan, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}><InfoIcon /> Détails</Typography><Divider sx={{ mb: 2 }} /><Stack spacing={1.5}>
-              <Box><Typography variant="caption" color="textSecondary">Catégorie</Typography><Typography>{product.category?.name || '-'}</Typography></Box>
-              <Box><Typography variant="caption" color="textSecondary">Marque</Typography><Typography>{product.brand?.name || '-'}</Typography></Box>
-              <Box><Typography variant="caption" color="textSecondary">Unité</Typography><Typography>{product.unit?.name} ({product.unit?.abbreviation})</Typography></Box>
-              <Box><Typography variant="caption" color="textSecondary">Code-barres</Typography><Typography>{product.barcode || '-'}</Typography></Box>
-              <Box><Typography variant="caption" color="textSecondary">Emplacement</Typography><Typography>{product.location || '-'}</Typography></Box>
-              <Box><Typography variant="caption" color="textSecondary">Poids / Volume</Typography><Typography>{product.weight ? `${product.weight} kg` : '-'} / {product.volume ? `${product.volume} m³` : '-'}</Typography></Box>
-            </Stack></CardContent></Card></Grid>
+      {/* Contenu principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        {/* Colonne gauche - Image et description */}
+        <div className="lg:col-span-1 space-y-4 lg:space-y-6">
+          {/* Image principale */}
+          <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+            <div className="p-4 lg:p-6">
+              {mainImage ? (
+                <div className="relative">
+                  <img 
+                    src={mainImage} 
+                    alt={product.name}
+                    className="w-full h-64 lg:h-80 object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setSelectedImage(mainImage)}
+                  />
+                  {images.length > 1 && (
+                    <span className="absolute bottom-2 right-2 badge badge-neutral">
+                      +{images.length - 1} images
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full h-64 lg:h-80 bg-base-200 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Package className="w-16 h-16 mx-auto mb-2 text-base-content/30" />
+                    <p className="text-base-content/50">Aucune image</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-            <Grid item xs={12} md={6}><Card sx={{ borderRadius: 3, boxShadow: 2 }}><CardContent><Typography variant="h6" sx={{ color: COMPANY_COLORS.darkCyan, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}><MoneyIcon /> Prix et stock</Typography><Divider sx={{ mb: 2 }} /><Stack spacing={1.5}>
-              <Box><Typography variant="caption" color="textSecondary">Prix d'achat (HT)</Typography><Typography>{formatNumber(product.purchase_price)} €</Typography></Box>
-              <Box><Typography variant="caption" color="textSecondary">Prix de vente (HT)</Typography><Typography variant="h6" color={COMPANY_COLORS.vividOrange} fontWeight="bold">{formatNumber(product.sale_price)} €</Typography></Box>
-              {product.wholesale_price && <Box><Typography variant="caption" color="textSecondary">Prix de gros</Typography><Typography>{formatNumber(product.wholesale_price)} €</Typography></Box>}
-              <Box><Typography variant="caption" color="textSecondary">TVA</Typography><Typography>{product.tax_rate}%</Typography></Box>
-              <Box><Typography variant="caption" color="textSecondary">Marge</Typography><Typography>{formatNumber(product.sale_price - product.purchase_price)} € ({((product.sale_price - product.purchase_price) / product.purchase_price * 100).toFixed(2)}%)</Typography></Box>
-              <Divider />
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><Typography variant="caption" color="textSecondary">Stock actuel</Typography><Typography variant="h6" color={product.is_low_stock ? 'warning.main' : 'text.primary'} fontWeight="bold">{product.stock_quantity} {product.unit?.abbreviation}</Typography></Box>
-              {product.is_low_stock && <Alert severity="warning" icon={<WarningIcon />}>Stock faible (min: {product.minimum_stock})</Alert>}
-              <Box><Typography variant="caption" color="textSecondary">Stock min / max</Typography><Typography>{product.minimum_stock} / {product.maximum_stock || '∞'}</Typography></Box>
-            </Stack></CardContent></Card></Grid>
+          {/* Description */}
+          <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+            <div className="p-4 lg:p-6 border-b border-base-300 bg-base-200/50">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 lg:w-5 lg:h-5 text-info" />
+                <h2 className="text-base lg:text-lg font-bold text-base-content">Description</h2>
+              </div>
+            </div>
+            <div className="p-4 lg:p-6">
+              {product.description ? (
+                <p className="text-sm lg:text-base text-base-content/80 whitespace-pre-wrap">
+                  {product.description}
+                </p>
+              ) : (
+                <p className="text-sm text-base-content/50 italic">
+                  Aucune description disponible
+                </p>
+              )}
+            </div>
+          </div>
 
-            {product.has_variants && variants.length > 0 && <Grid item xs={12}><Card sx={{ borderRadius: 3, boxShadow: 2 }}><CardContent><Typography variant="h6" sx={{ color: COMPANY_COLORS.darkCyan, fontWeight: 600 }}>Variantes</Typography><Divider sx={{ mb: 2 }} /><TableContainer component={Paper} variant="outlined"><Table size="small"><TableHead sx={{ bgcolor: alpha(COMPANY_COLORS.darkCyan, 0.04) }}><TableRow><TableCell>SKU</TableCell><TableCell>Attributs</TableCell><TableCell align="right">Prix achat</TableCell><TableCell align="right">Prix vente</TableCell><TableCell align="center">Stock</TableCell><TableCell align="center">Statut</TableCell></TableRow></TableHead><TableBody>{variants.map(v => (<TableRow key={v.id}><TableCell>{v.sku}</TableCell><TableCell>{Object.entries(v.attributes).map(([k, val]) => <Chip key={k} label={`${k}: ${val}`} size="small" sx={{ mr: 0.5, mb: 0.5 }} />)}</TableCell><TableCell align="right">{formatNumber(v.purchase_price)} €</TableCell><TableCell align="right">{formatNumber(v.sale_price)} €</TableCell><TableCell align="center">{v.stock_quantity}</TableCell><TableCell align="center">{v.is_active ? <CheckCircleIcon color="success" fontSize="small" /> : <CancelIcon color="error" fontSize="small" />}</TableCell></TableRow>))}</TableBody></Table></TableContainer></CardContent></Card></Grid>}
-          </Grid>
-        </Grid>
-      </Grid>
+          {/* Galerie d'images */}
+          {images.length > 0 && (
+            <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+              <div className="p-4 lg:p-6 border-b border-base-300 bg-base-200/50">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5 text-secondary" />
+                  <h2 className="text-base lg:text-lg font-bold text-base-content">
+                    Galerie ({images.length})
+                  </h2>
+                </div>
+              </div>
+              <div className="p-4 lg:p-6">
+                <div className="grid grid-cols-3 gap-2">
+                  {images.slice(0, 6).map((img) => (
+                    <img
+                      key={img.id}
+                      src={img.image}
+                      alt={img.alt_text || product.name}
+                      className="w-full h-20 lg:h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setSelectedImage(img.image)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}><Alert severity={snackbar.severity}>{snackbar.message}</Alert></Snackbar>
-    </Box>
+        {/* Colonne droite - Détails */}
+        <div className="lg:col-span-2 space-y-4 lg:space-y-6">
+          {/* Informations générales */}
+          <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+            <div className="p-4 lg:p-6 border-b border-base-300 bg-base-200/50">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 lg:w-5 lg:h-5 text-primary" />
+                <h2 className="text-base lg:text-lg font-bold text-base-content">
+                  Informations générales
+                </h2>
+              </div>
+            </div>
+            <div className="p-4 lg:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-base-content/60 flex items-center gap-1 mb-1">
+                    <Folder className="w-3 h-3" />
+                    Catégorie
+                  </label>
+                  <p className="font-medium text-sm lg:text-base">
+                    {product.category_name || product.category_details?.name || '-'}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-base-content/60 flex items-center gap-1 mb-1">
+                    <Building2 className="w-3 h-3" />
+                    Marque
+                  </label>
+                  <p className="font-medium text-sm lg:text-base">
+                    {product.brand_name || product.brand_details?.name || '-'}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-base-content/60 flex items-center gap-1 mb-1">
+                    <Box className="w-3 h-3" />
+                    Unité
+                  </label>
+                  <p className="font-medium text-sm lg:text-base">
+                    {product.unit_name} ({product.unit_abbrev || product.unit_details?.abbreviation})
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-base-content/60 flex items-center gap-1 mb-1">
+                    <Barcode className="w-3 h-3" />
+                    Code-barres
+                  </label>
+                  <p className="font-medium text-sm lg:text-base font-mono">
+                    {product.barcode || '-'}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-base-content/60 flex items-center gap-1 mb-1">
+                    <MapPin className="w-3 h-3" />
+                    Emplacement
+                  </label>
+                  <p className="font-medium text-sm lg:text-base">
+                    {product.location || '-'}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-base-content/60 flex items-center gap-1 mb-1">
+                    <Weight className="w-3 h-3" />
+                    Poids / Volume
+                  </label>
+                  <p className="font-medium text-sm lg:text-base">
+                    {product.weight ? `${product.weight} kg` : '-'} / {product.volume ? `${product.volume} m³` : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Prix et Stock */}
+          <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+            <div className="p-4 lg:p-6 border-b border-base-300 bg-base-200/50">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-success" />
+                <h2 className="text-base lg:text-lg font-bold text-base-content">
+                  Prix et Stock
+                </h2>
+              </div>
+            </div>
+            <div className="p-4 lg:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+                {/* Prix */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-base-content/60">Prix d'achat (HT)</label>
+                    <p className="text-lg font-medium">{formatNumber(product.purchase_price)} €</p>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-base-content/60">Prix de vente (HT)</label>
+                    <p className="text-2xl lg:text-3xl font-bold text-primary">
+                      {formatNumber(product.sale_price)} €
+                    </p>
+                  </div>
+                  
+                  {product.wholesale_price && (
+                    <div>
+                      <label className="text-xs text-base-content/60">Prix de gros</label>
+                      <p className="text-base">{formatNumber(product.wholesale_price)} €</p>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="text-xs text-base-content/60">TVA</label>
+                    <p className="text-base">{product.tax_rate}%</p>
+                  </div>
+                </div>
+
+                {/* Marge et Stock */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-base-content/60">Marge</label>
+                    <p className="text-lg font-semibold text-success">
+                      {formatNumber(margin.amount)} €
+                    </p>
+                    <span className="badge badge-success badge-sm">
+                      {margin.percentage.toFixed(2)}%
+                    </span>
+                  </div>
+                  
+                  <div className="divider my-2"></div>
+                  
+                  <div>
+                    <label className="text-xs text-base-content/60">Stock actuel</label>
+                    <div className="flex items-center gap-2">
+                      <p className={`text-2xl lg:text-3xl font-bold ${product.is_low_stock ? 'text-warning' : 'text-base-content'}`}>
+                        {product.stock_quantity || 0}
+                      </p>
+                      <span className="text-sm text-base-content/60">
+                        {product.unit_abbrev || ''}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {product.is_low_stock && (
+                    <div className="alert alert-warning py-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="text-sm">Stock faible (min: {product.minimum_stock})</span>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="text-xs text-base-content/60">Stock min / max</label>
+                    <p className="text-sm">
+                      {product.minimum_stock || 0} / {product.maximum_stock || '∞'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Variantes */}
+          {product.has_variants && (
+            <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+              <div className="p-4 lg:p-6 border-b border-base-300 bg-base-200/50">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
+                  <h2 className="text-base lg:text-lg font-bold text-base-content">
+                    Variantes ({variants.length})
+                  </h2>
+                </div>
+              </div>
+              <div className="p-4 lg:p-6">
+                {variants.length === 0 ? (
+                  <p className="text-sm text-base-content/50 text-center py-4">
+                    Aucune variante définie
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="table table-zebra table-sm lg:table-md">
+                      <thead>
+                        <tr className="bg-base-200">
+                          <th>SKU</th>
+                          <th>Attributs</th>
+                          <th className="text-right">Prix achat</th>
+                          <th className="text-right">Prix vente</th>
+                          <th className="text-center">Stock</th>
+                          <th className="text-center">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {variants.map((v) => (
+                          <tr key={v.id}>
+                            <td className="font-mono text-sm">{v.sku}</td>
+                            <td>
+                              <div className="flex flex-wrap gap-1">
+                                {Object.entries(v.attributes).map(([key, val]) => (
+                                  <span key={key} className="badge badge-sm">
+                                    {key}: {val}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="text-right text-sm">{formatNumber(v.purchase_price)} €</td>
+                            <td className="text-right text-sm font-semibold text-primary">
+                              {formatNumber(v.sale_price)} €
+                            </td>
+                            <td className="text-center text-sm">{v.stock_quantity}</td>
+                            <td className="text-center">
+                              {v.is_active ? (
+                                <CheckCircle className="w-4 h-4 text-success inline" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-error inline" />
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal pour afficher l'image en grand */}
+      {selectedImage && (
+        <div className="modal modal-open" onClick={() => setSelectedImage(null)}>
+          <div className="modal-box max-w-4xl p-2" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <img 
+              src={selectedImage} 
+              alt="Aperçu" 
+              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Barre d'actions flottante pour mobile */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-3 shadow-lg z-40">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => navigate('/produits')}
+            className="btn btn-outline btn-sm flex-1"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Retour
+          </button>
+          <button 
+            onClick={() => navigate(`/produits/${id}/modifier`)}
+            className="btn btn-primary btn-sm flex-1"
+          >
+            <Edit className="w-3 h-3" />
+            Modifier
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
