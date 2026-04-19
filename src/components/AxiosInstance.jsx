@@ -11,7 +11,7 @@ const getBaseUrl = () => {
   
   // Priorité 2 : Détection selon le mode
   if (import.meta.env.PROD) {
-    return 'https://ecsisarl-backed.onrender.com'
+    return 'https://pharmatiebackend.onrender.com'
   }
   
   // Développement local

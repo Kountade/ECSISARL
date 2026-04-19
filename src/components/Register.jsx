@@ -1,32 +1,16 @@
 // src/components/Register.jsx
-import '../App.css'
-import {React, useState, useEffect} from 'react'
-import { 
-  Box, MenuItem, Typography, Paper, Alert, Divider, 
-  FormHelperText, FormControl, InputLabel, Select,
-  Fade, Grid
-} from '@mui/material'
-import MyButton from './forms/MyButton'
-import MyTextField from './forms/MyTextField'
-import MyPassField from './forms/MyPassField'
-import {Link} from 'react-router-dom'
-import {useForm, Controller} from 'react-hook-form'
-import AxiosInstance from './AxiosInstance'
-import { useNavigate } from 'react-router-dom'
-import {yupResolver} from "@hookform/resolvers/yup"
+import { React, useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useForm, Controller } from 'react-hook-form'
+import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
+import { 
+  Eye, EyeOff, Mail, Lock, User, Phone, 
+  UserPlus, ChevronDown, AlertCircle, CheckCircle 
+} from 'lucide-react'
+import AxiosInstance from './AxiosInstance'
 import logo from '../assets/logo.svg'
 import backgroundImage from '../assets/background-login.jpg'
-
-// Couleurs de l'entreprise
-const COMPANY_COLORS = {
-  darkCyan: '#003C3f',
-  vividOrange: '#DA4A0E',
-  black: '#000000',
-  darkCyanLight: 'rgba(0, 60, 63, 0.1)',
-  vividOrangeLight: 'rgba(218, 74, 14, 0.1)',
-  darkCyanTransparent: 'rgba(0, 60, 63, 0.8)'
-}
 
 // Configuration des rôles
 const ROLES = [
@@ -44,11 +28,12 @@ const ROLES = [
         icon: '🤝', 
         requiresApproval: false
     }
-];
+]
 
 const Register = () => {
     const navigate = useNavigate()
-
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [showMessage, setShowMessage] = useState(false)
     const [messageText, setMessageText] = useState('')
     const [messageType, setMessageType] = useState('error')
@@ -65,9 +50,9 @@ const Register = () => {
         first_name: yup.string().optional(),
         last_name: yup.string().optional(),
         phone: yup.string().optional()
-    });
+    })
 
-    const {handleSubmit, control, watch, formState: { errors } } = useForm({
+    const { handleSubmit, control, watch, register, formState: { errors } } = useForm({
         resolver: yupResolver(schema),
         defaultValues: { 
             role: 'commercial', 
@@ -75,25 +60,25 @@ const Register = () => {
             last_name: '', 
             phone: '' 
         }
-    });
+    })
 
     // Surveiller le changement du rôle
-    const roleValue = watch('role');
+    const roleValue = watch('role')
     useEffect(() => {
-        setSelectedRole(roleValue);
-        setRoleInfo(ROLES.find(r => r.value === roleValue));
-    }, [roleValue]);
+        setSelectedRole(roleValue)
+        setRoleInfo(ROLES.find(r => r.value === roleValue))
+    }, [roleValue])
 
     const submission = async (data) => {
         setIsLoading(true)
         setShowMessage(false)
 
-        const { password2, ...submitData } = data;
+        const { password2, ...submitData } = data
 
         try {
             await AxiosInstance.post(`register/`, submitData)
             
-            const role = ROLES.find(r => r.value === data.role);
+            const role = ROLES.find(r => r.value === data.role)
             const successMessage = role.requiresApproval 
                 ? '✅ Inscription enregistrée – En attente de validation par un administrateur.' 
                 : '✅ Inscription réussie ! Vous pouvez maintenant vous connecter.'
@@ -125,508 +110,332 @@ const Register = () => {
         }
     }
 
-    return(
-        <Box 
-            sx={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                backgroundImage: `url(${backgroundImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                }
-            }}
-        >
-            {/* Message Alert */}
-            <Fade in={showMessage}>
-                <Box sx={{ 
-                    position: 'fixed',
-                    top: 20,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 1000,
-                    width: '90%',
-                    maxWidth: 400
-                }}>
-                    <Alert 
-                        severity={messageType}
-                        onClose={() => setShowMessage(false)}
-                        sx={{
-                            borderRadius: 2,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                            backgroundColor: 'white',
-                            fontWeight: 500,
-                            borderLeft: messageType === 'error' ? `4px solid ${COMPANY_COLORS.vividOrange}` : '4px solid #4caf50',
-                        }}
-                    >
-                        {messageText}
-                    </Alert>
-                </Box>
-            </Fade>
-            
-            {/* Conteneur principal avec deux colonnes - CARTE AGRANDIE */}
-            <Grid 
-                container 
-                sx={{
-                    maxWidth: 1300,
-                    width: '90%',
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-                    height: { xs: 'auto', md: 750 },
-                    position: 'relative',
-                    zIndex: 1,
-                }}
+    return (
+        <div className="min-h-screen flex items-center justify-center relative p-4">
+            {/* Background avec overlay */}
+            <div 
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url(${backgroundImage})` }}
             >
-                {/* Colonne gauche - Image */}
-                <Grid 
-                    item 
-                    xs={12} 
-                    md={6}
-                    sx={{
-                        display: { xs: 'none', md: 'flex' },
-                        backgroundImage: `url(${backgroundImage})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        position: 'relative',
-                        '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: `linear-gradient(135deg, ${COMPANY_COLORS.darkCyanTransparent} 0%, rgba(0, 60, 63, 0.6) 100%)`,
-                        }
-                    }}
-                >
-                    <Box
-                        sx={{
-                            position: 'relative',
-                            zIndex: 2,
-                            padding: 5,
-                            color: 'white',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Typography 
-                            variant="h3" 
-                            sx={{ 
-                                fontWeight: 700,
-                                mb: 2.5,
-                                fontSize: { md: '2.5rem', lg: '3rem' }
-                            }}
-                        >
-                            Rejoignez-nous
-                        </Typography>
-                        <Typography 
-                            variant="h6" 
-                            sx={{ 
-                                mb: 3,
-                                opacity: 0.9,
-                                fontWeight: 300,
-                                lineHeight: 1.5
-                            }}
-                        >
-                            Créez votre compte professionnel et accédez à tous nos services.
-                        </Typography>
-                        <Box sx={{ mt: 3 }}>
-                            <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                    opacity: 0.8,
-                                    fontStyle: 'italic'
-                                }}
-                            >
-                                "L'innovation distingue les leaders des suiveurs"
-                            </Typography>
-                            <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                    opacity: 0.6,
-                                    display: 'block',
-                                    mt: 1
-                                }}
-                            >
-                                - ECSI SARL
-                            </Typography>
-                        </Box>
-                    </Box>
-                </Grid>
+                <div className="absolute inset-0 bg-white/95 dark:bg-base-100/95 backdrop-blur-sm"></div>
+            </div>
 
-                {/* Colonne droite - Formulaire - PLUS D'ESPACE */}
-                <Grid 
-                    item 
-                    xs={12} 
-                    md={6}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: { xs: 3, md: 4 },
-                        backgroundColor: 'white',
-                        overflow: 'visible'
-                    }}
-                >
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            width: '100%',
-                            maxWidth: 480,
-                            background: 'transparent',
-                            padding: 0
-                        }}
-                    >
-                        <form onSubmit={handleSubmit(submission)}>
-                            <Box 
-                                sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    mb: 2
-                                }}
-                            >
-                                {/* Logo */}
-                                <Box sx={{ 
-                                    mb: 2,
-                                    padding: '12px',
-                                    backgroundColor: 'white',
-                                    borderRadius: '50%',
-                                    boxShadow: `0 8px 25px ${COMPANY_COLORS.darkCyanLight}`,
-                                    width: '80px',
-                                    height: '80px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    border: `1px solid ${COMPANY_COLORS.darkCyanLight}`
-                                }}>
-                                    <img 
-                                        src={logo} 
-                                        alt="Logo ECSI SARL" 
-                                        style={{ 
-                                            width: '55px', 
-                                            height: '55px',
-                                            objectFit: 'contain'
-                                        }}
-                                    />
-                                </Box>
-                                
-                                <Typography 
-                                    variant="h5" 
-                                    sx={{ 
-                                        textAlign: 'center', 
-                                        mb: 1,
-                                        fontWeight: 700,
-                                        color: COMPANY_COLORS.darkCyan
-                                    }}
-                                >
-                                    Créer un compte
-                                </Typography>
-                                <Typography variant="body2" sx={{ 
-                                    color: COMPANY_COLORS.black, 
-                                    textAlign: 'center',
-                                    mb: 2,
-                                    opacity: 0.7
-                                }}>
+            {/* Message d'alerte */}
+            {showMessage && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md animate-slideDown">
+                    <div className={`alert ${messageType === 'error' ? 'alert-error' : 'alert-success'} shadow-lg`}>
+                        {messageType === 'error' ? (
+                            <AlertCircle className="h-5 w-5" />
+                        ) : (
+                            <CheckCircle className="h-5 w-5" />
+                        )}
+                        <span>{messageText}</span>
+                        <button onClick={() => setShowMessage(false)} className="btn btn-ghost btn-xs btn-circle">✕</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Carte principale */}
+            <div className="relative z-10 w-full max-w-6xl bg-base-100 rounded-3xl shadow-2xl overflow-hidden">
+                <div className="flex flex-col lg:flex-row">
+                    {/* Section gauche - Hero */}
+                    <div className="lg:w-1/2 relative hidden lg:block">
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${backgroundImage})` }}
+                        ></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-primary-focus/80"></div>
+                        <div className="relative h-full flex flex-col justify-center p-12 text-primary-content">
+                            <h1 className="text-4xl lg:text-5xl font-bold mb-6">Rejoignez-nous</h1>
+                            <p className="text-lg lg:text-xl opacity-90 mb-8 leading-relaxed">
+                                Créez votre compte professionnel et accédez à tous nos services.
+                            </p>
+                            <div className="mt-auto">
+                                <p className="text-sm opacity-80 italic">
+                                    "L'innovation distingue les leaders des suiveurs"
+                                </p>
+                                <p className="text-xs opacity-60 mt-2">
+                                    - ECSI SARL
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section droite - Formulaire */}
+                    <div className="lg:w-1/2 p-6 lg:p-8 max-h-[750px] overflow-y-auto">
+                        <form onSubmit={handleSubmit(submission)} className="max-w-md mx-auto">
+                            {/* Logo et titre */}
+                            <div className="text-center mb-6">
+                                <div className="inline-flex items-center justify-center w-16 h-16 bg-base-200 rounded-full shadow-lg mb-3">
+                                    <img src={logo} alt="ECSI SARL" className="w-10 h-10 object-contain" />
+                                </div>
+                                <h2 className="text-2xl lg:text-3xl font-bold text-base-content">Créer un compte</h2>
+                                <p className="text-base-content/60 text-sm mt-1">
                                     Rejoignez l'écosystème ECSI SARL
-                                </Typography>
-                            </Box>
+                                </p>
+                            </div>
 
                             {/* Email */}
-                            <Box sx={{ mb: 2 }}>
-                                <MyTextField
-                                    label="Email professionnel"
-                                    name="email"
-                                    control={control}
-                                    rules={{ 
-                                        required: "L'email est requis",
-                                        pattern: {
-                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                            message: "Email invalide"
-                                        }
-                                    }}
-                                    fullWidth
-                                    disabled={isLoading}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '10px',
-                                            '&:hover fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
-                                            }
-                                        }
-                                    }}
-                                />
-                            </Box>
+                            <div className="form-control w-full mb-3">
+                                <label className="label py-1">
+                                    <span className="label-text font-medium text-sm">Email professionnel</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Mail className="h-4 w-4 text-base-content/40" />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        placeholder="votre@email.com"
+                                        className={`input input-bordered input-sm lg:input-md w-full pl-10 ${errors.email ? 'input-error' : ''}`}
+                                        disabled={isLoading}
+                                        {...register('email')}
+                                    />
+                                </div>
+                                {errors.email && (
+                                    <label className="label py-1">
+                                        <span className="label-text-alt text-error text-xs">{errors.email.message}</span>
+                                    </label>
+                                )}
+                            </div>
 
                             {/* Mot de passe - 2 colonnes */}
-                            <Box sx={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: '1fr 1fr', 
-                                gap: 2, 
-                                mb: 2 
-                            }}>
-                                <MyPassField
-                                    label="Mot de passe"
-                                    name="password"
-                                    control={control}
-                                    rules={{ 
-                                        required: "Le mot de passe est requis",
-                                        minLength: {
-                                            value: 6,
-                                            message: "6 caractères minimum"
-                                        }
-                                    }}
-                                    fullWidth
-                                    disabled={isLoading}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '10px',
-                                            '&:hover fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
-                                            }
-                                        }
-                                    }}
-                                />
-                                <MyPassField
-                                    label="Confirmer"
-                                    name="password2"
-                                    control={control}
-                                    rules={{ 
-                                        required: "La confirmation est requise"
-                                    }}
-                                    fullWidth
-                                    disabled={isLoading}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '10px',
-                                            '&:hover fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
-                                            }
-                                        }
-                                    }}
-                                />
-                            </Box>
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                <div className="form-control w-full">
+                                    <label className="label py-1">
+                                        <span className="label-text font-medium text-sm">Mot de passe</span>
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Lock className="h-4 w-4 text-base-content/40" />
+                                        </div>
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            className={`input input-bordered input-sm lg:input-md w-full pl-10 pr-10 ${errors.password ? 'input-error' : ''}`}
+                                            disabled={isLoading}
+                                            {...register('password')}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                            disabled={isLoading}
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="h-4 w-4 text-base-content/40 hover:text-base-content/60" />
+                                            ) : (
+                                                <Eye className="h-4 w-4 text-base-content/40 hover:text-base-content/60" />
+                                            )}
+                                        </button>
+                                    </div>
+                                    {errors.password && (
+                                        <label className="label py-1">
+                                            <span className="label-text-alt text-error text-xs">{errors.password.message}</span>
+                                        </label>
+                                    )}
+                                </div>
 
-                            {/* Prénom, Nom */}
-                            <Box sx={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: '1fr 1fr', 
-                                gap: 2, 
-                                mb: 2 
-                            }}>
-                                <MyTextField
-                                    label="Prénom"
-                                    name="first_name"
-                                    control={control}
-                                    fullWidth
-                                    disabled={isLoading}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '10px',
-                                            '&:hover fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
-                                            }
-                                        }
-                                    }}
-                                />
-                                <MyTextField
-                                    label="Nom"
-                                    name="last_name"
-                                    control={control}
-                                    fullWidth
-                                    disabled={isLoading}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '10px',
-                                            '&:hover fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
-                                            }
-                                        }
-                                    }}
-                                />
-                            </Box>
+                                <div className="form-control w-full">
+                                    <label className="label py-1">
+                                        <span className="label-text font-medium text-sm">Confirmer</span>
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Lock className="h-4 w-4 text-base-content/40" />
+                                        </div>
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            className={`input input-bordered input-sm lg:input-md w-full pl-10 pr-10 ${errors.password2 ? 'input-error' : ''}`}
+                                            disabled={isLoading}
+                                            {...register('password2')}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                            disabled={isLoading}
+                                        >
+                                            {showConfirmPassword ? (
+                                                <EyeOff className="h-4 w-4 text-base-content/40 hover:text-base-content/60" />
+                                            ) : (
+                                                <Eye className="h-4 w-4 text-base-content/40 hover:text-base-content/60" />
+                                            )}
+                                        </button>
+                                    </div>
+                                    {errors.password2 && (
+                                        <label className="label py-1">
+                                            <span className="label-text-alt text-error text-xs">{errors.password2.message}</span>
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Prénom et Nom */}
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                <div className="form-control w-full">
+                                    <label className="label py-1">
+                                        <span className="label-text font-medium text-sm">Prénom</span>
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <User className="h-4 w-4 text-base-content/40" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="John"
+                                            className="input input-bordered input-sm lg:input-md w-full pl-10"
+                                            disabled={isLoading}
+                                            {...register('first_name')}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label py-1">
+                                        <span className="label-text font-medium text-sm">Nom</span>
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <User className="h-4 w-4 text-base-content/40" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Doe"
+                                            className="input input-bordered input-sm lg:input-md w-full pl-10"
+                                            disabled={isLoading}
+                                            {...register('last_name')}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
 
                             {/* Téléphone */}
-                            <Box sx={{ mb: 2 }}>
-                                <MyTextField
-                                    label="Téléphone"
-                                    name="phone"
-                                    control={control}
-                                    fullWidth
-                                    disabled={isLoading}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '10px',
-                                            '&:hover fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
-                                            }
-                                        }
-                                    }}
-                                />
-                            </Box>
+                            <div className="form-control w-full mb-3">
+                                <label className="label py-1">
+                                    <span className="label-text font-medium text-sm">Téléphone</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Phone className="h-4 w-4 text-base-content/40" />
+                                    </div>
+                                    <input
+                                        type="tel"
+                                        placeholder="+33 6 12 34 56 78"
+                                        className="input input-bordered input-sm lg:input-md w-full pl-10"
+                                        disabled={isLoading}
+                                        {...register('phone')}
+                                    />
+                                </div>
+                            </div>
 
-                            <Divider sx={{ my: 1.5 }} />
+                            <div className="divider my-2"></div>
 
                             {/* Sélection du type de compte */}
-                            <FormControl fullWidth error={!!errors.role} sx={{ mb: 2 }}>
-                                <InputLabel id="role-select-label" sx={{ color: COMPANY_COLORS.black, opacity: 0.7 }}>
-                                    Type de compte *
-                                </InputLabel>
+                            <div className="form-control w-full mb-3">
+                                <label className="label py-1">
+                                    <span className="label-text font-medium text-sm">Type de compte *</span>
+                                </label>
                                 <Controller
                                     name="role"
                                     control={control}
                                     render={({ field }) => (
-                                        <Select
-                                            {...field}
-                                            labelId="role-select-label"
-                                            label="Type de compte *"
-                                            disabled={isLoading}
-                                            sx={{
-                                                borderRadius: '10px',
-                                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: COMPANY_COLORS.darkCyan,
-                                                    borderWidth: '2px'
-                                                }
-                                            }}
-                                        >
-                                            {ROLES.map((role) => (
-                                                <MenuItem key={role.value} value={role.value}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                        <span style={{ fontSize: '1.2rem' }}>{role.icon}</span>
-                                                        <Box>
-                                                            <Typography variant="body2" fontWeight={500}>{role.label}</Typography>
-                                                            <Typography variant="caption" color="text.secondary">{role.description}</Typography>
-                                                        </Box>
-                                                    </Box>
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
+                                        <div className="dropdown w-full">
+                                            <div 
+                                                tabIndex={0} 
+                                                className={`select select-bordered select-sm lg:select-md w-full flex items-center justify-between ${errors.role ? 'select-error' : ''}`}
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <span>{roleInfo?.icon}</span>
+                                                    <span>{roleInfo?.label}</span>
+                                                </span>
+                                                <ChevronDown className="h-4 w-4 opacity-50" />
+                                            </div>
+                                            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full mt-1">
+                                                {ROLES.map((role) => (
+                                                    <li key={role.value}>
+                                                        <a 
+                                                            onClick={() => {
+                                                                field.onChange(role.value)
+                                                                const elem = document.activeElement
+                                                                if (elem) elem.blur()
+                                                            }}
+                                                            className="flex items-start gap-3 py-2"
+                                                        >
+                                                            <span className="text-xl">{role.icon}</span>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium text-sm">{role.label}</span>
+                                                                <span className="text-xs text-base-content/60">{role.description}</span>
+                                                            </div>
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
                                     )}
                                 />
-                                {errors.role && <FormHelperText>{errors.role.message}</FormHelperText>}
-                            </FormControl>
+                                {errors.role && (
+                                    <label className="label py-1">
+                                        <span className="label-text-alt text-error text-xs">{errors.role.message}</span>
+                                    </label>
+                                )}
+                            </div>
 
                             {/* Alerte pour validation requise */}
                             {roleInfo?.requiresApproval && (
-                                <Alert 
-                                    severity="warning" 
-                                    sx={{ 
-                                        mb: 2, 
-                                        py: 0.5, 
-                                        fontSize: '0.75rem',
-                                        borderRadius: '8px',
-                                        backgroundColor: COMPANY_COLORS.vividOrangeLight,
-                                        '& .MuiAlert-icon': {
-                                            fontSize: '1rem'
-                                        }
-                                    }}
-                                >
-                                    ⚠️ Ce rôle nécessite une validation par un administrateur avant activation.
-                                </Alert>
+                                <div className="alert alert-warning py-2 px-3 mb-3 text-xs shadow-sm">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>⚠️ Ce rôle nécessite une validation par un administrateur avant activation.</span>
+                                </div>
                             )}
 
                             {/* Bouton d'inscription */}
-                            <Box sx={{ mb: 2 }}>
-                                <MyButton 
-                                    type="submit"
-                                    label={isLoading ? "Création en cours..." : "Créer mon compte"}
-                                    disabled={isLoading}
-                                    loading={isLoading}
-                                    fullWidth
-                                    sx={{
-                                        height: '48px',
-                                        backgroundColor: `${COMPANY_COLORS.darkCyan} !important`,
-                                        color: 'white !important',
-                                        fontWeight: '600 !important',
-                                        fontSize: '15px !important',
-                                        textTransform: 'none',
-                                        borderRadius: '10px !important',
-                                        boxShadow: `0 4px 15px ${COMPANY_COLORS.darkCyan}40 !important`,
-                                        '&:hover': {
-                                            backgroundColor: `${COMPANY_COLORS.vividOrange} !important`,
-                                            transform: 'translateY(-2px) !important'
-                                        }
-                                    }}
-                                />
-                            </Box>
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="btn btn-primary w-full mb-3"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <span className="loading loading-spinner loading-sm"></span>
+                                        Création en cours...
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus className="h-4 w-4" />
+                                        Créer mon compte
+                                    </>
+                                )}
+                            </button>
 
                             {/* Lien connexion */}
-                            <Box sx={{ textAlign: 'center', mb: 2 }}>
-                                <Typography variant="body2" sx={{ color: COMPANY_COLORS.black, opacity: 0.7 }}>
+                            <div className="text-center mb-3">
+                                <p className="text-sm text-base-content/70">
                                     Déjà inscrit ?{' '}
                                     <Link 
                                         to="/" 
-                                        style={{
-                                            color: COMPANY_COLORS.vividOrange,
-                                            textDecoration: 'none',
-                                            fontWeight: '600',
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.target.style.textDecoration = 'underline'
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.target.style.textDecoration = 'none'
-                                        }}
+                                        className="text-secondary hover:text-secondary-focus link link-hover font-semibold"
                                     >
                                         Se connecter
                                     </Link>
-                                </Typography>
-                            </Box>
+                                </p>
+                            </div>
 
                             {/* Footer */}
-                            <Box sx={{ 
-                                pt: 2,
-                                textAlign: 'center',
-                                borderTop: `1px solid ${COMPANY_COLORS.darkCyanLight}`
-                            }}>
-                                <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                        color: COMPANY_COLORS.black,
-                                        opacity: 0.5,
-                                        fontSize: '0.7rem'
-                                    }}
-                                >
+                            <div className="border-t border-base-300 pt-3 text-center">
+                                <p className="text-xs text-base-content/50 mb-1">
                                     En créant un compte, vous acceptez nos conditions générales d'utilisation.
-                                </Typography>
-                                <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                        display: 'block',
-                                        mt: 0.5,
-                                        color: COMPANY_COLORS.black,
-                                        opacity: 0.5,
-                                        fontSize: '0.65rem'
-                                    }}
-                                >
+                                </p>
+                                <p className="text-xs text-base-content/40">
                                     © {new Date().getFullYear()} ECSI SARL – Tous droits réservés
-                                </Typography>
-                            </Box>
+                                </p>
+                            </div>
                         </form>
-                    </Paper>
-                </Grid>
-            </Grid>
-        </Box>
+                    </div>
+                </div>
+            </div>
+        </div>
     )
 }
 

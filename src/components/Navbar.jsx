@@ -1,111 +1,134 @@
+// src/components/Navbar.jsx
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import Box from '@mui/material/Box';
-import Drawer from '@mui/material/Drawer';
-import AppBar from '@mui/material/AppBar';
-import CssBaseline from '@mui/material/CssBaseline';
-import Toolbar from '@mui/material/Toolbar';
-import List from '@mui/material/List';
-import Typography from '@mui/material/Typography';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import Avatar from '@mui/material/Avatar';
-import Tooltip from '@mui/material/Tooltip';
-import Divider from '@mui/material/Divider';
-import Badge from '@mui/material/Badge';
-import Chip from '@mui/material/Chip';
-import Collapse from '@mui/material/Collapse';
-import { Link, useLocation } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-
-// Icônes Material-UI
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
-import PeopleIcon from '@mui/icons-material/People';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import BusinessIcon from '@mui/icons-material/Business';
-import CategoryIcon from '@mui/icons-material/Category';
-import HistoryIcon from '@mui/icons-material/History';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import LogoutIcon from '@mui/icons-material/Logout';
-import GroupIcon from '@mui/icons-material/Group';
-import MovingIcon from '@mui/icons-material/Moving';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
-import PersonIcon from '@mui/icons-material/Person';
-import SettingsIcon from '@mui/icons-material/Settings';
-import WarehouseIcon from '@mui/icons-material/Warehouse';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import WarningIcon from '@mui/icons-material/Warning';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import BuildIcon from '@mui/icons-material/Build';
-import HandshakeIcon from '@mui/icons-material/Handshake';
-import StorefrontIcon from '@mui/icons-material/Storefront';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import CreditCardIcon from '@mui/icons-material/CreditCard';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import ChecklistIcon from '@mui/icons-material/Checklist';
-import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
-import SecurityIcon from '@mui/icons-material/Security';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import StraightenIcon from '@mui/icons-material/Straighten';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-
-import logo from '../assets/logo.svg';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AxiosInstance from './AxiosInstance';
+import logo from '../assets/logo.svg';
 
-const drawerWidth = 280;
+// Icônes Lucide React
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Users,
+  Package,
+  Building2,
+  Tags,
+  History,
+  BarChart3,
+  LogOut,
+  UserPlus,
+  TrendingUp,
+  Moon,
+  Sun,
+  User,
+  Settings,
+  Warehouse,
+  ArrowLeftRight,
+  CreditCard,
+  AlertTriangle,
+  Truck,
+  Wrench,
+  Handshake,
+  Store,
+  Receipt,
+  Calendar,
+  CalendarDays,
+  FileText,
+  ClipboardList,
+  Shield,
+  ChevronDown,
+  ChevronRight,
+  Bell,
+  Menu,
+  X,
+  Home,
+  Briefcase,
+  Banknote,
+  ShoppingBag,
+  Users2,
+  FileBarChart,
+  Activity,
+  Target,
+  Boxes,
+  Ruler,
+  ClipboardCheck,
+  Send,
+  Mail,
+  Phone,
+  MapPin,
+  Award,
+  Eye,
+  Zap,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  ChevronLeft,
+  ChevronUp,
+  ChevronsLeft,
+  ChevronsRight,
+  Search,
+  Command,
+  Star,
+  TrendingDown,
+  PieChart,
+  DollarSign,
+  Percent,
+  Printer,
+  Download,
+  Upload,
+  Filter,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Plus,
+  Minus,
+  RotateCcw,
+  HelpCircle,
+  MessageSquare,
+  AtSign
+} from 'lucide-react';
 
-// Palette de couleurs
-const COMPANY_COLORS = {
-  darkCyan: '#0A2647',
-  vividOrange: '#C9A03D',
-  black: '#000000',
-  white: '#FFFFFF',
-  lightCyan: '#E9F1FA',
-  lightOrange: '#FDF6E3'
-};
-
-// ✅ Configuration des rôles : uniquement super_admin et commercial
+// Configuration des rôles
 const ROLE_CONFIG = {
   super_admin: {
     label: 'Administrateur général',
-    color: '#8B0000',
-    icon: <SecurityIcon />,
+    color: 'badge-error',
+    bgColor: 'bg-error/10',
+    textColor: 'text-error',
+    borderColor: 'border-error',
+    icon: Shield,
     level: 100,
     description: 'Accès total au système'
   },
   commercial: {
     label: 'Commercial',
-    color: '#1976D2',
-    icon: <HandshakeIcon />,
+    color: 'badge-info',
+    bgColor: 'bg-info/10',
+    textColor: 'text-info',
+    borderColor: 'border-info',
+    icon: Handshake,
     level: 60,
     description: 'Force de vente'
   }
 };
 
-export default function Navbar(props) {
-  const { content, mode, toggleColorMode } = props;
+export default function Navbar({ content, mode, toggleColorMode }) {
   const location = useLocation();
   const path = location.pathname;
   const navigate = useNavigate();
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [anchorElNotifications, setAnchorElNotifications] = useState(null);
-  const [openSections, setOpenSections] = useState({});
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [openSections, setOpenSections] = useState({
+    'TABLEAU DE BORD': true,
+    'COMMERCIAL': true
+  });
   const [userInitial, setUserInitial] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Données de notification
   const [stocksFaibles, setStocksFaibles] = useState([]);
@@ -132,7 +155,7 @@ export default function Navbar(props) {
   const userRole = user?.role || '';
   const userEmail = user?.email || '';
   const userName = user?.username || user?.first_name || userEmail?.split('@')[0] || 'Utilisateur';
-  const roleConfig = ROLE_CONFIG[userRole] || ROLE_CONFIG.commercial; // fallback commercial
+  const roleConfig = ROLE_CONFIG[userRole] || ROLE_CONFIG.commercial;
 
   useEffect(() => {
     if (userName) {
@@ -144,37 +167,35 @@ export default function Navbar(props) {
   useEffect(() => {
     const fetchAllNotifications = async () => {
       try {
-        // L'administrateur général voit tout, le commercial voit seulement les ventes
         const isSuperAdmin = userRole === 'super_admin';
         const isCommercial = userRole === 'commercial';
 
         if (isSuperAdmin) {
-          // Stocks faibles
           const stocksRes = await AxiosInstance.get('/stock-movements/?low_stock=true').catch(() => ({ data: [] }));
           setStocksFaibles(stocksRes.data || []);
-          // Commandes à approuver
+          
           const cmdRes = await AxiosInstance.get('/sale-orders/?status=pending_approval').catch(() => ({ data: [] }));
           setCommandesAApprouver(cmdRes.data || []);
-          // Absences
+          
           const absRes = await AxiosInstance.get('/leaves/?status=pending').catch(() => ({ data: [] }));
           setAbsencesEnAttente(absRes.data || []);
-          // Factures proches échéance
+          
           const factRes = await AxiosInstance.get('/invoices/?due_soon=true').catch(() => ({ data: [] }));
           setFacturesEcheance(factRes.data || []);
-          // Achats à livrer
+          
           const achRes = await AxiosInstance.get('/purchase-orders/?status=confirmed').catch(() => ({ data: [] }));
           setAchatsALivrer(achRes.data || []);
-          // Alertes achats
+          
           const alertsRes = await AxiosInstance.get('/purchase-alerts/?is_active=true').catch(() => ({ data: [] }));
           setAlertsCount(alertsRes.data?.length || 0);
-          // Interventions
+          
           const intRes = await AxiosInstance.get('/technical/interventions/?status=in_progress').catch(() => ({ data: [] }));
           setInterventionsEnCours(intRes.data || []);
         }
 
-        // Ventes impayées/retard : visible par les deux rôles
         const ventesImpRes = await AxiosInstance.get('/sale-orders/?payment_status=pending').catch(() => ({ data: [] }));
         setVentesImpayees(ventesImpRes.data || []);
+        
         const ventesRetRes = await AxiosInstance.get('/sale-orders/?status=overdue').catch(() => ({ data: [] }));
         setVentesRetard(ventesRetRes.data || []);
 
@@ -205,32 +226,26 @@ export default function Navbar(props) {
   // Permissions simplifiées
   const isSuperAdmin = () => userRole === 'super_admin';
   const isCommercial = () => userRole === 'commercial';
-
   const canViewDashboard = () => true;
-  const canViewSales = () => true; // les deux rôles voient les ventes
-  const canViewPurchases = () => isSuperAdmin(); // seul l'admin voit les achats
-  const canViewInventory = () => isSuperAdmin(); // seul l'admin voit le stock
+  const canViewSales = () => true;
+  const canViewPurchases = () => isSuperAdmin();
+  const canViewInventory = () => isSuperAdmin();
   const canViewHR = () => isSuperAdmin();
   const canViewAccounting = () => isSuperAdmin();
-  const canViewCustomers = () => true; // les deux voient les clients
+  const canViewCustomers = () => true;
   const canViewSuppliers = () => isSuperAdmin();
-  const canViewReports = () => isSuperAdmin(); // rapports avancés pour admin
+  const canViewReports = () => isSuperAdmin();
   const canViewAdmin = () => isSuperAdmin();
   const canViewTechnical = () => isSuperAdmin();
-  const canViewPOS = () => true; // point de vente accessible aux deux
+  const canViewPOS = () => true;
   const canViewDeliveries = () => isSuperAdmin();
 
   const handleSectionToggle = (section) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
-  const handleMenuClose = () => setAnchorEl(null);
-  const handleNotificationsOpen = (event) => setAnchorElNotifications(event.currentTarget);
-  const handleNotificationsClose = () => setAnchorElNotifications(null);
-
   const logoutUser = () => {
-    handleMenuClose();
+    setProfileMenuOpen(false);
     AxiosInstance.post(`logoutall/`, {})
       .then(() => {
         localStorage.removeItem('Token');
@@ -245,336 +260,762 @@ export default function Navbar(props) {
   };
 
   const notificationCount = getNotificationCount();
+  const RoleIcon = roleConfig.icon;
 
-  // Structure des menus adaptée aux deux rôles
+  // Structure des menus avec icônes plus grandes
   const menuSections = [
     {
       name: 'TABLEAU DE BORD',
-      icon: <DashboardIcon />,
+      icon: LayoutDashboard,
       items: [
-        { id: 'dashboard', text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', permission: canViewDashboard() }
+        { id: 'dashboard', text: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', permission: canViewDashboard() }
       ]
     },
     {
       name: 'COMMERCIAL',
-      icon: <HandshakeIcon />,
+      icon: Handshake,
       permission: canViewSales() || canViewCustomers(),
       items: [
-        { id: 'pos', text: 'Point de Vente', icon: <PointOfSaleIcon />, path: '/point-de-vente', permission: canViewPOS(), badge: 0 },
-        { id: 'ventes', text: 'Ventes', icon: <ShoppingCartIcon />, path: '/ventes', permission: canViewSales(), badge: ventesImpayees.length + ventesRetard.length },
-        { id: 'clients', text: 'Clients', icon: <PeopleIcon />, path: '/clients', permission: canViewCustomers() },
-        { id: 'devis', text: 'Devis', icon: <RequestQuoteIcon />, path: '/devis', permission: canViewSales() },
-        { id: 'factures', text: 'Factures', icon: <ReceiptIcon />, path: '/factures', permission: canViewSales() },
-        { id: 'paiements', text: 'Paiements', icon: <CreditCardIcon />, path: '/paiements', permission: canViewSales() }
+        { id: 'pos', text: 'Point de Vente', icon: Store, path: '/point-de-vente', permission: canViewPOS() },
+        { id: 'ventes', text: 'Ventes', icon: ShoppingCart, path: '/ventes', permission: canViewSales(), badge: ventesImpayees.length + ventesRetard.length },
+        { id: 'clients', text: 'Clients', icon: Users, path: '/clients', permission: canViewCustomers() },
+        { id: 'devis', text: 'Devis', icon: FileText, path: '/devis', permission: canViewSales() },
+        { id: 'factures', text: 'Factures', icon: Receipt, path: '/factures', permission: canViewSales() },
+        { id: 'paiements', text: 'Paiements', icon: DollarSign, path: '/paiements', permission: canViewSales() }
       ]
     },
     {
       name: 'ACHATS',
-      icon: <ShoppingCartIcon />,
+      icon: ShoppingBag,
       permission: canViewPurchases() || canViewSuppliers(),
       items: [
-        { id: 'fournisseurs', text: 'Fournisseurs', icon: <BusinessIcon />, path: '/fournisseurs', permission: canViewSuppliers() },
-        { id: 'evaluations', text: 'Évaluations', icon: <AssessmentIcon />, path: '/supplier-evaluations', permission: canViewSuppliers() },
-        { id: 'commandes', text: 'Commandes', icon: <RequestQuoteIcon />, path: '/commandes-fournisseurs', permission: canViewPurchases(), badge: achatsALivrer.length },
-        { id: 'receptions', text: 'Réceptions', icon: <LocalShippingIcon />, path: '/purchase-receipts', permission: canViewPurchases() },
-        { id: 'catalogue', text: 'Catalogue', icon: <LibraryBooksIcon />, path: '/supplier-catalogs', permission: canViewPurchases() },
-        { id: 'prix', text: 'Historique prix', icon: <HistoryIcon />, path: '/price-history', permission: canViewPurchases() },
-        { id: 'alertes', text: 'Alertes', icon: <WarningIcon />, path: '/purchase-alerts', permission: canViewPurchases(), badge: alertsCount }
+        { id: 'fournisseurs', text: 'Fournisseurs', icon: Building2, path: '/fournisseurs', permission: canViewSuppliers() },
+        { id: 'evaluations', text: 'Évaluations', icon: Star, path: '/supplier-evaluations', permission: canViewSuppliers() },
+        { id: 'commandes', text: 'Commandes', icon: FileText, path: '/commandes-fournisseurs', permission: canViewPurchases(), badge: achatsALivrer.length },
+        { id: 'receptions', text: 'Réceptions', icon: Truck, path: '/purchase-receipts', permission: canViewPurchases() },
+        { id: 'catalogue', text: 'Catalogue', icon: ClipboardList, path: '/supplier-catalogs', permission: canViewPurchases() },
+        { id: 'prix', text: 'Historique prix', icon: History, path: '/price-history', permission: canViewPurchases() },
+        { id: 'alertes', text: 'Alertes', icon: AlertTriangle, path: '/purchase-alerts', permission: canViewPurchases(), badge: alertsCount }
       ]
     },
     {
       name: 'STOCK & LOGISTIQUE',
-      icon: <InventoryIcon />,
+      icon: Package,
       permission: canViewInventory() || canViewDeliveries(),
       items: [
-        { id: 'categories', text: 'Catégories', icon: <CategoryIcon />, path: '/categories', permission: canViewInventory() },
-        { id: 'produits', text: 'Produits', icon: <InventoryIcon />, path: '/produits', permission: canViewInventory() },
-        { id: 'variants', text: 'Variantes', icon: <CategoryIcon />, path: '/variants', permission: canViewInventory() },
-        { id: 'marques', text: 'Marques', icon: <BusinessIcon />, path: '/brands', permission: canViewInventory() },
-        { id: 'unites', text: 'Unités', icon: <StraightenIcon />, path: '/units', permission: canViewInventory() },
-        { id: 'reception', text: 'Réception stock', icon: <LocalShippingIcon />, path: '/stock-receipt', permission: canViewInventory() },
-        { id: 'stocks', text: 'Stocks', icon: <InventoryIcon />, path: '/stocks', permission: canViewInventory(), badge: stocksFaibles.length },
-        { id: 'entrepots', text: 'Entrepôts', icon: <WarehouseIcon />, path: '/entrepots', permission: canViewInventory() },
-        { id: 'mouvements', text: 'Mouvements', icon: <MovingIcon />, path: '/mouvements-stock', permission: canViewInventory() },
-        { id: 'transferts', text: 'Transferts', icon: <SwapHorizIcon />, path: '/transferts', permission: canViewInventory() },
-        { id: 'inventaire', text: 'Inventaire', icon: <ChecklistIcon />, path: '/inventaire', permission: canViewInventory() },
-        { id: 'livraisons', text: 'Livraisons', icon: <LocalShippingIcon />, path: '/livraisons', permission: canViewDeliveries() }
+        { id: 'categories', text: 'Catégories', icon: Tags, path: '/categories', permission: canViewInventory() },
+        { id: 'produits', text: 'Produits', icon: Package, path: '/produits', permission: canViewInventory() },
+        { id: 'variants', text: 'Variantes', icon: Tags, path: '/variants', permission: canViewInventory() },
+        { id: 'marques', text: 'Marques', icon: Award, path: '/brands', permission: canViewInventory() },
+        { id: 'unites', text: 'Unités', icon: Ruler, path: '/units', permission: canViewInventory() },
+        { id: 'reception', text: 'Réception stock', icon: Truck, path: '/stock-receipt', permission: canViewInventory() },
+        { id: 'stocks', text: 'Stocks', icon: Boxes, path: '/stocks', permission: canViewInventory(), badge: stocksFaibles.length },
+        { id: 'entrepots', text: 'Entrepôts', icon: Warehouse, path: '/entrepots', permission: canViewInventory() },
+        { id: 'mouvements', text: 'Mouvements', icon: TrendingUp, path: '/mouvements-stock', permission: canViewInventory() },
+        { id: 'transferts', text: 'Transferts', icon: ArrowLeftRight, path: '/transferts', permission: canViewInventory() },
+        { id: 'inventaire', text: 'Inventaire', icon: ClipboardCheck, path: '/inventaire', permission: canViewInventory() },
+        { id: 'livraisons', text: 'Livraisons', icon: Truck, path: '/livraisons', permission: canViewDeliveries() }
       ]
     },
     {
       name: 'ANALYSES & RAPPORTS',
-      icon: <AssessmentIcon />,
+      icon: PieChart,
       permission: canViewReports(),
       items: [
-        { id: 'rapports-ventes', text: 'Rapports Ventes', icon: <BarChartIcon />, path: '/rapports-ventes', permission: canViewReports() },
-        { id: 'rapports-financiers', text: 'Rapports Financiers', icon: <AssessmentIcon />, path: '/rapports-financiers', permission: canViewReports() },
-        { id: 'statistiques', text: 'Statistiques', icon: <TrendingUpIcon />, path: '/statistiques', permission: canViewReports() },
-        { id: 'kpi', text: 'Indicateurs', icon: <EventNoteIcon />, path: '/kpi', permission: isSuperAdmin() }
+        { id: 'rapports-ventes', text: 'Rapports Ventes', icon: FileBarChart, path: '/rapports-ventes', permission: canViewReports() },
+        { id: 'rapports-financiers', text: 'Rapports Financiers', icon: BarChart3, path: '/rapports-financiers', permission: canViewReports() },
+        { id: 'statistiques', text: 'Statistiques', icon: TrendingUp, path: '/statistiques', permission: canViewReports() },
+        { id: 'kpi', text: 'Indicateurs', icon: Target, path: '/kpi', permission: isSuperAdmin() }
       ]
     },
     {
       name: 'ADMINISTRATION',
-      icon: <SettingsIcon />,
+      icon: Settings,
       permission: canViewAdmin(),
       items: [
-        { id: 'utilisateurs', text: 'Utilisateurs', icon: <ManageAccountsIcon />, path: '/utilisateurs', permission: canViewAdmin() },
-        { id: 'roles', text: 'Rôles & Permissions', icon: <SecurityIcon />, path: '/roles', permission: isSuperAdmin() },
-        { id: 'audit', text: 'Journal Audit', icon: <HistoryIcon />, path: '/audit', permission: canViewAdmin() },
-        { id: 'parametres', text: 'Paramètres', icon: <SettingsIcon />, path: '/parametres', permission: canViewAdmin() }
+        { id: 'utilisateurs', text: 'Utilisateurs', icon: Users2, path: '/utilisateurs', permission: canViewAdmin() },
+        { id: 'roles', text: 'Rôles & Permissions', icon: Shield, path: '/roles', permission: isSuperAdmin() },
+        { id: 'audit', text: 'Journal Audit', icon: History, path: '/audit', permission: canViewAdmin() },
+        { id: 'parametres', text: 'Paramètres', icon: Settings, path: '/parametres', permission: canViewAdmin() }
       ]
     },
     {
       name: 'MON ESPACE',
-      icon: <PersonIcon />,
+      icon: User,
       items: [
-        { id: 'profile', text: 'Mon Profil', icon: <PersonIcon />, path: '/profile', permission: true }
+        { id: 'profile', text: 'Mon Profil', icon: User, path: '/profile', permission: true },
+        { id: 'messages', text: 'Messages', icon: MessageSquare, path: '/messages', permission: true },
+        { id: 'aide', text: 'Aide & Support', icon: HelpCircle, path: '/support', permission: true }
       ]
     }
   ];
 
+  // Fermer les menus quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setProfileMenuOpen(false);
+      setNotificationsOpen(false);
+      setSearchOpen(false);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <AppBar
-        position="fixed"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: COMPANY_COLORS.darkCyan,
-          background: `linear-gradient(135deg, ${COMPANY_COLORS.darkCyan} 0%, #1A3A5F 100%)`,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-          borderBottom: `2px solid ${COMPANY_COLORS.vividOrange}`
-        }}
+    <div className="flex h-screen bg-base-200">
+      {/* Sidebar Desktop - AGGRANDI */}
+      <aside 
+        className={`${
+          sidebarOpen ? 'w-80' : 'w-24'
+        } bg-base-100 shadow-2xl transition-all duration-300 hidden lg:block border-r-4 border-primary/20 relative`}
       >
-        <Toolbar sx={{ justifyContent: 'space-between', minHeight: '70px' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, '&:hover': { opacity: 0.9 } }}>
-              <Box sx={{
-                width: 48, height: 48, borderRadius: '8px', backgroundColor: COMPANY_COLORS.white,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.2)', border: `2px solid ${COMPANY_COLORS.vividOrange}`
-              }}>
-                <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              </Box>
-              <Typography variant="h5" noWrap component="div" sx={{
-                fontWeight: 900,
-                background: `linear-gradient(90deg, ${COMPANY_COLORS.white} 0%, ${COMPANY_COLORS.lightCyan} 100%)`,
-                backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                letterSpacing: '1px', textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                fontFamily: "'Montserrat', 'Roboto', sans-serif", fontSize: { xs: '1.2rem', sm: '1.5rem' }
-              }}>
-                ECSI SARL
-              </Typography>
-            </Box>
-            <Tooltip title={roleConfig.description}>
-              <Chip icon={roleConfig.icon} label={roleConfig.label} size="small" sx={{
-                height: 28, fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: roleConfig.color,
-                color: COMPANY_COLORS.white, boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)', '& .MuiChip-label': { px: 1.5 },
-                '& .MuiChip-icon': { color: COMPANY_COLORS.white }
-              }} />
-            </Tooltip>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {notificationCount > 0 && (
-              <Tooltip title="Notifications">
-                <IconButton sx={{
-                  color: COMPANY_COLORS.white, backgroundColor: 'rgba(255,255,255,0.15)',
-                  '&:hover': { backgroundColor: COMPANY_COLORS.vividOrange, transform: 'scale(1.05)' },
-                  transition: 'all 0.2s ease', mr: 1
-                }} onClick={handleNotificationsOpen}>
-                  <Badge badgeContent={notificationCount} color="error" sx={{
-                    '& .MuiBadge-badge': { backgroundColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.white, fontWeight: 'bold' }
-                  }}>
-                    <WarningIcon />
-                  </Badge>
-                </IconButton>
-              </Tooltip>
-            )}
-            <Menu anchorEl={anchorElNotifications} open={Boolean(anchorElNotifications)} onClose={handleNotificationsClose}
-              PaperProps={{ elevation: 4, sx: { mt: 1.5, width: 380, maxHeight: 500, borderRadius: '8px', border: `1px solid ${COMPANY_COLORS.darkCyan}`, overflow: 'auto' } }}>
-              <MenuItem disabled sx={{ fontWeight: 'bold', color: COMPANY_COLORS.white, backgroundColor: COMPANY_COLORS.darkCyan, py: 1.5 }}>
-                🔔 Notifications ({notificationCount})
-              </MenuItem>
-              {stocksFaibles.length > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/stocks?low_stock=true'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><InventoryIcon color="warning" /></ListItemIcon>
-                  <ListItemText primary="Stocks faibles" secondary={`${stocksFaibles.length} produit(s) à réapprovisionner`} />
-                </MenuItem>
+        <div className="h-full flex flex-col">
+          {/* Logo Section - AGGRANDI */}
+          <div className="p-6 border-b-2 border-base-300 bg-gradient-to-r from-primary/5 to-transparent">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center p-2 shadow-lg">
+                <img src={logo} alt="ECSI SARL" className="w-full h-full object-contain" />
+              </div>
+              {sidebarOpen && (
+                <div className="flex-1">
+                  <h1 className="font-black text-2xl text-primary tracking-tight">ECSI SARL</h1>
+                  <p className="text-sm text-base-content/60 font-medium">ERP Management</p>
+                </div>
               )}
-              {ventesImpayees.length > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/ventes?payment_status=pending'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><MoneyOffIcon color="error" /></ListItemIcon>
-                  <ListItemText primary="Ventes impayées" secondary={`${ventesImpayees.length} vente(s) en attente`} />
-                </MenuItem>
+            </div>
+          </div>
+
+          {/* User Info - AGGRANDI */}
+          <div className={`p-5 border-b-2 border-base-300 ${!sidebarOpen && 'text-center'} ${roleConfig.bgColor}`}>
+            <div className={`flex items-center ${!sidebarOpen && 'justify-center'} gap-4`}>
+              <div className="avatar placeholder">
+                <div className={`bg-gradient-to-br from-primary to-primary-focus text-primary-content rounded-xl ${sidebarOpen ? 'w-16 h-16' : 'w-12 h-12'} shadow-lg`}>
+                  <span className={`${sidebarOpen ? 'text-3xl' : 'text-xl'} font-bold`}>{userInitial}</span>
+                </div>
+              </div>
+              {sidebarOpen && (
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-lg truncate">{userName}</p>
+                  <p className="text-xs text-base-content/60 truncate mb-1">{userEmail}</p>
+                  <div className={`badge ${roleConfig.color} badge-lg font-semibold gap-2 p-4`}>
+                    <RoleIcon className="w-4 h-4" />
+                    <span className="text-sm">{roleConfig.label}</span>
+                  </div>
+                </div>
               )}
-              {ventesRetard.length > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/ventes?status=overdue'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><AccessTimeIcon color="error" /></ListItemIcon>
-                  <ListItemText primary="Ventes en retard" secondary={`${ventesRetard.length} vente(s) en retard`} />
-                </MenuItem>
-              )}
-              {commandesAApprouver.length > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/ventes?status=pending_approval'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><AssignmentIcon color="info" /></ListItemIcon>
-                  <ListItemText primary="Commandes à approuver" secondary={`${commandesAApprouver.length} commande(s) en attente`} />
-                </MenuItem>
-              )}
-              {absencesEnAttente.length > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/conges?status=pending'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><CalendarMonthIcon color="info" /></ListItemIcon>
-                  <ListItemText primary="Demandes de congés" secondary={`${absencesEnAttente.length} demande(s) en attente`} />
-                </MenuItem>
-              )}
-              {facturesEcheance.length > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/factures?due_soon=true'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><ReceiptIcon color="error" /></ListItemIcon>
-                  <ListItemText primary="Factures proches échéance" secondary={`${facturesEcheance.length} facture(s) à payer`} />
-                </MenuItem>
-              )}
-              {achatsALivrer.length > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/commandes-fournisseurs'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><LocalShippingIcon color="warning" /></ListItemIcon>
-                  <ListItemText primary="Commandes à livrer" secondary={`${achatsALivrer.length} commande(s) en attente`} />
-                </MenuItem>
-              )}
-              {alertsCount > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/purchase-alerts'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><WarningIcon color="error" /></ListItemIcon>
-                  <ListItemText primary="Alertes achats" secondary={`${alertsCount} alerte(s) active(s)`} />
-                </MenuItem>
-              )}
-              {interventionsEnCours.length > 0 && (
-                <MenuItem onClick={() => { handleNotificationsClose(); navigate('/interventions?status=in_progress'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><BuildIcon color="info" /></ListItemIcon>
-                  <ListItemText primary="Interventions en cours" secondary={`${interventionsEnCours.length} intervention(s) active(s)`} />
-                </MenuItem>
-              )}
-            </Menu>
-            <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
-              <IconButton sx={{
-                ml: 1, color: COMPANY_COLORS.white, backgroundColor: 'rgba(255,255,255,0.15)',
-                '&:hover': { backgroundColor: COMPANY_COLORS.vividOrange, transform: 'scale(1.05)' }, transition: 'all 0.2s ease'
-              }} onClick={toggleColorMode}>
-                {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={`${userName} - ${roleConfig.label}`}>
-              <IconButton onClick={handleMenuOpen} sx={{ p: 0, ml: 1.5 }}>
-                <Avatar sx={{ width: 40, height: 40, bgcolor: roleConfig.color, fontSize: '1.1rem', fontWeight: 'bold', border: `2px solid ${COMPANY_COLORS.white}`, boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}>
-                  {userInitial}
-                </Avatar>
-              </IconButton>
-            </Tooltip>
-            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}
-              PaperProps={{ elevation: 4, sx: { overflow: 'visible', mt: 1.5, width: 340, borderRadius: '12px', border: `1px solid ${COMPANY_COLORS.darkCyan}` } }}>
-              <MenuItem disabled sx={{ py: 2.5, backgroundColor: COMPANY_COLORS.darkCyan, color: 'white' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                  <Avatar sx={{ width: 50, height: 50, bgcolor: roleConfig.color }}>{userInitial}</Avatar>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="bold">{userName}</Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>{userEmail}</Typography>
-                    <Chip icon={roleConfig.icon} label={roleConfig.label} size="small" sx={{ mt: 0.5, bgcolor: roleConfig.color, color: 'white' }} />
-                  </Box>
-                </Box>
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }} sx={{ py: 1.5 }}>
-                <ListItemIcon><PersonIcon /></ListItemIcon> Mon profil
-              </MenuItem>
-              <MenuItem onClick={() => { handleMenuClose(); navigate('/dashboard'); }} sx={{ py: 1.5 }}>
-                <ListItemIcon><DashboardIcon /></ListItemIcon> Tableau de bord
-              </MenuItem>
-              {canViewAdmin() && (
-                <MenuItem onClick={() => { handleMenuClose(); navigate('/parametres'); }} sx={{ py: 1.5 }}>
-                  <ListItemIcon><SettingsIcon /></ListItemIcon> Paramètres
-                </MenuItem>
-              )}
-              <Divider />
-              <MenuItem onClick={logoutUser} sx={{ py: 1.5, color: COMPANY_COLORS.vividOrange }}>
-                <ListItemIcon><LogoutIcon sx={{ color: COMPANY_COLORS.vividOrange }} /></ListItemIcon>
-                Déconnexion
-              </MenuItem>
-            </Menu>
-          </Box>
-        </Toolbar>
-      </AppBar>
-      <Drawer variant="permanent" sx={{
-        width: drawerWidth, flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', backgroundColor: COMPANY_COLORS.white, borderRight: `2px solid ${COMPANY_COLORS.darkCyan}`, background: 'linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)' }
-      }}>
-        <Toolbar sx={{ minHeight: '70px' }} />
-        <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
-          <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: `2px solid ${COMPANY_COLORS.lightCyan}`, backgroundColor: COMPANY_COLORS.darkCyan, color: COMPANY_COLORS.white }}>
-            <Box sx={{ width: 36, height: 36, borderRadius: '6px', backgroundColor: COMPANY_COLORS.white, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
-              <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            </Box>
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.9rem' }}>GALSENSHOP</Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.65rem' }}>{roleConfig.label}</Typography>
-            </Box>
-          </Box>
-          <List sx={{ p: 1.5 }}>
+            </div>
+          </div>
+
+          {/* Navigation Menu - AGGRANDI */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-2">
             {menuSections.map((section, index) => {
+              const SectionIcon = section.icon;
               const visibleItems = section.items.filter(item => item.permission);
               if (visibleItems.length === 0) return null;
+
               return (
-                <React.Fragment key={index}>
-                  {index > 0 && <Divider sx={{ my: 2, borderColor: COMPANY_COLORS.lightCyan }} />}
-                  <ListItemButton onClick={() => handleSectionToggle(section.name)} sx={{ px: 2, py: 1, '&:hover': { backgroundColor: COMPANY_COLORS.lightCyan } }}>
-                    <ListItemIcon sx={{ color: COMPANY_COLORS.darkCyan, minWidth: 36 }}>{section.icon}</ListItemIcon>
-                    <ListItemText primary={section.name} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 'bold', color: COMPANY_COLORS.darkCyan, letterSpacing: '0.5px' }} />
-                    {openSections[section.name] ? <ExpandLess /> : <ExpandMore />}
-                  </ListItemButton>
-                  <Collapse in={openSections[section.name]} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding>
-                      {visibleItems.map((item) => (
-                        <ListItem key={item.id} disablePadding sx={{ mb: 0.5, pl: 4 }}>
-                          <ListItemButton component={Link} to={item.path} selected={item.path === path} sx={{
-                            '&.Mui-selected': { backgroundColor: COMPANY_COLORS.darkCyan, color: COMPANY_COLORS.white, '& .MuiListItemIcon-root': { color: COMPANY_COLORS.white }, borderLeft: `4px solid ${COMPANY_COLORS.vividOrange}` },
-                            '&:hover': { backgroundColor: COMPANY_COLORS.lightCyan }, borderRadius: '8px', py: 1, pl: 2
-                          }}>
-                            <ListItemIcon sx={{ color: item.path === path ? COMPANY_COLORS.white : COMPANY_COLORS.darkCyan, minWidth: 36 }}>
-                              {item.badge > 0 ? (
-                                <Badge badgeContent={item.badge} color="error" sx={{ '& .MuiBadge-badge': { backgroundColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.white, fontWeight: 'bold', fontSize: '0.6rem', height: 16, minWidth: 16 } }}>
-                                  {item.icon}
-                                </Badge>
-                              ) : item.icon}
-                            </ListItemIcon>
-                            <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: item.path === path ? '600' : '500' }} />
-                          </ListItemButton>
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Collapse>
-                </React.Fragment>
+                <div key={index} className="mb-1">
+                  <button
+                    onClick={() => handleSectionToggle(section.name)}
+                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-base-200 transition-all duration-200 ${
+                      !sidebarOpen && 'justify-center'
+                    } ${
+                      openSections[section.name] ? 'bg-primary/5' : ''
+                    }`}
+                  >
+                    <div className={`p-1.5 rounded-lg ${openSections[section.name] ? 'bg-primary/10' : ''}`}>
+                      <SectionIcon className={`w-6 h-6 ${openSections[section.name] ? 'text-primary' : 'text-base-content/70'}`} />
+                    </div>
+                    {sidebarOpen && (
+                      <>
+                        <span className={`flex-1 text-left text-sm font-black tracking-wider ${
+                          openSections[section.name] ? 'text-primary' : 'text-base-content'
+                        }`}>
+                          {section.name}
+                        </span>
+                        {openSections[section.name] ? (
+                          <ChevronDown className="w-5 h-5 text-primary" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-base-content/50" />
+                        )}
+                      </>
+                    )}
+                  </button>
+
+                  {sidebarOpen && openSections[section.name] && (
+                    <div className="ml-6 mt-2 space-y-1.5 border-l-2 border-primary/20 pl-4">
+                      {visibleItems.map((item) => {
+                        const ItemIcon = item.icon;
+                        return (
+                          <Link
+                            key={item.id}
+                            to={item.path}
+                            className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                              path === item.path
+                                ? 'bg-primary text-primary-content shadow-lg scale-[1.02]'
+                                : 'hover:bg-base-200 text-base-content hover:scale-[1.01]'
+                            }`}
+                          >
+                            <div className={`p-1 rounded-lg ${
+                              path === item.path ? 'bg-primary-content/20' : 'bg-base-300/50 group-hover:bg-base-300'
+                            }`}>
+                              <ItemIcon className="w-5 h-5" />
+                            </div>
+                            <span className="text-base font-semibold flex-1">{item.text}</span>
+                            {item.badge > 0 && (
+                              <span className={`badge badge-error badge-lg font-bold ${
+                                path === item.path ? 'badge-outline' : ''
+                              }`}>
+                                {item.badge}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
-          </List>
-        </Box>
+          </nav>
+
+          {/* Footer - AGGRANDI */}
+          <div className="p-5 border-t-2 border-base-300 bg-base-200/50">
+            {sidebarOpen ? (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                    <span className="text-sm font-semibold text-base-content/70">v3.0.0</span>
+                  </div>
+                  <span className="badge badge-primary badge-lg font-bold">ERP 2026</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-base-content/50 font-medium">
+                    © 2026 ECSI SARL
+                  </p>
+                  <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="btn btn-ghost btn-sm btn-circle"
+                  >
+                    <ChevronsLeft className="w-5 h-5" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center space-y-2">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="btn btn-ghost btn-sm btn-circle"
+                >
+                  <ChevronsRight className="w-5 h-5" />
+                </button>
+                <span className="badge badge-primary badge-sm">v3.0</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Navigation Bar - AGGRANDI */}
+        <header className="bg-base-100 shadow-xl border-b-4 border-primary/20 z-10">
+          <div className="px-6 lg:px-8 h-20 flex items-center justify-between">
+            {/* Left Section */}
+            <div className="flex items-center gap-6">
+              {/* Mobile Menu Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMobileMenuOpen(!mobileMenuOpen);
+                }}
+                className="lg:hidden btn btn-ghost btn-lg btn-circle"
+              >
+                {mobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+              </button>
+
+              {/* Logo Mobile */}
+              <div className="lg:hidden flex items-center gap-3">
+                <img src={logo} alt="ECSI" className="w-10 h-10" />
+                <span className="font-black text-xl text-primary">ECSI SARL</span>
+              </div>
+
+              {/* Search Bar */}
+              <div className="hidden md:block relative">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/40" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher... (⌘K)"
+                    className="input input-bordered w-96 pl-12 pr-4 h-12 text-base"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <kbd className="absolute right-3 top-1/2 -translate-y-1/2 kbd kbd-sm">⌘K</kbd>
+                </div>
+              </div>
+
+              {/* Breadcrumb - AGGRANDI */}
+              <div className="hidden lg:block">
+                <div className="text-base breadcrumbs">
+                  <ul>
+                    <li>
+                      <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
+                        <LayoutDashboard className="w-5 h-5" />
+                        Accueil
+                      </Link>
+                    </li>
+                    <li className="font-black text-primary">
+                      <span className="flex items-center gap-2">
+                        <ChevronRight className="w-4 h-4" />
+                        {path.split('/')[1]?.charAt(0).toUpperCase() + path.split('/')[1]?.slice(1) || 'Dashboard'}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section - AGGRANDI */}
+            <div className="flex items-center gap-4">
+              {/* Quick Actions */}
+              <div className="hidden lg:flex items-center gap-2">
+                <button className="btn btn-ghost btn-md gap-2">
+                  <Plus className="w-5 h-5" />
+                  <span className="font-semibold">Nouveau</span>
+                </button>
+                <button className="btn btn-ghost btn-md gap-2">
+                  <Filter className="w-5 h-5" />
+                  <span className="font-semibold">Filtres</span>
+                </button>
+                <button className="btn btn-ghost btn-md gap-2">
+                  <Download className="w-5 h-5" />
+                  <span className="font-semibold">Exporter</span>
+                </button>
+              </div>
+
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleColorMode}
+                className="btn btn-ghost btn-lg btn-circle"
+              >
+                {mode === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+              </button>
+
+              {/* Notifications - AGGRANDI */}
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNotificationsOpen(!notificationsOpen);
+                  }}
+                  className="btn btn-ghost btn-lg btn-circle relative"
+                >
+                  <Bell className="w-6 h-6" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 badge badge-error badge-lg font-bold">
+                      {notificationCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications Dropdown - AGGRANDI */}
+                {notificationsOpen && (
+                  <div 
+                    className="absolute right-0 mt-3 w-[28rem] bg-base-100 rounded-2xl shadow-2xl border-2 border-base-300 z-50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="p-5 border-b-2 border-base-300 bg-gradient-to-r from-primary/5 to-transparent">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-black text-xl">Notifications</h3>
+                        <span className="badge badge-primary badge-lg font-bold">{notificationCount} nouvelles</span>
+                      </div>
+                    </div>
+                    <div className="max-h-[32rem] overflow-y-auto">
+                      {stocksFaibles.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setNotificationsOpen(false);
+                            navigate('/stocks?low_stock=true');
+                          }}
+                          className="w-full p-5 hover:bg-base-200 text-left border-b border-base-300 transition-colors"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-warning/10 rounded-xl">
+                              <AlertTriangle className="w-7 h-7 text-warning" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-black text-lg mb-1">Stocks faibles</p>
+                              <p className="text-base text-base-content/70">
+                                {stocksFaibles.length} produit(s) nécessitent un réapprovisionnement urgent
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                      {ventesImpayees.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setNotificationsOpen(false);
+                            navigate('/ventes?payment_status=pending');
+                          }}
+                          className="w-full p-5 hover:bg-base-200 text-left border-b border-base-300 transition-colors"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-error/10 rounded-xl">
+                              <DollarSign className="w-7 h-7 text-error" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-black text-lg mb-1">Ventes impayées</p>
+                              <p className="text-base text-base-content/70">
+                                {ventesImpayees.length} vente(s) en attente de paiement
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                      {commandesAApprouver.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setNotificationsOpen(false);
+                            navigate('/ventes?status=pending_approval');
+                          }}
+                          className="w-full p-5 hover:bg-base-200 text-left border-b border-base-300 transition-colors"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-info/10 rounded-xl">
+                              <ClipboardList className="w-7 h-7 text-info" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-black text-lg mb-1">Commandes à approuver</p>
+                              <p className="text-base text-base-content/70">
+                                {commandesAApprouver.length} commande(s) en attente de validation
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                      {notificationCount === 0 && (
+                        <div className="p-10 text-center">
+                          <CheckCircle className="w-16 h-16 mx-auto mb-4 text-success" />
+                          <p className="text-xl font-bold text-base-content mb-2">Tout est en ordre !</p>
+                          <p className="text-base text-base-content/60">
+                            Aucune notification en attente
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {notificationCount > 0 && (
+                      <div className="p-5 border-t-2 border-base-300 bg-base-200">
+                        <button
+                          onClick={() => {
+                            setNotificationsOpen(false);
+                            navigate('/dashboard');
+                          }}
+                          className="btn btn-primary btn-lg w-full font-bold text-lg"
+                        >
+                          Voir toutes les alertes
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* User Menu - AGGRANDI */}
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setProfileMenuOpen(!profileMenuOpen);
+                  }}
+                  className="flex items-center gap-3 btn btn-ghost px-4 h-auto py-2"
+                >
+                  <div className="avatar placeholder">
+                    <div className="bg-gradient-to-br from-primary to-primary-focus text-primary-content rounded-xl w-12 h-12">
+                      <span className="text-xl font-black">{userInitial}</span>
+                    </div>
+                  </div>
+                  <div className="hidden lg:block text-left">
+                    <p className="font-black text-base truncate max-w-[140px]">{userName}</p>
+                    <span className={`badge ${roleConfig.color} badge-md font-bold gap-1`}>
+                      <RoleIcon className="w-3.5 h-3.5" />
+                      <span className="text-sm">{roleConfig.label}</span>
+                    </span>
+                  </div>
+                  <ChevronDown className="w-5 h-5 hidden lg:block" />
+                </button>
+
+                {/* Profile Dropdown - AGGRANDI */}
+                {profileMenuOpen && (
+                  <div 
+                    className="absolute right-0 mt-3 w-80 bg-base-100 rounded-2xl shadow-2xl border-2 border-base-300 z-50 overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className={`p-6 ${roleConfig.bgColor} border-b-2 border-base-300`}>
+                      <div className="flex items-center gap-4">
+                        <div className="avatar placeholder">
+                          <div className="bg-gradient-to-br from-primary to-primary-focus text-primary-content rounded-xl w-16 h-16">
+                            <span className="text-3xl font-black">{userInitial}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-black text-xl">{userName}</p>
+                          <p className="text-sm text-base-content/70">{userEmail}</p>
+                          <div className={`badge ${roleConfig.color} badge-md font-bold mt-2 gap-1`}>
+                            <RoleIcon className="w-3.5 h-3.5" />
+                            <span>{roleConfig.label}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <button
+                        onClick={() => {
+                          setProfileMenuOpen(false);
+                          navigate('/profile');
+                        }}
+                        className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-base-200 rounded-xl font-semibold text-base transition-colors"
+                      >
+                        <User className="w-5 h-5" />
+                        Mon Profil
+                      </button>
+                      <button
+                        onClick={() => {
+                          setProfileMenuOpen(false);
+                          navigate('/dashboard');
+                        }}
+                        className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-base-200 rounded-xl font-semibold text-base transition-colors"
+                      >
+                        <LayoutDashboard className="w-5 h-5" />
+                        Tableau de bord
+                      </button>
+                      <button
+                        onClick={() => {
+                          setProfileMenuOpen(false);
+                          navigate('/messages');
+                        }}
+                        className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-base-200 rounded-xl font-semibold text-base transition-colors"
+                      >
+                        <MessageSquare className="w-5 h-5" />
+                        Messages
+                      </button>
+                      {canViewAdmin() && (
+                        <button
+                          onClick={() => {
+                            setProfileMenuOpen(false);
+                            navigate('/parametres');
+                          }}
+                          className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-base-200 rounded-xl font-semibold text-base transition-colors"
+                        >
+                          <Settings className="w-5 h-5" />
+                          Paramètres
+                        </button>
+                      )}
+                      <div className="divider my-3"></div>
+                      <button
+                        onClick={() => {
+                          setProfileMenuOpen(false);
+                          navigate('/support');
+                        }}
+                        className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-base-200 rounded-xl font-semibold text-base transition-colors"
+                      >
+                        <HelpCircle className="w-5 h-5" />
+                        Aide & Support
+                      </button>
+                      <button
+                        onClick={logoutUser}
+                        className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-error/10 text-error rounded-xl font-semibold text-base transition-colors mt-2"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        Déconnexion
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Alertes rapides - AGGRANDI */}
         {notificationCount > 0 && (
-          <Box sx={{ p: 2, borderTop: `2px solid ${COMPANY_COLORS.lightCyan}`, bgcolor: COMPANY_COLORS.lightOrange, borderLeft: `4px solid ${COMPANY_COLORS.vividOrange}`, margin: 1.5, borderRadius: '8px' }}>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, color: COMPANY_COLORS.darkCyan, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <WarningIcon fontSize="small" sx={{ color: COMPANY_COLORS.vividOrange }} /> Alertes ({notificationCount})
-            </Typography>
-            {stocksFaibles.length > 0 && <Typography variant="caption" sx={{ display: 'block', cursor: 'pointer', color: COMPANY_COLORS.darkCyan, mb: 1, fontWeight: '500' }} onClick={() => navigate('/stocks?low_stock=true')}>⚠️ {stocksFaibles.length} stock(s) faible(s)</Typography>}
-            {commandesAApprouver.length > 0 && <Typography variant="caption" sx={{ display: 'block', cursor: 'pointer', color: COMPANY_COLORS.darkCyan, mb: 1, fontWeight: '500' }} onClick={() => navigate('/ventes?status=pending_approval')}>📋 {commandesAApprouver.length} commande(s) à approuver</Typography>}
-            {absencesEnAttente.length > 0 && <Typography variant="caption" sx={{ display: 'block', cursor: 'pointer', color: COMPANY_COLORS.darkCyan, mb: 1, fontWeight: '500' }} onClick={() => navigate('/conges?status=pending')}>📅 {absencesEnAttente.length} demande(s) de congés</Typography>}
-            <Typography variant="caption" sx={{ display: 'block', mt: 1.5, cursor: 'pointer', color: COMPANY_COLORS.vividOrange, fontWeight: 'bold', textAlign: 'center' }} onClick={() => navigate('/dashboard')}>→ Voir le tableau de bord</Typography>
-          </Box>
+          <div className="bg-warning/10 border-b-2 border-warning/30 px-6 py-3">
+            <div className="flex items-center gap-4 overflow-x-auto">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="p-2 bg-warning/20 rounded-lg">
+                  <AlertTriangle className="w-5 h-5 text-warning" />
+                </div>
+                <span className="font-black text-warning">Alertes actives :</span>
+              </div>
+              <div className="flex gap-3">
+                {stocksFaibles.length > 0 && (
+                  <button
+                    onClick={() => navigate('/stocks?low_stock=true')}
+                    className="btn btn-warning btn-md font-bold gap-2"
+                  >
+                    <Package className="w-4 h-4" />
+                    {stocksFaibles.length} stock(s) faible(s)
+                  </button>
+                )}
+                {commandesAApprouver.length > 0 && (
+                  <button
+                    onClick={() => navigate('/ventes?status=pending_approval')}
+                    className="btn btn-info btn-md font-bold gap-2"
+                  >
+                    <ClipboardList className="w-4 h-4" />
+                    {commandesAApprouver.length} commande(s)
+                  </button>
+                )}
+                {absencesEnAttente.length > 0 && (
+                  <button
+                    onClick={() => navigate('/conges?status=pending')}
+                    className="btn btn-primary btn-md font-bold gap-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    {absencesEnAttente.length} congé(s)
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
-        <Box sx={{ p: 2, borderTop: `2px solid ${COMPANY_COLORS.lightCyan}`, backgroundColor: COMPANY_COLORS.darkCyan, color: COMPANY_COLORS.white }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.8 }}>v1.0.0</Typography>
-            <Chip label="ERP 2025" size="small" sx={{ fontSize: '0.65rem', height: 20, fontWeight: 'bold', backgroundColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.white }} />
-          </Box>
-          <Typography variant="caption" align="center" sx={{ display: 'block', fontWeight: 'bold', fontSize: '0.7rem' }}>{roleConfig.label}</Typography>
-          <Typography variant="caption" align="center" sx={{ display: 'block', fontSize: '0.65rem', mt: 0.5, opacity: 0.8 }}>© 2026 ECSI SARL</Typography>
-        </Box>
-      </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3, backgroundColor: mode === 'dark' ? '#121212' : '#f5f7fa', minHeight: '100vh' }}>
-        <Toolbar sx={{ minHeight: '70px' }} />
-        {content}
-      </Box>
-    </Box>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 bg-base-200">
+          {content}
+        </main>
+      </div>
+
+      {/* Mobile Menu Drawer - AGGRANDI */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}></div>
+          <div className="absolute left-0 top-0 h-full w-96 bg-base-100 shadow-2xl animate-slide-in">
+            <div className="p-6 border-b-2 border-base-300 bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src={logo} alt="ECSI" className="w-12 h-12" />
+                <span className="font-black text-2xl text-primary">ECSI SARL</span>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn btn-ghost btn-lg btn-circle"
+              >
+                <X className="w-7 h-7" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto h-full pb-24">
+              {/* User Info Mobile - AGGRANDI */}
+              <div className={`p-6 border-b-2 border-base-300 ${roleConfig.bgColor}`}>
+                <div className="flex items-center gap-4">
+                  <div className="avatar placeholder">
+                    <div className="bg-gradient-to-br from-primary to-primary-focus text-primary-content rounded-xl w-16 h-16">
+                      <span className="text-3xl font-black">{userInitial}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-black text-xl">{userName}</p>
+                    <p className="text-sm text-base-content/70 mb-2">{userEmail}</p>
+                    <div className={`badge ${roleConfig.color} badge-md font-bold gap-2`}>
+                      <RoleIcon className="w-4 h-4" />
+                      <span className="text-sm">{roleConfig.label}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Navigation - AGGRANDI */}
+              <nav className="p-4 space-y-2">
+                {/* Search Mobile */}
+                <div className="mb-6">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-base-content/40" />
+                    <input
+                      type="text"
+                      placeholder="Rechercher..."
+                      className="input input-bordered w-full pl-14 pr-4 h-14 text-lg"
+                    />
+                  </div>
+                </div>
+
+                {menuSections.map((section, index) => {
+                  const SectionIcon = section.icon;
+                  const visibleItems = section.items.filter(item => item.permission);
+                  if (visibleItems.length === 0) return null;
+
+                  return (
+                    <div key={index} className="mb-2">
+                      <button
+                        onClick={() => handleSectionToggle(section.name)}
+                        className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-base-200"
+                      >
+                        <div className="p-2 bg-primary/5 rounded-lg">
+                          <SectionIcon className="w-6 h-6 text-primary" />
+                        </div>
+                        <span className="flex-1 text-left text-base font-black">
+                          {section.name}
+                        </span>
+                        {openSections[section.name] ? (
+                          <ChevronDown className="w-5 h-5" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5" />
+                        )}
+                      </button>
+
+                      {openSections[section.name] && (
+                        <div className="ml-6 mt-2 space-y-2 border-l-2 border-primary/20 pl-4">
+                          {visibleItems.map((item) => {
+                            const ItemIcon = item.icon;
+                            return (
+                              <Link
+                                key={item.id}
+                                to={item.path}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`flex items-center gap-4 px-4 py-4 rounded-xl ${
+                                  path === item.path
+                                    ? 'bg-primary text-primary-content'
+                                    : 'hover:bg-base-200'
+                                }`}
+                              >
+                                <ItemIcon className="w-5 h-5" />
+                                <span className="text-base font-semibold flex-1">{item.text}</span>
+                                {item.badge > 0 && (
+                                  <span className={`badge badge-error badge-lg font-bold ${
+                                    path === item.path ? 'badge-outline' : ''
+                                  }`}>
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </nav>
+
+              {/* Footer Mobile */}
+              <div className="p-6 border-t-2 border-base-300 mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                    <span className="text-sm font-semibold">v3.0.0</span>
+                  </div>
+                  <span className="badge badge-primary badge-lg font-bold">ERP 2026</span>
+                </div>
+                <p className="text-center text-sm text-base-content/50 font-medium">
+                  © 2026 ECSI SARL - Tous droits réservés
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

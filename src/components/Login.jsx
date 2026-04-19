@@ -1,60 +1,45 @@
 // src/components/Login.jsx
-import '../App.css'
-import {React, useState} from 'react'
-import { Box, Typography, Alert, Fade, Grid, Paper } from '@mui/material'
-import MyTextField from './forms/MyTextField'
-import MyPassField from './forms/MyPassField'
-import MyButton from './forms/MyButton'
-import {Link} from 'react-router-dom'
-import {useForm} from 'react-hook-form'
+import { React, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Link, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react'
 import AxiosInstance from './AxiosInstance'
-import { useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.svg'
 import backgroundImage from '../assets/background-login.jpg'
 
-// Couleurs de l'entreprise
-const COMPANY_COLORS = {
-  darkCyan: '#003C3f',
-  vividOrange: '#DA4A0E',
-  black: '#000000',
-  darkCyanLight: 'rgba(0, 60, 63, 0.1)',
-  vividOrangeLight: 'rgba(218, 74, 14, 0.1)',
-  darkCyanTransparent: 'rgba(0, 60, 63, 0.8)'
-}
-
 const Login = () => {
     const navigate = useNavigate()
-    
-    const { handleSubmit, control } = useForm({
-        defaultValues: {
-            email: '', 
-            password: ''
-        }
-    });
-
+    const [showPassword, setShowPassword] = useState(false)
     const [showMessage, setShowMessage] = useState(false)
     const [messageText, setMessageText] = useState('')
     const [messageType, setMessageType] = useState('error')
     const [loading, setLoading] = useState(false)
 
+    const { register, handleSubmit, formState: { errors } } = useForm({
+        defaultValues: {
+            email: '',
+            password: ''
+        }
+    })
+
     const handleLogin = async (data) => {
         setLoading(true)
         setShowMessage(false)
-        
+
         try {
             const response = await AxiosInstance.post('login/', {
-                email: data.email, 
+                email: data.email,
                 password: data.password,
             })
-            
+
             localStorage.setItem('Token', response.data.token)
             localStorage.setItem('User', JSON.stringify(response.data.user))
-            
+
             navigate('/home')
-            
+
         } catch (error) {
             let errorMessage = 'Échec de connexion. Veuillez réessayer.'
-            
+
             if (error.response) {
                 if (error.response.status === 401) {
                     errorMessage = 'Email ou mot de passe incorrect'
@@ -64,11 +49,11 @@ const Login = () => {
             } else if (error.request) {
                 errorMessage = 'Serveur inaccessible. Vérifiez votre connexion.'
             }
-            
+
             setMessageText(errorMessage)
             setMessageType('error')
             setShowMessage(true)
-            
+
             setTimeout(() => {
                 setShowMessage(false)
             }, 5000)
@@ -77,444 +62,198 @@ const Login = () => {
         }
     }
 
-    return(
-        <Box 
-            sx={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                backgroundImage: `url(${backgroundImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                }
-            }}
-        >
-            {/* Message Alert */}
-            <Fade in={showMessage}>
-                <Box sx={{ 
-                    position: 'fixed',
-                    top: 20,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 1000,
-                    width: '90%',
-                    maxWidth: 400
-                }}>
-                    <Alert 
-                        severity={messageType}
-                        onClose={() => setShowMessage(false)}
-                        sx={{
-                            borderRadius: 2,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                            backgroundColor: 'white',
-                            fontWeight: 500,
-                            borderLeft: messageType === 'error' ? `4px solid ${COMPANY_COLORS.vividOrange}` : '4px solid #4caf50',
-                        }}
-                    >
-                        {messageText}
-                    </Alert>
-                </Box>
-            </Fade>
-            
-            {/* Conteneur principal avec deux colonnes */}
-            <Grid 
-                container 
-                sx={{
-                    maxWidth: 1200,
-                    width: '90%',
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-                    height: { xs: 'auto', md: 650 },
-                    position: 'relative',
-                    zIndex: 1,
-                }}
+    return (
+        <div className="min-h-screen flex items-center justify-center relative p-4">
+            {/* Background avec overlay */}
+            <div 
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url(${backgroundImage})` }}
             >
-                {/* Colonne gauche - Image */}
-                <Grid 
-                    item 
-                    xs={12} 
-                    md={6}
-                    sx={{
-                        display: { xs: 'none', md: 'flex' },
-                        backgroundImage: `url(${backgroundImage})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        position: 'relative',
-                        '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: `linear-gradient(135deg, ${COMPANY_COLORS.darkCyanTransparent} 0%, rgba(0, 60, 63, 0.6) 100%)`,
-                        }
-                    }}
-                >
-                    {/* Contenu superposé sur l'image */}
-                    <Box
-                        sx={{
-                            position: 'relative',
-                            zIndex: 2,
-                            padding: 6,
-                            color: 'white',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Typography 
-                            variant="h3" 
-                            sx={{ 
-                                fontWeight: 700,
-                                mb: 3,
-                                fontSize: { md: '2.5rem', lg: '3rem' }
-                            }}
-                        >
-                            ECSI SARL
-                        </Typography>
-                        <Typography 
-                            variant="h6" 
-                            sx={{ 
-                                mb: 4,
-                                opacity: 0.9,
-                                fontWeight: 300,
-                                lineHeight: 1.6
-                            }}
-                        >
-                            Connectez-vous à votre espace professionnel
-                        </Typography>
-                        <Box sx={{ mt: 4 }}>
-                            <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                    opacity: 0.8,
-                                    fontStyle: 'italic'
-                                }}
-                            >
-                                "L'excellence est le seul chemin vers la réussite"
-                            </Typography>
-                            <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                    opacity: 0.6,
-                                    display: 'block',
-                                    mt: 1
-                                }}
-                            >
-                                - ECSI SARL
-                            </Typography>
-                        </Box>
-                    </Box>
-                </Grid>
+                <div className="absolute inset-0 bg-white/95 dark:bg-base-100/95 backdrop-blur-sm"></div>
+            </div>
 
-                {/* Colonne droite - Formulaire */}
-                <Grid 
-                    item 
-                    xs={12} 
-                    md={6}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: { xs: 3, md: 4 },
-                        backgroundColor: 'white'
-                    }}
-                >
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            width: '100%',
-                            maxWidth: 450,
-                            background: 'transparent',
-                            padding: 0
-                        }}
-                    >
-                        <form onSubmit={handleSubmit(handleLogin)}>
-                            <Box 
-                                sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    mb: 2
-                                }}
-                            >
-                                {/* Logo */}
-                                <Box sx={{ 
-                                    mb: 2,
-                                    padding: '12px',
-                                    backgroundColor: 'white',
-                                    borderRadius: '50%',
-                                    boxShadow: `0 8px 30px ${COMPANY_COLORS.darkCyanLight}`,
-                                    width: '80px',
-                                    height: '80px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    border: `1px solid ${COMPANY_COLORS.darkCyanLight}`
-                                }}>
-                                    <img 
-                                        src={logo} 
-                                        alt="Logo ECSI SARL" 
-                                        style={{ 
-                                            width: '55px', 
-                                            height: '55px',
-                                            objectFit: 'contain'
-                                        }}
-                                    />
-                                </Box>
-                                
-                                <Typography 
-                                    variant="h5" 
-                                    sx={{ 
-                                        textAlign: 'center', 
-                                        mb: 0.5,
-                                        fontWeight: 700,
-                                        color: COMPANY_COLORS.darkCyan
-                                    }}
-                                >
-                                    Connexion
-                                </Typography>
-                                <Typography variant="body2" sx={{ 
-                                    color: COMPANY_COLORS.black, 
-                                    textAlign: 'center',
-                                    mb: 2,
-                                    opacity: 0.7
-                                }}>
+            {/* Message d'alerte */}
+            {showMessage && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md animate-slideDown">
+                    <div className={`alert ${messageType === 'error' ? 'alert-error' : 'alert-success'} shadow-lg`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            {messageType === 'error' ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            )}
+                        </svg>
+                        <span>{messageText}</span>
+                        <button onClick={() => setShowMessage(false)} className="btn btn-ghost btn-xs btn-circle">✕</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Carte principale */}
+            <div className="relative z-10 w-full max-w-5xl bg-base-100 rounded-3xl shadow-2xl overflow-hidden">
+                <div className="flex flex-col lg:flex-row">
+                    {/* Section gauche - Hero */}
+                    <div className="lg:w-1/2 relative hidden lg:block">
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${backgroundImage})` }}
+                        ></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-primary-focus/80"></div>
+                        <div className="relative h-full flex flex-col justify-center p-12 text-primary-content">
+                            <h1 className="text-4xl lg:text-5xl font-bold mb-6">ECSI SARL</h1>
+                            <p className="text-lg lg:text-xl opacity-90 mb-8 leading-relaxed">
+                                Connectez-vous à votre espace professionnel
+                            </p>
+                            <div className="mt-auto">
+                                <p className="text-sm opacity-80 italic">
+                                    "L'excellence est le seul chemin vers la réussite"
+                                </p>
+                                <p className="text-xs opacity-60 mt-2">
+                                    - ECSI SARL
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section droite - Formulaire */}
+                    <div className="lg:w-1/2 p-8 lg:p-12">
+                        <form onSubmit={handleSubmit(handleLogin)} className="max-w-md mx-auto">
+                            {/* Logo et titre */}
+                            <div className="text-center mb-8">
+                                <div className="inline-flex items-center justify-center w-20 h-20 bg-base-200 rounded-full shadow-lg mb-4">
+                                    <img src={logo} alt="ECSI SARL" className="w-12 h-12 object-contain" />
+                                </div>
+                                <h2 className="text-3xl font-bold text-base-content">Connexion</h2>
+                                <p className="text-base-content/60 text-sm mt-2">
                                     Accédez à votre tableau de bord
-                                </Typography>
-                            </Box>
+                                </p>
+                            </div>
 
-                            {/* Email Field */}
-                            <Box sx={{ mb: 2 }}>
-                                <MyTextField
-                                    label="Email professionnel"
-                                    name="email"
-                                    control={control}
-                                    rules={{ 
-                                        required: "L'email est requis",
-                                        pattern: {
-                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                            message: "Email invalide"
-                                        }
-                                    }}
-                                    fullWidth
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '12px',
-                                            backgroundColor: 'white',
-                                            '&:hover fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
-                                            },
-                                            '&.Mui-focused fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
+                            {/* Champ Email */}
+                            <div className="form-control w-full mb-4">
+                                <label className="label">
+                                    <span className="label-text font-medium">Email professionnel</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Mail className="h-5 w-5 text-base-content/40" />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        placeholder="votre@email.com"
+                                        className={`input input-bordered w-full pl-10 ${errors.email ? 'input-error' : ''}`}
+                                        {...register('email', {
+                                            required: "L'email est requis",
+                                            pattern: {
+                                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                                message: "Email invalide"
                                             }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            color: COMPANY_COLORS.black,
-                                            opacity: 0.7,
-                                            '&.Mui-focused': {
-                                                color: COMPANY_COLORS.darkCyan
-                                            }
-                                        }
-                                    }}
-                                />
-                            </Box>
+                                        })}
+                                    />
+                                </div>
+                                {errors.email && (
+                                    <label className="label">
+                                        <span className="label-text-alt text-error">{errors.email.message}</span>
+                                    </label>
+                                )}
+                            </div>
 
-                            {/* Password Field */}
-                            <Box sx={{ mb: 2 }}>
-                                <MyPassField
-                                    label="Mot de passe"
-                                    name="password"
-                                    control={control}
-                                    rules={{ 
-                                        required: "Le mot de passe est requis",
-                                        minLength: {
-                                            value: 6,
-                                            message: "6 caractères minimum"
-                                        }
-                                    }}
-                                    fullWidth
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '12px',
-                                            backgroundColor: 'white',
-                                            '&:hover fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
-                                            },
-                                            '&.Mui-focused fieldset': {
-                                                borderColor: COMPANY_COLORS.darkCyan,
-                                                borderWidth: '2px'
+                            {/* Champ Mot de passe */}
+                            <div className="form-control w-full mb-4">
+                                <label className="label">
+                                    <span className="label-text font-medium">Mot de passe</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-base-content/40" />
+                                    </div>
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        className={`input input-bordered w-full pl-10 pr-10 ${errors.password ? 'input-error' : ''}`}
+                                        {...register('password', {
+                                            required: "Le mot de passe est requis",
+                                            minLength: {
+                                                value: 6,
+                                                message: "6 caractères minimum"
                                             }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            color: COMPANY_COLORS.black,
-                                            opacity: 0.7,
-                                            '&.Mui-focused': {
-                                                color: COMPANY_COLORS.darkCyan
-                                            }
-                                        }
-                                    }}
-                                />
-                            </Box>
+                                        })}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-5 w-5 text-base-content/40 hover:text-base-content/60" />
+                                        ) : (
+                                            <Eye className="h-5 w-5 text-base-content/40 hover:text-base-content/60" />
+                                        )}
+                                    </button>
+                                </div>
+                                {errors.password && (
+                                    <label className="label">
+                                        <span className="label-text-alt text-error">{errors.password.message}</span>
+                                    </label>
+                                )}
+                            </div>
 
-                            {/* Lien "Forgot Password" */}
-                            <Box sx={{ 
-                                display: 'flex', 
-                                justifyContent: 'flex-end',
-                                mb: 2
-                            }}>
+                            {/* Mot de passe oublié */}
+                            <div className="text-right mb-6">
                                 <Link 
-                                    to="/request/password_reset" 
-                                    style={{
-                                        color: COMPANY_COLORS.darkCyan,
-                                        textDecoration: 'none',
-                                        fontSize: '0.8rem',
-                                        fontWeight: '500',
-                                        transition: 'all 0.3s ease',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.color = COMPANY_COLORS.vividOrange
-                                        e.target.style.textDecoration = 'underline'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.color = COMPANY_COLORS.darkCyan
-                                        e.target.style.textDecoration = 'none'
-                                    }}
+                                    to="/request/password_reset"
+                                    className="text-sm text-primary hover:text-primary-focus link link-hover"
                                 >
                                     Mot de passe oublié ?
                                 </Link>
-                            </Box>
+                            </div>
 
-                            {/* Login Button */}
-                            <Box sx={{ mb: 2 }}>
-                                <MyButton 
-                                    label={loading ? "Connexion en cours..." : "Se connecter"}
-                                    type="submit"
-                                    disabled={loading}
-                                    loading={loading}
-                                    fullWidth
-                                    sx={{
-                                        height: '48px',
-                                        backgroundColor: `${COMPANY_COLORS.darkCyan} !important`,
-                                        color: 'white !important',
-                                        fontWeight: '600 !important',
-                                        fontSize: '15px !important',
-                                        textTransform: 'none',
-                                        borderRadius: '12px !important',
-                                        boxShadow: `0 4px 15px ${COMPANY_COLORS.darkCyan}40 !important`,
-                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important',
-                                        '&:hover': {
-                                            backgroundColor: `${COMPANY_COLORS.vividOrange} !important`,
-                                            boxShadow: `0 6px 20px ${COMPANY_COLORS.vividOrange}40 !important`,
-                                            transform: 'translateY(-2px) !important'
-                                        },
-                                        '&:active': {
-                                            transform: 'translateY(0) !important'
-                                        },
-                                        '&:disabled': {
-                                            backgroundColor: '#e0e0e0 !important',
-                                            color: '#9e9e9e !important',
-                                            boxShadow: 'none !important',
-                                            transform: 'none !important'
-                                        }
-                                    }}
-                                />
-                            </Box>
+                            {/* Bouton de connexion */}
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="btn btn-primary w-full mb-4"
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="loading loading-spinner"></span>
+                                        Connexion en cours...
+                                    </>
+                                ) : (
+                                    <>
+                                        <LogIn className="h-5 w-5" />
+                                        Se connecter
+                                    </>
+                                )}
+                            </button>
 
-                            {/* Bouton "Créer un compte" - Version corrigée avec marges réduites */}
-                            <Box sx={{ 
-                                textAlign: 'center',
-                                mt: 1,
-                                mb: 2
-                            }}>
-                                <Typography variant="body2" sx={{ 
-                                    color: COMPANY_COLORS.black, 
-                                    mb: 1, 
-                                    opacity: 0.7,
-                                    fontSize: '0.8rem'
-                                }}>
+                            {/* Créer un compte */}
+                            <div className="text-center mb-6">
+                                <p className="text-sm text-base-content/60 mb-2">
                                     Pas encore de compte ?
-                                </Typography>
+                                </p>
                                 <Link 
-                                    to="/register" 
-                                    style={{
-                                        color: COMPANY_COLORS.vividOrange,
-                                        textDecoration: 'none',
-                                        fontWeight: '600',
-                                        fontSize: '0.9rem',
-                                        transition: 'all 0.3s ease',
-                                        padding: '8px 24px',
-                                        borderRadius: '25px',
-                                        backgroundColor: COMPANY_COLORS.vividOrangeLight,
-                                        display: 'inline-block',
-                                        cursor: 'pointer'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.backgroundColor = COMPANY_COLORS.vividOrange
-                                        e.target.style.color = 'white'
-                                        e.target.style.transform = 'translateY(-1px)'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.backgroundColor = COMPANY_COLORS.vividOrangeLight
-                                        e.target.style.color = COMPANY_COLORS.vividOrange
-                                        e.target.style.transform = 'translateY(0)'
-                                    }}
+                                    to="/register"
+                                    className="btn btn-outline btn-secondary btn-sm"
                                 >
                                     Créer un compte
                                 </Link>
-                            </Box>
+                            </div>
 
                             {/* Séparateur */}
-                            <Box sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                my: 2,
-                                opacity: 0.5
-                            }}>
-                                <Box sx={{ flex: 1, height: '1px', backgroundColor: COMPANY_COLORS.darkCyanLight }} />
-                                <Typography variant="caption" sx={{ mx: 2, color: COMPANY_COLORS.darkCyan }}>
-                                    OU
-                                </Typography>
-                                <Box sx={{ flex: 1, height: '1px', backgroundColor: COMPANY_COLORS.darkCyanLight }} />
-                            </Box>
+                            <div className="divider text-base-content/40 text-xs">OU</div>
 
                             {/* Footer */}
-                            <Box sx={{ 
-                                pt: 1,
-                                textAlign: 'center'
-                            }}>
-                                <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                        color: COMPANY_COLORS.black,
-                                        opacity: 0.5,
-                                        fontSize: '0.7rem'
-                                    }}
-                                >
+                            <div className="text-center mt-6">
+                                <p className="text-xs text-base-content/40">
                                     © {new Date().getFullYear()} ECSI SARL – Tous droits réservés
-                                </Typography>
-                            </Box>
+                                </p>
+                            </div>
                         </form>
-                    </Paper>
-                </Grid>
-            </Grid>
-        </Box>
+                    </div>
+                </div>
+            </div>
+        </div>
     )
 }
 
