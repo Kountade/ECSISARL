@@ -9,29 +9,22 @@ import {
   Search,
   RefreshCw,
   Filter,
-  Tags,
   X,
   AlertCircle,
   CheckCircle,
   Package,
   Eye,
-  MoreVertical,
-  ChevronDown,
-  ChevronUp,
   ChevronLeft,
   ChevronRight,
-  LayoutGrid,
-  List,
-  FolderTree,
   Folder,
   FolderOpen,
   Layers,
   AlertTriangle,
   ArrowUpDown,
-  Image as ImageIcon,
-  ExternalLink,
-  Grid,
-  BarChart3
+  BarChart3,
+  ChevronUp,
+  ChevronDown,
+  MoreHorizontal
 } from 'lucide-react'
 
 const Categories = () => {
@@ -42,16 +35,15 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterActive, setFilterActive] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(12)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState(null)
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
-  const [viewMode, setViewMode] = useState('grid') // 'grid' ou 'table'
   const [sortField, setSortField] = useState('name')
   const [sortDirection, setSortDirection] = useState('asc')
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
-  const [expandedCategories, setExpandedCategories] = useState([])
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -67,7 +59,6 @@ const Categories = () => {
       const response = await AxiosInstance.get('/categories/')
       setCategories(response.data)
       
-      // Calculer les statistiques
       const total = response.data.length
       const active = response.data.filter(c => c.is_active).length
       const inactive = total - active
@@ -123,24 +114,6 @@ const Categories = () => {
     }
   }
 
-  const toggleExpand = (categoryId) => {
-    setExpandedCategories(prev => 
-      prev.includes(categoryId) 
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    )
-  }
-
-  // Construire l'arborescence des catégories
-  const buildCategoryTree = (categories, parentId = null) => {
-    return categories
-      .filter(cat => cat.parent === parentId)
-      .map(cat => ({
-        ...cat,
-        children: buildCategoryTree(categories, cat.id)
-      }))
-  }
-
   // Filtrage et tri des catégories
   const filteredAndSortedCategories = React.useMemo(() => {
     let filtered = categories.filter(category => {
@@ -169,8 +142,6 @@ const Categories = () => {
     return filtered
   }, [categories, searchTerm, filterActive, sortField, sortDirection])
 
-  const categoryTree = buildCategoryTree(filteredAndSortedCategories)
-
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedCategories.length / itemsPerPage)
   const paginatedCategories = filteredAndSortedCategories.slice(
@@ -180,139 +151,31 @@ const Categories = () => {
 
   const getStatusBadge = (isActive) => {
     return isActive ? (
-      <div className="badge badge-success gap-1">
+      <span className="badge badge-success badge-sm gap-1">
         <CheckCircle className="w-3 h-3" />
         Actif
-      </div>
+      </span>
     ) : (
-      <div className="badge badge-ghost gap-1">
+      <span className="badge badge-ghost badge-sm gap-1">
         <AlertCircle className="w-3 h-3" />
         Inactif
-      </div>
+      </span>
     )
   }
 
-  const renderCategoryTree = (categories, level = 0) => {
-    return categories.map(category => (
-      <div key={category.id} className="space-y-2">
-        <div 
-          className={`flex items-center gap-4 p-4 bg-base-100 rounded-xl border border-base-300 hover:shadow-md transition-all duration-200 ${
-            level > 0 ? 'ml-8' : ''
-          }`}
-          style={{ marginLeft: `${level * 2}rem` }}
-        >
-          {/* Icône d'expansion pour les sous-catégories */}
-          {category.children && category.children.length > 0 ? (
-            <button
-              onClick={() => toggleExpand(category.id)}
-              className="btn btn-ghost btn-sm btn-circle"
-            >
-              {expandedCategories.includes(category.id) ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )}
-            </button>
-          ) : (
-            <div className="w-8"></div>
-          )}
-
-          {/* Image */}
-          <div className="flex-shrink-0">
-            {category.image ? (
-              <div className="avatar">
-                <div className="w-12 h-12 rounded-xl">
-                  <img src={category.image} alt={category.name} className="object-cover" />
-                </div>
-              </div>
-            ) : (
-              <div className="avatar placeholder">
-                <div className="bg-primary/10 text-primary rounded-xl w-12 h-12">
-                  {category.parent ? (
-                    <Folder className="w-6 h-6" />
-                  ) : (
-                    <FolderOpen className="w-6 h-6" />
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Informations */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
-              <h3 className="font-bold text-lg text-base-content">{category.name}</h3>
-              {getStatusBadge(category.is_active)}
-              {!category.parent && (
-                <span className="badge badge-primary badge-sm">Parent</span>
-              )}
-            </div>
-            <p className="text-sm text-base-content/70 line-clamp-2">
-              {category.description || 'Aucune description'}
-            </p>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center gap-1 text-xs text-base-content/60">
-                <Package className="w-3 h-3" />
-                {category.products_count || 0} produit(s)
-              </div>
-              <div className="flex items-center gap-1 text-xs text-base-content/60">
-                <Layers className="w-3 h-3" />
-                {category.subcategories_count || 0} sous-catégorie(s)
-              </div>
-              {category.parent_name && (
-                <div className="flex items-center gap-1 text-xs text-base-content/60">
-                  <FolderTree className="w-3 h-3" />
-                  Parent: {category.parent_name}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setSelectedCategory(category)
-                setShowDetailsModal(true)
-              }}
-              className="btn btn-ghost btn-sm btn-circle"
-            >
-              <Eye className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => navigate(`/categories/${category.id}/modifier`)}
-              className="btn btn-ghost btn-sm btn-circle"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                setCategoryToDelete(category)
-                setShowDeleteModal(true)
-              }}
-              className="btn btn-ghost btn-sm btn-circle text-error"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Sous-catégories */}
-        {expandedCategories.includes(category.id) && category.children && category.children.length > 0 && (
-          <div className="border-l-2 border-primary/20 ml-4">
-            {renderCategoryTree(category.children, level + 1)}
-          </div>
-        )}
-      </div>
-    ))
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 opacity-40" />
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="w-3 h-3" /> : 
+      <ChevronDown className="w-3 h-3" />
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-        <div className="text-center space-y-6">
-          <div className="loading loading-spinner loading-lg text-primary w-16 h-16"></div>
-          <p className="text-xl font-semibold text-base-content/70 animate-pulse">
+        <div className="text-center space-y-4">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+          <p className="text-base font-medium text-base-content/70 animate-pulse">
             Chargement des catégories...
           </p>
         </div>
@@ -321,131 +184,185 @@ const Categories = () => {
   }
 
   return (
-    <div className="space-y-6 p-4 lg:p-6">
+    <div className="space-y-4 lg:space-y-6 p-3 lg:p-6">
       {/* Notification */}
       {notification.show && (
-        <div className="fixed top-20 right-6 z-50 animate-slideDown">
+        <div className="fixed top-16 lg:top-20 right-3 lg:right-6 z-50 animate-slideDown w-[calc(100%-1.5rem)] lg:w-auto max-w-md">
           <div className={`alert ${notification.type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg`}>
             {notification.type === 'success' ? (
-              <CheckCircle className="w-5 h-5" />
+              <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" />
             ) : (
-              <AlertCircle className="w-5 h-5" />
+              <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5" />
             )}
-            <span className="font-semibold">{notification.message}</span>
+            <span className="text-sm lg:text-base font-medium">{notification.message}</span>
             <button 
               className="btn btn-ghost btn-xs btn-circle"
               onClick={() => setNotification({ ...notification, show: false })}
             >
-              <X className="w-4 h-4" />
+              <X className="w-3 h-3 lg:w-4 lg:h-4" />
             </button>
           </div>
         </div>
       )}
 
       {/* En-tête */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-4xl font-black text-base-content mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="text-2xl lg:text-3xl font-bold text-base-content">
             Catégories
           </h1>
-          <p className="text-base text-base-content/60">
-            Organisez vos produits par catégories hiérarchiques
+          <p className="text-xs lg:text-sm text-base-content/60">
+            Organisez vos produits par catégories
           </p>
         </div>
         
-        <div className="flex flex-wrap gap-3">
+        <div className="flex gap-2">
           <button 
             onClick={fetchData}
-            className="btn btn-outline gap-2"
+            className="btn btn-outline btn-sm lg:btn-md gap-1 lg:gap-2"
           >
-            <RefreshCw className="w-4 h-4" />
-            Actualiser
+            <RefreshCw className="w-3 h-3 lg:w-4 lg:h-4" />
+            <span className="hidden sm:inline">Actualiser</span>
           </button>
           <button 
             onClick={() => navigate('/categories/nouveau')}
-            className="btn btn-primary gap-2"
+            className="btn btn-primary btn-sm lg:btn-md gap-1 lg:gap-2"
           >
-            <Plus className="w-4 h-4" />
-            Nouvelle catégorie
+            <Plus className="w-3 h-3 lg:w-4 lg:h-4" />
+            <span className="hidden sm:inline">Nouvelle catégorie</span>
+            <span className="sm:hidden">Nouveau</span>
           </button>
         </div>
       </div>
 
-      {/* Cartes statistiques */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-300">
+      {/* Cartes statistiques - Responsive */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 lg:gap-3">
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4">
           <div className="stat-figure text-primary">
-            <FolderTree className="w-8 h-8" />
+            <Folder className="w-5 h-5 lg:w-6 lg:h-6" />
           </div>
-          <div className="stat-title text-sm font-semibold">Total</div>
-          <div className="stat-value text-2xl font-black">{stats.total}</div>
+          <div className="stat-title text-xs lg:text-sm">Total</div>
+          <div className="stat-value text-lg lg:text-2xl">{stats.total}</div>
         </div>
         
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-300">
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4">
           <div className="stat-figure text-success">
-            <CheckCircle className="w-8 h-8" />
+            <CheckCircle className="w-5 h-5 lg:w-6 lg:h-6" />
           </div>
-          <div className="stat-title text-sm font-semibold">Actives</div>
-          <div className="stat-value text-2xl font-black">{stats.active}</div>
+          <div className="stat-title text-xs lg:text-sm">Actives</div>
+          <div className="stat-value text-lg lg:text-2xl">{stats.active}</div>
         </div>
         
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-300">
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4 hidden lg:block">
           <div className="stat-figure text-info">
-            <Folder className="w-8 h-8" />
+            <FolderOpen className="w-6 h-6" />
           </div>
-          <div className="stat-title text-sm font-semibold">Parents</div>
-          <div className="stat-value text-2xl font-black">{stats.parentCategories}</div>
+          <div className="stat-title text-sm">Parents</div>
+          <div className="stat-value text-2xl">{stats.parentCategories}</div>
         </div>
         
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-300">
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4 hidden lg:block">
           <div className="stat-figure text-secondary">
-            <Layers className="w-8 h-8" />
+            <Layers className="w-6 h-6" />
           </div>
-          <div className="stat-title text-sm font-semibold">Sous-cat.</div>
-          <div className="stat-value text-2xl font-black">{stats.subCategories}</div>
+          <div className="stat-title text-sm">Sous-cat.</div>
+          <div className="stat-value text-2xl">{stats.subCategories}</div>
         </div>
         
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-300">
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4">
           <div className="stat-figure text-warning">
-            <Package className="w-8 h-8" />
+            <Package className="w-5 h-5 lg:w-6 lg:h-6" />
           </div>
-          <div className="stat-title text-sm font-semibold">Avec produits</div>
-          <div className="stat-value text-2xl font-black">{stats.withProducts}</div>
+          <div className="stat-title text-xs lg:text-sm">Avec produits</div>
+          <div className="stat-value text-lg lg:text-2xl">{stats.withProducts}</div>
         </div>
         
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-300">
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4">
           <div className="stat-figure text-accent">
-            <BarChart3 className="w-8 h-8" />
+            <BarChart3 className="w-5 h-5 lg:w-6 lg:h-6" />
           </div>
-          <div className="stat-title text-sm font-semibold">Taux actif</div>
-          <div className="stat-value text-2xl font-black">
+          <div className="stat-title text-xs lg:text-sm">Taux actif</div>
+          <div className="stat-value text-lg lg:text-2xl">
             {stats.total > 0 ? ((stats.active / stats.total) * 100).toFixed(0) : 0}%
           </div>
         </div>
       </div>
 
-      {/* Filtres et recherche */}
-      <div className="bg-base-100 rounded-xl shadow-md border border-base-300 p-4 lg:p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/40" />
-              <input
-                type="text"
-                placeholder="Rechercher par nom ou description..."
-                className="input input-bordered w-full pl-12"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value)
-                  setCurrentPage(1)
-                }}
-              />
-            </div>
+      {/* Filtres - Desktop */}
+      <div className="hidden lg:flex bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+        <div className="flex items-center gap-3 w-full">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom ou description..."
+              className="input input-bordered input-sm w-full pl-9"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1)
+              }}
+            />
           </div>
           
-          <div className="flex gap-3">
+          <select 
+            className="select select-bordered select-sm w-36"
+            value={filterActive}
+            onChange={(e) => {
+              setFilterActive(e.target.value)
+              setCurrentPage(1)
+            }}
+          >
+            <option value="">Tous statuts</option>
+            <option value="true">Actif</option>
+            <option value="false">Inactif</option>
+          </select>
+          
+          <button 
+            className="btn btn-outline btn-sm"
+            onClick={() => {
+              setFilterActive('')
+              setSearchTerm('')
+              setCurrentPage(1)
+            }}
+          >
+            <Filter className="w-3 h-3" />
+            Réinitialiser
+          </button>
+        </div>
+      </div>
+
+      {/* Filtres - Mobile */}
+      <div className="lg:hidden">
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-base-content/40" />
+            <input
+              type="text"
+              placeholder="Rechercher..."
+              className="input input-bordered input-sm w-full pl-8 text-sm"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1)
+              }}
+            />
+          </div>
+          
+          <button 
+            className="btn btn-outline btn-sm"
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+          >
+            <Filter className="w-3 h-3" />
+            Filtres
+          </button>
+        </div>
+
+        {/* Filtres avancés mobile */}
+        {showMobileFilters && (
+          <div className="mt-2 p-3 bg-base-100 rounded-lg border border-base-300 space-y-2">
             <select 
-              className="select select-bordered min-w-[150px]"
+              className="select select-bordered select-sm w-full"
               value={filterActive}
               onChange={(e) => {
                 setFilterActive(e.target.value)
@@ -458,392 +375,342 @@ const Categories = () => {
             </select>
             
             <button 
-              className="btn btn-outline"
+              className="btn btn-outline btn-sm w-full"
               onClick={() => {
                 setFilterActive('')
                 setSearchTerm('')
                 setCurrentPage(1)
+                setShowMobileFilters(false)
               }}
             >
-              <Filter className="w-4 h-4" />
-              Réinitialiser
+              Réinitialiser les filtres
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Tableau - Desktop */}
+      <div className="hidden lg:block bg-base-100 rounded-xl shadow-sm border border-base-300 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="table table-zebra">
+            <thead>
+              <tr className="bg-base-200">
+                <th className="w-12"></th>
+                <th>
+                  <button 
+                    className="flex items-center gap-1 hover:text-primary font-semibold"
+                    onClick={() => handleSort('name')}
+                  >
+                    Nom
+                    <SortIcon field="name" />
+                  </button>
+                </th>
+                <th>Description</th>
+                <th>Catégorie parente</th>
+                <th>
+                  <button 
+                    className="flex items-center gap-1 hover:text-primary font-semibold"
+                    onClick={() => handleSort('products_count')}
+                  >
+                    Produits
+                    <SortIcon field="products_count" />
+                  </button>
+                </th>
+                <th>
+                  <button 
+                    className="flex items-center gap-1 hover:text-primary font-semibold"
+                    onClick={() => handleSort('subcategories_count')}
+                  >
+                    Sous-cat.
+                    <SortIcon field="subcategories_count" />
+                  </button>
+                </th>
+                <th>Statut</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedCategories.map((category) => (
+                <tr key={category.id} className="hover">
+                  <td>
+                    {category.image ? (
+                      <div className="avatar">
+                        <div className="w-8 h-8 rounded-lg">
+                          <img src={category.image} alt={category.name} className="object-cover" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="avatar placeholder">
+                        <div className="bg-primary/10 text-primary rounded-lg w-8 h-8">
+                          {category.parent ? (
+                            <Folder className="w-4 h-4" />
+                          ) : (
+                            <FolderOpen className="w-4 h-4" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                  <td className="font-medium">{category.name}</td>
+                  <td className="max-w-xs truncate text-base-content/70">
+                    {category.description || '-'}
+                  </td>
+                  <td className="text-sm">
+                    {category.parent ? category.parent_name || `ID: ${category.parent}` : 
+                      <span className="text-base-content/40">-</span>
+                    }
+                  </td>
+                  <td className="text-center">
+                    <span className="badge badge-sm">
+                      {category.products_count || 0}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <span className="badge badge-sm">
+                      {category.subcategories_count || 0}
+                    </span>
+                  </td>
+                  <td>{getStatusBadge(category.is_active)}</td>
+                  <td>
+                    <div className="flex justify-end gap-1">
+                      <button 
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => {
+                          setSelectedCategory(category)
+                          setShowDetailsModal(true)
+                        }}
+                      >
+                        <Eye className="w-3 h-3" />
+                      </button>
+                      <button 
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => navigate(`/categories/${category.id}/modifier`)}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </button>
+                      <button 
+                        className="btn btn-ghost btn-xs text-error"
+                        onClick={() => {
+                          setCategoryToDelete(category)
+                          setShowDeleteModal(true)
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {filteredAndSortedCategories.length === 0 && (
+          <div className="p-12 text-center">
+            <Folder className="w-16 h-16 mx-auto mb-3 text-base-content/30" />
+            <p className="text-base font-medium text-base-content/50">
+              Aucune catégorie trouvée
+            </p>
+            <p className="text-sm text-base-content/40 mt-1">
+              Essayez de modifier vos critères de recherche
+            </p>
+            <button 
+              className="btn btn-primary btn-sm mt-4"
+              onClick={() => navigate('/categories/nouveau')}
+            >
+              <Plus className="w-3 h-3" />
+              Créer une catégorie
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Liste - Mobile */}
+      <div className="lg:hidden space-y-2">
+        {paginatedCategories.length === 0 ? (
+          <div className="bg-base-100 rounded-xl p-8 text-center border border-base-300">
+            <Folder className="w-12 h-12 mx-auto mb-2 text-base-content/30" />
+            <p className="text-sm font-medium text-base-content/50">
+              Aucune catégorie trouvée
+            </p>
+            <button 
+              className="btn btn-primary btn-sm mt-3"
+              onClick={() => navigate('/categories/nouveau')}
+            >
+              <Plus className="w-3 h-3" />
+              Créer
+            </button>
+          </div>
+        ) : (
+          paginatedCategories.map((category) => (
+            <div key={category.id} className="bg-base-100 rounded-xl p-3 border border-base-300 shadow-sm">
+              <div className="flex items-start gap-3">
+                {/* Image */}
+                <div className="flex-shrink-0">
+                  {category.image ? (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden">
+                      <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
+                      {category.parent ? (
+                        <Folder className="w-5 h-5" />
+                      ) : (
+                        <FolderOpen className="w-5 h-5" />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Contenu */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold text-sm truncate">{category.name}</h3>
+                      {category.parent_name && (
+                        <p className="text-xs text-base-content/60 mt-0.5">
+                          Parent: {category.parent_name}
+                        </p>
+                      )}
+                    </div>
+                    {getStatusBadge(category.is_active)}
+                  </div>
+                  
+                  {category.description && (
+                    <p className="text-xs text-base-content/70 mt-1 line-clamp-2">
+                      {category.description}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-1 text-xs text-base-content/60">
+                      <Package className="w-3 h-3" />
+                      {category.products_count || 0}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-base-content/60">
+                      <Layers className="w-3 h-3" />
+                      {category.subcategories_count || 0}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-1 mt-3 pt-2 border-t border-base-200">
+                <button 
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => {
+                    setSelectedCategory(category)
+                    setShowDetailsModal(true)
+                  }}
+                >
+                  <Eye className="w-3 h-3" />
+                  <span className="text-xs">Voir</span>
+                </button>
+                <button 
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => navigate(`/categories/${category.id}/modifier`)}
+                >
+                  <Edit className="w-3 h-3" />
+                  <span className="text-xs">Modifier</span>
+                </button>
+                <button 
+                  className="btn btn-ghost btn-xs text-error"
+                  onClick={() => {
+                    setCategoryToDelete(category)
+                    setShowDeleteModal(true)
+                  }}
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span className="text-xs">Supprimer</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      {filteredAndSortedCategories.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs lg:text-sm text-base-content/60">
+            {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredAndSortedCategories.length)} sur {filteredAndSortedCategories.length}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <select 
+              className="select select-bordered select-xs lg:select-sm w-20 lg:w-28"
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(parseInt(e.target.value))
+                setCurrentPage(1)
+              }}
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
             
             <div className="join">
               <button 
-                className={`join-item btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setViewMode('grid')}
+                className="join-item btn btn-xs lg:btn-sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
               >
-                <LayoutGrid className="w-4 h-4" />
+                <ChevronLeft className="w-3 h-3 lg:w-4 lg:h-4" />
               </button>
+              
+              <span className="join-item btn btn-xs lg:btn-sm no-animation">
+                {currentPage} / {totalPages}
+              </span>
+              
               <button 
-                className={`join-item btn ${viewMode === 'table' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setViewMode('table')}
+                className="join-item btn btn-xs lg:btn-sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
               >
-                <List className="w-4 h-4" />
-              </button>
-              <button 
-                className={`join-item btn ${viewMode === 'tree' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setViewMode('tree')}
-              >
-                <FolderTree className="w-4 h-4" />
+                <ChevronRight className="w-3 h-3 lg:w-4 lg:h-4" />
               </button>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Contenu principal */}
-      <div className="bg-base-100 rounded-xl shadow-xl border border-base-300 overflow-hidden">
-        {filteredAndSortedCategories.length === 0 ? (
-          <div className="p-12 text-center">
-            <FolderTree className="w-20 h-20 mx-auto mb-4 text-base-content/30" />
-            <p className="text-xl font-semibold text-base-content/50">
-              Aucune catégorie trouvée
-            </p>
-            <p className="text-base text-base-content/40 mt-2">
-              Essayez de modifier vos critères de recherche ou créez une nouvelle catégorie
-            </p>
-            <button 
-              className="btn btn-primary mt-6 gap-2"
-              onClick={() => navigate('/categories/nouveau')}
-            >
-              <Plus className="w-4 h-4" />
-              Créer une catégorie
-            </button>
-          </div>
-        ) : viewMode === 'tree' ? (
-          /* Vue Arborescence */
-          <div className="p-6 space-y-4">
-            {renderCategoryTree(categoryTree)}
-          </div>
-        ) : viewMode === 'grid' ? (
-          /* Vue Grille */
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {paginatedCategories.map((category) => (
-                <div 
-                  key={category.id} 
-                  className="bg-base-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-base-300 group"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      {category.image ? (
-                        <div className="avatar">
-                          <div className="w-14 h-14 rounded-xl">
-                            <img src={category.image} alt={category.name} className="object-cover" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="avatar placeholder">
-                          <div className="bg-primary/10 text-primary rounded-xl w-14 h-14">
-                            {category.parent ? (
-                              <Folder className="w-7 h-7" />
-                            ) : (
-                              <FolderOpen className="w-7 h-7" />
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      <div>
-                        <h3 className="font-bold text-lg text-base-content">{category.name}</h3>
-                        {getStatusBadge(category.is_active)}
-                      </div>
-                    </div>
-                    
-                    <div className="dropdown dropdown-end">
-                      <button className="btn btn-ghost btn-sm btn-circle">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      <ul className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                        <li>
-                          <button onClick={() => {
-                            setSelectedCategory(category)
-                            setShowDetailsModal(true)
-                          }}>
-                            <Eye className="w-4 h-4" />
-                            Voir détails
-                          </button>
-                        </li>
-                        <li>
-                          <button onClick={() => navigate(`/categories/${category.id}/modifier`)}>
-                            <Edit className="w-4 h-4" />
-                            Modifier
-                          </button>
-                        </li>
-                        <li>
-                          <button 
-                            className="text-error"
-                            onClick={() => {
-                              setCategoryToDelete(category)
-                              setShowDeleteModal(true)
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Supprimer
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-base-content/70 mb-4 line-clamp-2">
-                    {category.description || 'Aucune description'}
-                  </p>
-                  
-                  <div className="space-y-2">
-                    {category.parent_name && (
-                      <div className="flex items-center gap-2 text-xs text-base-content/60">
-                        <FolderTree className="w-3 h-3" />
-                        Parent: {category.parent_name}
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-xs text-base-content/60">
-                        <Package className="w-3 h-3" />
-                        Produits
-                      </div>
-                      <span className="badge">
-                        {category.products_count || 0}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-xs text-base-content/60">
-                        <Layers className="w-3 h-3" />
-                        Sous-catégories
-                      </div>
-                      <span className="badge">
-                        {category.subcategories_count || 0}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          /* Vue Tableau */
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Image</th>
-                  <th>
-                    <button 
-                      className="flex items-center gap-1 hover:text-primary"
-                      onClick={() => handleSort('name')}
-                    >
-                      Nom
-                      <ArrowUpDown className="w-3 h-3" />
-                    </button>
-                  </th>
-                  <th>Description</th>
-                  <th>Catégorie parente</th>
-                  <th>
-                    <button 
-                      className="flex items-center gap-1 hover:text-primary"
-                      onClick={() => handleSort('products_count')}
-                    >
-                      Produits
-                      <ArrowUpDown className="w-3 h-3" />
-                    </button>
-                  </th>
-                  <th>
-                    <button 
-                      className="flex items-center gap-1 hover:text-primary"
-                      onClick={() => handleSort('subcategories_count')}
-                    >
-                      Sous-cat.
-                      <ArrowUpDown className="w-3 h-3" />
-                    </button>
-                  </th>
-                  <th>Statut</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedCategories.map((category) => (
-                  <tr key={category.id} className="hover">
-                    <td>
-                      {category.image ? (
-                        <div className="avatar">
-                          <div className="w-10 h-10 rounded-lg">
-                            <img src={category.image} alt={category.name} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="avatar placeholder">
-                          <div className="bg-primary/10 text-primary rounded-lg w-10 h-10">
-                            {category.parent ? (
-                              <Folder className="w-5 h-5" />
-                            ) : (
-                              <FolderOpen className="w-5 h-5" />
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="font-semibold">{category.name}</td>
-                    <td className="max-w-xs truncate text-base-content/70">
-                      {category.description || '-'}
-                    </td>
-                    <td>
-                      {category.parent ? category.parent_name || `ID: ${category.parent}` : '-'}
-                    </td>
-                    <td>
-                      <span className="badge">
-                        {category.products_count || 0}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="badge">
-                        {category.subcategories_count || 0}
-                      </span>
-                    </td>
-                    <td>{getStatusBadge(category.is_active)}</td>
-                    <td>
-                      <div className="flex justify-end gap-2">
-                        <button 
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => {
-                            setSelectedCategory(category)
-                            setShowDetailsModal(true)
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button 
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => navigate(`/categories/${category.id}/modifier`)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          className="btn btn-ghost btn-xs text-error"
-                          onClick={() => {
-                            setCategoryToDelete(category)
-                            setShowDeleteModal(true)
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {filteredAndSortedCategories.length > 0 && viewMode !== 'tree' && (
-          <div className="p-4 border-t border-base-300">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-base-content/60">
-                Affichage de {((currentPage - 1) * itemsPerPage) + 1} à{' '}
-                {Math.min(currentPage * itemsPerPage, filteredAndSortedCategories.length)} sur{' '}
-                {filteredAndSortedCategories.length} catégories
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <select 
-                  className="select select-bordered select-sm"
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(parseInt(e.target.value))
-                    setCurrentPage(1)
-                  }}
-                >
-                  <option value="12">12 par page</option>
-                  <option value="24">24 par page</option>
-                  <option value="48">48 par page</option>
-                  <option value="96">96 par page</option>
-                </select>
-                
-                <div className="join">
-                  <button 
-                    className="join-item btn btn-sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  
-                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                    let pageNum
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-                    
-                    return (
-                      <button
-                        key={i}
-                        className={`join-item btn btn-sm ${currentPage === pageNum ? 'btn-primary' : ''}`}
-                        onClick={() => setCurrentPage(pageNum)}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                  
-                  <button 
-                    className="join-item btn btn-sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Modal de confirmation de suppression */}
       {showDeleteModal && (
         <div className="modal modal-open">
-          <div className="modal-box">
-            <div className="text-center mb-6">
+          <div className="modal-box w-11/12 max-w-md">
+            <div className="text-center">
               <div className="avatar placeholder mb-4">
-                <div className="bg-error/10 text-error rounded-full w-20 h-20">
-                  <AlertTriangle className="w-10 h-10" />
+                <div className="bg-error/10 text-error rounded-full w-16 h-16">
+                  <AlertTriangle className="w-8 h-8" />
                 </div>
               </div>
-              <h3 className="font-bold text-2xl mb-2">Confirmer la suppression</h3>
-              <p className="text-base-content/70">
+              <h3 className="font-bold text-xl mb-2">Confirmer la suppression</h3>
+              <p className="text-base-content/70 text-sm">
                 Voulez-vous vraiment supprimer la catégorie
               </p>
-              <p className="text-xl font-bold text-error mt-2">
+              <p className="text-lg font-bold text-error mt-2">
                 "{categoryToDelete?.name}" ?
               </p>
-              <p className="text-sm text-base-content/50 mt-4">
-                Cette action est irréversible. Les sous-catégories et produits associés pourraient être affectés.
+              <p className="text-xs text-base-content/50 mt-3">
+                Cette action est irréversible.
               </p>
             </div>
             
             <div className="modal-action">
               <button 
-                className="btn btn-ghost"
+                className="btn btn-ghost btn-sm"
                 onClick={() => setShowDeleteModal(false)}
               >
                 Annuler
               </button>
               <button 
-                className="btn btn-error"
+                className="btn btn-error btn-sm"
                 onClick={handleDeleteCategory}
               >
-                <Trash2 className="w-4 h-4" />
-                Supprimer définitivement
+                <Trash2 className="w-3 h-3" />
+                Supprimer
               </button>
             </div>
           </div>
@@ -853,91 +720,80 @@ const Categories = () => {
       {/* Modal de détails */}
       {showDetailsModal && selectedCategory && (
         <div className="modal modal-open">
-          <div className="modal-box max-w-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-2xl">Détails de la catégorie</h3>
+          <div className="modal-box w-11/12 max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">Détails de la catégorie</h3>
               <button 
                 className="btn btn-sm btn-circle btn-ghost"
                 onClick={() => setShowDetailsModal(false)}
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             
-            <div className="space-y-4">
-              <div className="flex items-center gap-6 mb-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
                 {selectedCategory.image ? (
                   <div className="avatar">
-                    <div className="w-24 h-24 rounded-xl">
+                    <div className="w-16 h-16 rounded-lg">
                       <img src={selectedCategory.image} alt={selectedCategory.name} />
                     </div>
                   </div>
                 ) : (
                   <div className="avatar placeholder">
-                    <div className="bg-primary/10 text-primary rounded-xl w-24 h-24">
+                    <div className="bg-primary/10 text-primary rounded-lg w-16 h-16">
                       {selectedCategory.parent ? (
-                        <Folder className="w-12 h-12" />
+                        <Folder className="w-8 h-8" />
                       ) : (
-                        <FolderOpen className="w-12 h-12" />
+                        <FolderOpen className="w-8 h-8" />
                       )}
                     </div>
                   </div>
                 )}
                 <div>
-                  <h4 className="font-bold text-2xl mb-2">{selectedCategory.name}</h4>
+                  <h4 className="font-bold text-lg">{selectedCategory.name}</h4>
                   {getStatusBadge(selectedCategory.is_active)}
                 </div>
               </div>
               
-              <div className="divider">Informations</div>
+              <div className="divider my-2"></div>
               
-              <div className="space-y-3">
-                {selectedCategory.description && (
-                  <div>
-                    <label className="text-sm font-semibold text-base-content/60">Description</label>
-                    <p className="mt-1">{selectedCategory.description}</p>
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-base-content/60">Catégorie parente</label>
-                    <p className="mt-1">{selectedCategory.parent_name || 'Aucune (catégorie racine)'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-base-content/60">Date de création</label>
-                    <p className="mt-1">
-                      {selectedCategory.created_at ? new Date(selectedCategory.created_at).toLocaleDateString() : '-'}
-                    </p>
-                  </div>
+              {selectedCategory.description && (
+                <div>
+                  <label className="text-xs font-semibold text-base-content/60">Description</label>
+                  <p className="text-sm mt-1">{selectedCategory.description}</p>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-base-content/60">Produits associés</label>
-                    <p className="text-2xl font-bold mt-1">{selectedCategory.products_count || 0}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-base-content/60">Sous-catégories</label>
-                    <p className="text-2xl font-bold mt-1">{selectedCategory.subcategories_count || 0}</p>
-                  </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-base-content/60">Catégorie parente</label>
+                  <p className="text-sm mt-1">{selectedCategory.parent_name || 'Aucune'}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-base-content/60">Produits</label>
+                  <p className="text-lg font-bold">{selectedCategory.products_count || 0}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-base-content/60">Sous-catégories</label>
+                  <p className="text-lg font-bold">{selectedCategory.subcategories_count || 0}</p>
                 </div>
               </div>
             </div>
             
             <div className="modal-action">
               <button 
-                className="btn btn-primary"
+                className="btn btn-primary btn-sm"
                 onClick={() => {
                   setShowDetailsModal(false)
                   navigate(`/categories/${selectedCategory.id}/modifier`)
                 }}
               >
-                <Edit className="w-4 h-4" />
+                <Edit className="w-3 h-3" />
                 Modifier
               </button>
               <button 
-                className="btn btn-ghost"
+                className="btn btn-ghost btn-sm"
                 onClick={() => setShowDetailsModal(false)}
               >
                 Fermer
