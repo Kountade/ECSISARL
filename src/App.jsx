@@ -20,6 +20,8 @@ import StockForm from './components/inventory/StockForm'
 import Warehouses from './components/inventory/Warehouses'
 import WarehouseForm from './components/inventory/WarehouseForm'
 import StockMovements from './components/inventory/StockMovements'
+import Fournisseurs from './components/purchases/Fournisseurs'
+import FournisseurForm from './components/purchases/FournisseurForm'
 import Users from './components/users/Users'
 import UserForm from './components/users/UserForm'
 import Roles from './components/users/Roles'
@@ -96,6 +98,12 @@ function App() {
 
                         <Route path="/mouvements-stock" element={<StockMovements />} />
 
+                           {/* Fournisseurs (si page dédiée)  */}
+                         <Route path="/fournisseurs" element={<Fournisseurs />} />
+                         <Route path="/fournisseurs/nouveau" element={<FournisseurForm />} />
+                         <Route path="/fournisseurs/:id/modifier" element={<FournisseurForm />} />
+
+                                         
                         {/* Gestion des clients 
                         <Route path="/clients" element={<Customers />} />
                         <Route path="/clients/nouveau" element={<CustomerForm />} />
