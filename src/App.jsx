@@ -21,6 +21,8 @@ import Warehouses from './components/inventory/Warehouses'
 import WarehouseForm from './components/inventory/WarehouseForm'
 import StockMovements from './components/inventory/StockMovements'
 import Fournisseurs from './components/purchases/Fournisseurs'
+import PurchaseOrders from './components/purchases/PurchaseOrders'
+import PurchaseOrderForm from './components/purchases/PurchaseOrderForm'
 import FournisseurForm from './components/purchases/FournisseurForm'
 import Users from './components/users/Users'
 import UserForm from './components/users/UserForm'
@@ -104,6 +106,11 @@ function App() {
                          <Route path="/fournisseurs/:id/modifier" element={<FournisseurForm />} />
 
                                          
+                           {/* COMMADES (si page dédiée)  */}
+                         <Route path="/commandes-fournisseurs" element={<PurchaseOrders />} />
+                         <Route path="/commandes/nouveau" element={<PurchaseOrderForm />} />
+                         <Route path="/commandes/:id/modifier" element={<PurchaseOrderForm />} />
+
                         {/* Gestion des clients 
                         <Route path="/clients" element={<Customers />} />
                         <Route path="/clients/nouveau" element={<CustomerForm />} />
