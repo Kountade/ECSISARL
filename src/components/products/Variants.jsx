@@ -1,61 +1,30 @@
+// src/components/Variants.jsx
 import React, { useEffect, useState } from 'react'
-import {
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  IconButton,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Chip,
-  CircularProgress,
-  Snackbar,
-  Alert,
-  Tooltip,
-  Fab,
-  InputAdornment,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  alpha,
-  Paper,
-  Avatar,
-  Stack
-} from '@mui/material'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  Refresh as RefreshIcon,
-  FilterList as FilterIcon,
-  Category as VariantIcon,
-  Inventory as InventoryIcon
-} from '@mui/icons-material'
-import AxiosInstance from '../AxiosInstance'
 import { useNavigate } from 'react-router-dom'
-
-// Palette ECSI SARL
-const COMPANY_COLORS = {
-  darkCyan: '#0A2647',
-  vividOrange: '#C9A03D',
-  lightCyan: '#E9F1FA',
-  lightOrange: '#FDF6E3',
-  white: '#FFFFFF'
-}
+import AxiosInstance from '../AxiosInstance'
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  RefreshCw,
+  Filter,
+  X,
+  AlertCircle,
+  CheckCircle,
+  Package,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
+  Layers,
+  Tag,
+  DollarSign,
+  Box,
+  Hash
+} from 'lucide-react'
 
 const Variants = () => {
   const navigate = useNavigate()
@@ -66,319 +35,711 @@ const Variants = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterProduct, setFilterProduct] = useState('')
   const [filterActive, setFilterActive] = useState('')
-  const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [variantToDelete, setVariantToDelete] = useState(null)
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+  const [sortField, setSortField] = useState('sku')
+  const [sortDirection, setSortDirection] = useState('asc')
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    outOfStock: 0,
+    totalValue: 0
+  })
 
   const formatNumber = (number) => {
     if (!number && number !== 0) return '0,00'
-    return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number)
+    return new Intl.NumberFormat('fr-FR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(number)
   }
 
-  const fetchData = () => {
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type })
+    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 4000)
+  }
+
+  const fetchData = async () => {
     setLoading(true)
-    Promise.all([
-      AxiosInstance.get('/variants/'),
-      AxiosInstance.get('/products/')
-    ])
-      .then(([varRes, prodRes]) => {
-        // Enrichir les variantes avec le nom du produit
-        const variantsData = varRes.data
-        const productsData = prodRes.data
-        const productMap = {}
-        productsData.forEach(p => { productMap[p.id] = p.name })
+    try {
+      const [varRes, prodRes] = await Promise.all([
+        AxiosInstance.get('/variants/'),
+        AxiosInstance.get('/products/')
+      ])
+      
+      const variantsData = varRes.data
+      const productsData = prodRes.data
+      const productMap = {}
+      productsData.forEach(p => { productMap[p.id] = p.name })
 
-        const enrichedVariants = variantsData.map(v => ({
-          ...v,
-          product_name: productMap[v.product] || `Produit #${v.product}`
-        }))
-        setVariants(enrichedVariants)
-        setProducts(productsData)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error(err)
-        setSnackbar({ open: true, message: 'Erreur de chargement', severity: 'error' })
-        setLoading(false)
-      })
+      const enrichedVariants = variantsData.map(v => ({
+        ...v,
+        product_name: productMap[v.product] || `Produit #${v.product}`
+      }))
+      
+      setVariants(enrichedVariants)
+      setProducts(productsData)
+      
+      // Calculer les statistiques
+      const total = enrichedVariants.length
+      const active = enrichedVariants.filter(v => v.is_active).length
+      const inactive = total - active
+      const outOfStock = enrichedVariants.filter(v => (v.stock_quantity || 0) === 0).length
+      const totalValue = enrichedVariants.reduce((sum, v) => 
+        sum + ((v.stock_quantity || 0) * (v.purchase_price || 0)), 0
+      )
+      
+      setStats({ total, active, inactive, outOfStock, totalValue })
+      
+    } catch (error) {
+      console.error(error)
+      showNotification('Erreur de chargement des variantes', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   const handleDeleteVariant = async () => {
     if (!variantToDelete) return
     try {
       await AxiosInstance.delete(`/variants/${variantToDelete.id}/`)
-      setSnackbar({ open: true, message: 'Variante supprimée', severity: 'success' })
+      showNotification(`Variante "${variantToDelete.sku}" supprimée avec succès`, 'success')
       fetchData()
-      setOpenDeleteDialog(false)
+      setShowDeleteModal(false)
       setVariantToDelete(null)
     } catch (error) {
-      setSnackbar({ open: true, message: 'Erreur lors de la suppression', severity: 'error' })
+      showNotification('Erreur lors de la suppression', 'error')
     }
   }
 
-  const filteredVariants = variants.filter(v => {
-    const search = searchTerm.toLowerCase()
-    const sku = (v.sku || '').toLowerCase()
-    const productName = (v.product_name || '').toLowerCase()
-    const matchesSearch = sku.includes(search) || productName.includes(search)
-    const matchesProduct = !filterProduct || v.product === parseInt(filterProduct)
-    const matchesActive = filterActive === '' || v.is_active === (filterActive === 'true')
-    return matchesSearch && matchesProduct && matchesActive
-  })
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
 
-  const paginatedVariants = filteredVariants.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+  const filteredAndSortedVariants = React.useMemo(() => {
+    let filtered = variants.filter(v => {
+      const search = searchTerm.toLowerCase()
+      const sku = (v.sku || '').toLowerCase()
+      const productName = (v.product_name || '').toLowerCase()
+      const matchesSearch = sku.includes(search) || productName.includes(search)
+      const matchesProduct = !filterProduct || v.product === parseInt(filterProduct)
+      const matchesActive = filterActive === '' || v.is_active === (filterActive === 'true')
+      return matchesSearch && matchesProduct && matchesActive
+    })
+
+    filtered.sort((a, b) => {
+      let aVal = a[sortField] || ''
+      let bVal = b[sortField] || ''
+      
+      if (['purchase_price', 'sale_price', 'stock_quantity'].includes(sortField)) {
+        aVal = parseFloat(aVal) || 0
+        bVal = parseFloat(bVal) || 0
+      }
+      
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
+
+    return filtered
+  }, [variants, searchTerm, filterProduct, filterActive, sortField, sortDirection])
+
+  const totalPages = Math.ceil(filteredAndSortedVariants.length / itemsPerPage)
+  const paginatedVariants = filteredAndSortedVariants.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const getStatusBadge = (isActive) => {
+    return isActive ? (
+      <span className="badge badge-success badge-sm gap-1">
+        <CheckCircle className="w-3 h-3" />
+        Actif
+      </span>
+    ) : (
+      <span className="badge badge-ghost badge-sm gap-1">
+        <AlertCircle className="w-3 h-3" />
+        Inactif
+      </span>
+    )
+  }
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 opacity-40" />
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="w-3 h-3" /> : 
+      <ChevronDown className="w-3 h-3" />
+  }
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={60} sx={{ color: COMPANY_COLORS.darkCyan }} />
-      </Box>
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center space-y-4">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+          <p className="text-base font-medium text-base-content/70 animate-pulse">
+            Chargement des variantes...
+          </p>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Box sx={{ p: 3, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h3" fontWeight="bold" sx={{
-            background: `linear-gradient(135deg, ${COMPANY_COLORS.darkCyan} 0%, ${COMPANY_COLORS.vividOrange} 100%)`,
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
-            Variantes de produits
-          </Typography>
-          <Typography variant="h6" color="textSecondary">Gérez les déclinaisons (tailles, couleurs, etc.)</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <IconButton onClick={fetchData} sx={{ bgcolor: alpha(COMPANY_COLORS.darkCyan, 0.1), color: COMPANY_COLORS.darkCyan }}>
-            <RefreshIcon />
-          </IconButton>
-          <Fab onClick={() => navigate('/variants/nouveau')} sx={{
-            background: `linear-gradient(135deg, ${COMPANY_COLORS.darkCyan} 0%, ${COMPANY_COLORS.vividOrange} 100%)`,
-            color: COMPANY_COLORS.white
-          }}>
-            <AddIcon />
-          </Fab>
-        </Box>
-      </Box>
+    <div className="space-y-4 lg:space-y-6 p-3 lg:p-6">
+      {/* Notification */}
+      {notification.show && (
+        <div className="fixed top-16 lg:top-20 right-3 lg:right-6 z-50 animate-slideDown w-[calc(100%-1.5rem)] lg:w-auto max-w-md">
+          <div className={`alert ${notification.type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg`}>
+            {notification.type === 'success' ? (
+              <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+            )}
+            <span className="text-sm lg:text-base font-medium">{notification.message}</span>
+            <button 
+              className="btn btn-ghost btn-xs btn-circle"
+              onClick={() => setNotification({ ...notification, show: false })}
+            >
+              <X className="w-3 h-3 lg:w-4 lg:h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Filtres */}
-      <Card sx={{ mb: 3, p: 3, borderRadius: 3, boxShadow: 2 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={5}>
-            <TextField
-              fullWidth
+      {/* En-tête */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-base-content">
+            Variantes de produits
+          </h1>
+          <p className="text-xs lg:text-sm text-base-content/60">
+            Gérez les déclinaisons (tailles, couleurs, etc.)
+          </p>
+        </div>
+        
+        <div className="flex gap-2">
+          <button 
+            onClick={fetchData}
+            className="btn btn-outline btn-sm lg:btn-md gap-1 lg:gap-2"
+          >
+            <RefreshCw className="w-3 h-3 lg:w-4 lg:h-4" />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
+          <button 
+            onClick={() => navigate('/variants/nouveau')}
+            className="btn btn-primary btn-sm lg:btn-md gap-1 lg:gap-2"
+          >
+            <Plus className="w-3 h-3 lg:w-4 lg:h-4" />
+            <span className="hidden sm:inline">Nouvelle variante</span>
+            <span className="sm:hidden">Nouveau</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Cartes statistiques - Responsive */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 lg:gap-3">
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4">
+          <div className="stat-figure text-primary">
+            <Layers className="w-5 h-5 lg:w-6 lg:h-6" />
+          </div>
+          <div className="stat-title text-xs lg:text-sm">Total</div>
+          <div className="stat-value text-lg lg:text-2xl">{stats.total}</div>
+        </div>
+        
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4">
+          <div className="stat-figure text-success">
+            <CheckCircle className="w-5 h-5 lg:w-6 lg:h-6" />
+          </div>
+          <div className="stat-title text-xs lg:text-sm">Actives</div>
+          <div className="stat-value text-lg lg:text-2xl">{stats.active}</div>
+        </div>
+        
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4">
+          <div className="stat-figure text-error">
+            <AlertCircle className="w-5 h-5 lg:w-6 lg:h-6" />
+          </div>
+          <div className="stat-title text-xs lg:text-sm">Inactives</div>
+          <div className="stat-value text-lg lg:text-2xl">{stats.inactive}</div>
+        </div>
+        
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4">
+          <div className="stat-figure text-warning">
+            <AlertTriangle className="w-5 h-5 lg:w-6 lg:h-6" />
+          </div>
+          <div className="stat-title text-xs lg:text-sm">Rupture</div>
+          <div className="stat-value text-lg lg:text-2xl">{stats.outOfStock}</div>
+        </div>
+        
+        <div className="stat bg-base-100 rounded-lg lg:rounded-xl shadow-sm border border-base-300 p-2 lg:p-4 col-span-2 lg:col-span-1">
+          <div className="stat-figure text-info">
+            <DollarSign className="w-5 h-5 lg:w-6 lg:h-6" />
+          </div>
+          <div className="stat-title text-xs lg:text-sm">Valeur stock</div>
+          <div className="stat-value text-base lg:text-xl truncate">
+            {formatNumber(stats.totalValue)} €
+          </div>
+        </div>
+      </div>
+
+      {/* Filtres - Desktop */}
+      <div className="hidden lg:block bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40" />
+            <input
+              type="text"
               placeholder="Rechercher par SKU ou produit..."
+              className="input input-bordered input-sm w-full pl-9"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                )
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1)
               }}
             />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Produit</InputLabel>
-              <Select
-                value={filterProduct}
-                label="Produit"
-                onChange={(e) => setFilterProduct(e.target.value)}
-              >
-                <MenuItem value="">Tous</MenuItem>
-                {products.map(p => (
-                  <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Statut</InputLabel>
-              <Select
-                value={filterActive}
-                label="Statut"
-                onChange={(e) => setFilterActive(e.target.value)}
-              >
-                <MenuItem value="">Tous</MenuItem>
-                <MenuItem value="true">Actif</MenuItem>
-                <MenuItem value="false">Inactif</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => { setFilterProduct(''); setFilterActive(''); setSearchTerm('') }}
-              sx={{ borderColor: COMPANY_COLORS.darkCyan, color: COMPANY_COLORS.darkCyan }}
+          </div>
+          
+          <select 
+            className="select select-bordered select-sm min-w-[200px]"
+            value={filterProduct}
+            onChange={(e) => {
+              setFilterProduct(e.target.value)
+              setCurrentPage(1)
+            }}
+          >
+            <option value="">Tous les produits</option>
+            {products.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          
+          <select 
+            className="select select-bordered select-sm w-32"
+            value={filterActive}
+            onChange={(e) => {
+              setFilterActive(e.target.value)
+              setCurrentPage(1)
+            }}
+          >
+            <option value="">Tous statuts</option>
+            <option value="true">Actif</option>
+            <option value="false">Inactif</option>
+          </select>
+          
+          <button 
+            className="btn btn-outline btn-sm"
+            onClick={() => {
+              setFilterProduct('')
+              setFilterActive('')
+              setSearchTerm('')
+              setCurrentPage(1)
+            }}
+          >
+            <Filter className="w-3 h-3" />
+            Réinitialiser
+          </button>
+        </div>
+      </div>
+
+      {/* Filtres - Mobile */}
+      <div className="lg:hidden">
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-base-content/40" />
+            <input
+              type="text"
+              placeholder="Rechercher..."
+              className="input input-bordered input-sm w-full pl-8 text-sm"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1)
+              }}
+            />
+          </div>
+          
+          <button 
+            className="btn btn-outline btn-sm"
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+          >
+            <Filter className="w-3 h-3" />
+            Filtres
+          </button>
+        </div>
+
+        {showMobileFilters && (
+          <div className="mt-2 p-3 bg-base-100 rounded-lg border border-base-300 space-y-2">
+            <select 
+              className="select select-bordered select-sm w-full"
+              value={filterProduct}
+              onChange={(e) => {
+                setFilterProduct(e.target.value)
+                setCurrentPage(1)
+              }}
             >
-              <FilterIcon />
-            </Button>
-          </Grid>
-        </Grid>
-      </Card>
-
-      {/* Tableau des variantes */}
-      <Card sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: 2 }}>
-        <TableContainer component={Paper} elevation={0}>
-          <Table>
-            <TableHead sx={{ bgcolor: alpha(COMPANY_COLORS.darkCyan, 0.06) }}>
-              <TableRow>
-                <TableCell>Image</TableCell>
-                <TableCell>SKU</TableCell>
-                <TableCell>Produit</TableCell>
-                <TableCell>Attributs</TableCell>
-                <TableCell align="right">Prix achat</TableCell>
-                <TableCell align="right">Prix vente</TableCell>
-                <TableCell align="center">Stock</TableCell>
-                <TableCell align="center">Statut</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedVariants.map((variant) => (
-                <TableRow key={variant.id} hover>
-                  <TableCell>
-                    {variant.image ? (
-                      <Avatar src={variant.image} variant="rounded" sx={{ width: 40, height: 40 }} />
-                    ) : (
-                      <Avatar variant="rounded" sx={{ bgcolor: alpha(COMPANY_COLORS.vividOrange, 0.2), width: 40, height: 40 }}>
-                        <VariantIcon sx={{ color: COMPANY_COLORS.vividOrange }} />
-                      </Avatar>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="500">{variant.sku}</Typography>
-                  </TableCell>
-                  <TableCell>{variant.product_name}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {Object.entries(variant.attributes || {}).map(([key, val]) => (
-                        <Chip key={key} label={`${key}: ${val}`} size="small" variant="outlined" />
-                      ))}
-                    </Box>
-                  </TableCell>
-                  <TableCell align="right">{formatNumber(variant.purchase_price)} €</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold', color: COMPANY_COLORS.vividOrange }}>
-                    {formatNumber(variant.sale_price)} €
-                  </TableCell>
-                  <TableCell align="center">
-                    <Typography variant="body2" fontWeight={variant.stock_quantity === 0 ? 'bold' : 'normal'} color={variant.stock_quantity === 0 ? 'error' : 'text.primary'}>
-                      {variant.stock_quantity}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={variant.is_active ? 'Actif' : 'Inactif'}
-                      color={variant.is_active ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" spacing={1} justifyContent="center">
-                      <Tooltip title="Modifier">
-                        <IconButton
-                          size="small"
-                          onClick={() => navigate(`/variants/${variant.id}/modifier`)}
-                          sx={{
-                            bgcolor: alpha(COMPANY_COLORS.darkCyan, 0.05),
-                            '&:hover': { bgcolor: COMPANY_COLORS.darkCyan, color: COMPANY_COLORS.white }
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Supprimer">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => {
-                            setVariantToDelete(variant)
-                            setOpenDeleteDialog(true)
-                          }}
-                          sx={{
-                            bgcolor: alpha('#f44336', 0.05),
-                            '&:hover': { bgcolor: '#f44336', color: COMPANY_COLORS.white }
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
+              <option value="">Tous les produits</option>
+              {products.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-              {paginatedVariants.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 8 }}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <VariantIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                      <Typography color="textSecondary">Aucune variante trouvée</Typography>
-                      <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={() => navigate('/variants/nouveau')}
-                        sx={{ mt: 2, borderColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.vividOrange }}
+            </select>
+            
+            <select 
+              className="select select-bordered select-sm w-full"
+              value={filterActive}
+              onChange={(e) => {
+                setFilterActive(e.target.value)
+                setCurrentPage(1)
+              }}
+            >
+              <option value="">Tous les statuts</option>
+              <option value="true">Actif</option>
+              <option value="false">Inactif</option>
+            </select>
+            
+            <button 
+              className="btn btn-outline btn-sm w-full"
+              onClick={() => {
+                setFilterProduct('')
+                setFilterActive('')
+                setSearchTerm('')
+                setCurrentPage(1)
+                setShowMobileFilters(false)
+              }}
+            >
+              Réinitialiser les filtres
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Tableau - Desktop */}
+      <div className="hidden lg:block bg-base-100 rounded-xl shadow-sm border border-base-300 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="table table-zebra">
+            <thead>
+              <tr className="bg-base-200">
+                <th className="w-12"></th>
+                <th>
+                  <button 
+                    className="flex items-center gap-1 hover:text-primary font-semibold"
+                    onClick={() => handleSort('sku')}
+                  >
+                    SKU
+                    <SortIcon field="sku" />
+                  </button>
+                </th>
+                <th>Produit</th>
+                <th>Attributs</th>
+                <th>
+                  <button 
+                    className="flex items-center gap-1 hover:text-primary font-semibold"
+                    onClick={() => handleSort('purchase_price')}
+                  >
+                    Prix achat
+                    <SortIcon field="purchase_price" />
+                  </button>
+                </th>
+                <th>
+                  <button 
+                    className="flex items-center gap-1 hover:text-primary font-semibold"
+                    onClick={() => handleSort('sale_price')}
+                  >
+                    Prix vente
+                    <SortIcon field="sale_price" />
+                  </button>
+                </th>
+                <th>
+                  <button 
+                    className="flex items-center gap-1 hover:text-primary font-semibold"
+                    onClick={() => handleSort('stock_quantity')}
+                  >
+                    Stock
+                    <SortIcon field="stock_quantity" />
+                  </button>
+                </th>
+                <th>Statut</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedVariants.map((variant) => (
+                <tr key={variant.id} className="hover">
+                  <td>
+                    {variant.image ? (
+                      <div className="avatar">
+                        <div className="w-8 h-8 rounded-lg">
+                          <img src={variant.image} alt={variant.sku} className="object-cover" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="avatar placeholder">
+                        <div className="bg-primary/10 text-primary rounded-lg w-8 h-8">
+                          <Layers className="w-4 h-4" />
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                  <td className="font-mono font-medium text-sm">{variant.sku}</td>
+                  <td className="text-sm max-w-xs truncate">{variant.product_name}</td>
+                  <td>
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(variant.attributes || {}).map(([key, val]) => (
+                        <span key={key} className="badge badge-outline badge-xs">
+                          {key}: {val}
+                        </span>
+                      ))}
+                      {Object.keys(variant.attributes || {}).length === 0 && (
+                        <span className="text-base-content/40 text-xs">-</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="text-right text-sm">{formatNumber(variant.purchase_price)} €</td>
+                  <td className="text-right text-sm font-semibold text-primary">
+                    {formatNumber(variant.sale_price)} €
+                  </td>
+                  <td className="text-center">
+                    <span className={`text-sm font-medium ${variant.stock_quantity === 0 ? 'text-error' : ''}`}>
+                      {variant.stock_quantity || 0}
+                    </span>
+                  </td>
+                  <td>{getStatusBadge(variant.is_active)}</td>
+                  <td>
+                    <div className="flex justify-end gap-1">
+                      <button 
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => navigate(`/variants/${variant.id}/modifier`)}
                       >
-                        Créer une variante
-                      </Button>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          component="div"
-          count={filteredVariants.length}
-          page={page}
-          onPageChange={(e, p) => setPage(p)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10))
-            setPage(0)
-          }}
-          labelRowsPerPage="Lignes par page:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-        />
-      </Card>
+                        <Edit className="w-3 h-3" />
+                      </button>
+                      <button 
+                        className="btn btn-ghost btn-xs text-error"
+                        onClick={() => {
+                          setVariantToDelete(variant)
+                          setShowDeleteModal(true)
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Dialog suppression */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="xs" fullWidth>
-        <DialogContent sx={{ p: 4, textAlign: 'center' }}>
-          <Avatar sx={{ bgcolor: alpha('#f44336', 0.1), width: 80, height: 80, mx: 'auto', mb: 2 }}>
-            <DeleteIcon sx={{ fontSize: 48, color: '#f44336' }} />
-          </Avatar>
-          <Typography variant="h5" gutterBottom fontWeight="bold">Confirmer la suppression</Typography>
-          <Typography variant="body1">
-            Supprimer la variante "{variantToDelete?.sku}" ?
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', pb: 3, gap: 2 }}>
-          <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">Annuler</Button>
-          <Button onClick={handleDeleteVariant} variant="contained" color="error" startIcon={<DeleteIcon />}>Supprimer</Button>
-        </DialogActions>
-      </Dialog>
+        {filteredAndSortedVariants.length === 0 && (
+          <div className="p-12 text-center">
+            <Layers className="w-16 h-16 mx-auto mb-3 text-base-content/30" />
+            <p className="text-base font-medium text-base-content/50">
+              Aucune variante trouvée
+            </p>
+            <p className="text-sm text-base-content/40 mt-1">
+              Essayez de modifier vos critères de recherche
+            </p>
+            <button 
+              className="btn btn-primary btn-sm mt-4"
+              onClick={() => navigate('/variants/nouveau')}
+            >
+              <Plus className="w-3 h-3" />
+              Créer une variante
+            </button>
+          </div>
+        )}
+      </div>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
-      </Snackbar>
-    </Box>
+      {/* Liste - Mobile */}
+      <div className="lg:hidden space-y-2">
+        {paginatedVariants.length === 0 ? (
+          <div className="bg-base-100 rounded-xl p-8 text-center border border-base-300">
+            <Layers className="w-12 h-12 mx-auto mb-2 text-base-content/30" />
+            <p className="text-sm font-medium text-base-content/50">
+              Aucune variante trouvée
+            </p>
+            <button 
+              className="btn btn-primary btn-sm mt-3"
+              onClick={() => navigate('/variants/nouveau')}
+            >
+              <Plus className="w-3 h-3" />
+              Créer
+            </button>
+          </div>
+        ) : (
+          paginatedVariants.map((variant) => (
+            <div key={variant.id} className="bg-base-100 rounded-xl p-3 border border-base-300 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  {variant.image ? (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden">
+                      <img src={variant.image} alt={variant.sku} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
+                      <Layers className="w-6 h-6" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-mono font-semibold text-sm">{variant.sku}</h3>
+                      <p className="text-xs text-base-content/60 truncate">{variant.product_name}</p>
+                    </div>
+                    {getStatusBadge(variant.is_active)}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {Object.entries(variant.attributes || {}).map(([key, val]) => (
+                      <span key={key} className="badge badge-outline badge-xs">
+                        {key}: {val}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                    <div>
+                      <span className="text-base-content/60">Achat:</span>
+                      <span className="ml-1 font-medium">{formatNumber(variant.purchase_price)} €</span>
+                    </div>
+                    <div>
+                      <span className="text-base-content/60">Vente:</span>
+                      <span className="ml-1 font-semibold text-primary">{formatNumber(variant.sale_price)} €</span>
+                    </div>
+                    <div>
+                      <span className="text-base-content/60">Stock:</span>
+                      <span className={`ml-1 font-medium ${variant.stock_quantity === 0 ? 'text-error' : ''}`}>
+                        {variant.stock_quantity || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-1 mt-3 pt-2 border-t border-base-200">
+                <button 
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => navigate(`/variants/${variant.id}/modifier`)}
+                >
+                  <Edit className="w-3 h-3" />
+                  <span className="text-xs">Modifier</span>
+                </button>
+                <button 
+                  className="btn btn-ghost btn-xs text-error"
+                  onClick={() => {
+                    setVariantToDelete(variant)
+                    setShowDeleteModal(true)
+                  }}
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span className="text-xs">Supprimer</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      {filteredAndSortedVariants.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs lg:text-sm text-base-content/60">
+            {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredAndSortedVariants.length)} sur {filteredAndSortedVariants.length} variantes
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <select 
+              className="select select-bordered select-xs lg:select-sm w-20 lg:w-28"
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(parseInt(e.target.value))
+                setCurrentPage(1)
+              }}
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+            
+            <div className="join">
+              <button 
+                className="join-item btn btn-xs lg:btn-sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-3 h-3 lg:w-4 lg:h-4" />
+              </button>
+              
+              <span className="join-item btn btn-xs lg:btn-sm no-animation">
+                {currentPage} / {totalPages}
+              </span>
+              
+              <button 
+                className="join-item btn btn-xs lg:btn-sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="w-3 h-3 lg:w-4 lg:h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteModal && (
+        <div className="modal modal-open">
+          <div className="modal-box w-11/12 max-w-md">
+            <div className="text-center">
+              <div className="avatar placeholder mb-4">
+                <div className="bg-error/10 text-error rounded-full w-16 h-16">
+                  <AlertTriangle className="w-8 h-8" />
+                </div>
+              </div>
+              <h3 className="font-bold text-xl mb-2">Confirmer la suppression</h3>
+              <p className="text-base-content/70 text-sm">
+                Voulez-vous vraiment supprimer la variante
+              </p>
+              <p className="text-lg font-bold text-error mt-2 font-mono">
+                "{variantToDelete?.sku}"
+              </p>
+              <p className="text-xs text-base-content/50 mt-3">
+                Cette action est irréversible.
+              </p>
+            </div>
+            
+            <div className="modal-action">
+              <button 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Annuler
+              </button>
+              <button 
+                className="btn btn-error btn-sm"
+                onClick={handleDeleteVariant}
+              >
+                <Trash2 className="w-3 h-3" />
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

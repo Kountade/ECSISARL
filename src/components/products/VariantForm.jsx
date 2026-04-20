@@ -1,46 +1,25 @@
+// src/components/VariantForm.jsx
 import React, { useEffect, useState } from 'react'
-import {
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  CircularProgress,
-  Snackbar,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  Divider,
-  Avatar,
-  alpha,
-  InputAdornment,
-  Chip,
-  Stack
-} from '@mui/material'
-import {
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  CloudUpload as UploadIcon,
-  Category as VariantIcon,
-  Add as AddIcon
-} from '@mui/icons-material'
-import AxiosInstance from '../AxiosInstance'
 import { useNavigate, useParams } from 'react-router-dom'
-
-// Palette ECSI SARL
-const COMPANY_COLORS = {
-  darkCyan: '#0A2647',
-  vividOrange: '#C9A03D',
-  lightCyan: '#E9F1FA',
-  lightOrange: '#FDF6E3',
-  white: '#FFFFFF'
-}
+import AxiosInstance from '../AxiosInstance'
+import {
+  Save,
+  X,
+  Upload,
+  AlertCircle,
+  CheckCircle,
+  ArrowLeft,
+  Loader2,
+  Layers,
+  Image as ImageIcon,
+  Trash2,
+  Plus,
+  Tag,
+  DollarSign,
+  Box,
+  Hash,
+  ChevronDown
+} from 'lucide-react'
 
 const VariantForm = () => {
   const navigate = useNavigate()
@@ -49,7 +28,9 @@ const VariantForm = () => {
 
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+  const [dragActive, setDragActive] = useState(false)
+  const [errors, setErrors] = useState({})
 
   const [products, setProducts] = useState([])
   const [formData, setFormData] = useState({
@@ -68,6 +49,11 @@ const VariantForm = () => {
   const [attributeKey, setAttributeKey] = useState('')
   const [attributeValue, setAttributeValue] = useState('')
 
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type })
+    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 4000)
+  }
+
   const fetchData = async () => {
     setLoading(true)
     try {
@@ -84,7 +70,7 @@ const VariantForm = () => {
           purchase_price: variant.purchase_price || '',
           sale_price: variant.sale_price || '',
           stock_quantity: variant.stock_quantity || 0,
-          image: null, // On ne garde pas l'ancienne image dans formData
+          image: null,
           is_active: variant.is_active !== undefined ? variant.is_active : true
         })
         if (variant.image) {
@@ -94,13 +80,35 @@ const VariantForm = () => {
       }
     } catch (error) {
       console.error(error)
-      setSnackbar({ open: true, message: 'Erreur de chargement', severity: 'error' })
+      showNotification('Erreur de chargement', 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchData() }, [id])
+  useEffect(() => {
+    fetchData()
+  }, [id])
+
+  const validateForm = () => {
+    const newErrors = {}
+    
+    if (!formData.product) {
+      newErrors.product = 'Le produit parent est obligatoire'
+    }
+    if (!formData.sku || formData.sku.trim() === '') {
+      newErrors.sku = 'Le SKU est obligatoire'
+    }
+    if (!formData.purchase_price || parseFloat(formData.purchase_price) < 0) {
+      newErrors.purchase_price = 'Le prix d\'achat doit être valide'
+    }
+    if (!formData.sale_price || parseFloat(formData.sale_price) < 0) {
+      newErrors.sale_price = 'Le prix de vente doit être valide'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -108,23 +116,54 @@ const VariantForm = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
+    
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }))
+    }
   }
 
-  const handleImageChange = (e) => {
+  const handleDrag = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      handleFile(file)
+    }
+  }
+
+  const handleFileSelect = (e) => {
     const file = e.target.files[0]
     if (file) {
-      if (!file.type.match('image.*')) {
-        setSnackbar({ open: true, message: 'Veuillez sélectionner une image (JPG, PNG, GIF)', severity: 'error' })
-        return
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setSnackbar({ open: true, message: "L'image ne doit pas dépasser 5MB", severity: 'error' })
-        return
-      }
-      setFormData(prev => ({ ...prev, image: file }))
-      setImagePreview(URL.createObjectURL(file))
-      setExistingImageUrl(null)
+      handleFile(file)
     }
+  }
+
+  const handleFile = (file) => {
+    if (!file.type.match('image.*')) {
+      showNotification('Veuillez sélectionner une image (JPG, PNG, GIF, WebP)', 'error')
+      return
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      showNotification('L\'image ne doit pas dépasser 5MB', 'error')
+      return
+    }
+    
+    setFormData(prev => ({ ...prev, image: file }))
+    setImagePreview(URL.createObjectURL(file))
+    setExistingImageUrl(null)
   }
 
   const handleRemoveImage = () => {
@@ -152,9 +191,11 @@ const VariantForm = () => {
     })
   }
 
-  const handleSubmit = async () => {
-    if (!formData.product || !formData.sku || !formData.purchase_price || !formData.sale_price) {
-      setSnackbar({ open: true, message: 'Produit, SKU, prix achat et prix vente sont obligatoires', severity: 'error' })
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!validateForm()) {
+      showNotification('Veuillez corriger les erreurs du formulaire', 'error')
       return
     }
 
@@ -162,29 +203,20 @@ const VariantForm = () => {
     try {
       const payload = new FormData()
       
-      // Ajouter les champs textuels
       payload.append('product', formData.product)
-      payload.append('sku', formData.sku)
+      payload.append('sku', formData.sku.trim())
       payload.append('attributes', JSON.stringify(formData.attributes))
       payload.append('purchase_price', formData.purchase_price)
       payload.append('sale_price', formData.sale_price)
       payload.append('stock_quantity', formData.stock_quantity)
       payload.append('is_active', formData.is_active)
       
-      // Gérer l'image
       if (formData.image instanceof File) {
-        // Nouvelle image sélectionnée
         payload.append('image', formData.image)
-      } else if (isEditMode && existingImageUrl && !formData.image) {
-        // En mode édition, si on n'a pas changé l'image, ne rien envoyer
-        // L'API gardera l'image existante
-        console.log('Conservation de l\'image existante')
       } else if (isEditMode && !existingImageUrl && !formData.image) {
-        // L'utilisateur a supprimé l'image
         payload.append('image', '')
       }
 
-      // Configuration explicite pour multipart/form-data
       const config = {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -193,24 +225,29 @@ const VariantForm = () => {
 
       if (isEditMode) {
         await AxiosInstance.put(`/variants/${id}/`, payload, config)
-        setSnackbar({ open: true, message: 'Variante modifiée avec succès', severity: 'success' })
+        showNotification('Variante modifiée avec succès', 'success')
       } else {
         await AxiosInstance.post('/variants/', payload, config)
-        setSnackbar({ open: true, message: 'Variante créée avec succès', severity: 'success' })
+        showNotification('Variante créée avec succès', 'success')
       }
+      
       setTimeout(() => navigate('/variants'), 1500)
+      
     } catch (error) {
-      console.error('Erreur détaillée:', error)
-      console.error('Response:', error.response?.data)
+      console.error('Erreur:', error)
       let errorMsg = 'Erreur lors de l\'enregistrement'
+      
       if (error.response?.data) {
         if (typeof error.response.data === 'object') {
-          errorMsg = Object.entries(error.response.data).map(([k, v]) => `${k}: ${v}`).join(', ')
+          errorMsg = Object.entries(error.response.data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join(' | ')
         } else {
           errorMsg = error.response.data
         }
       }
-      setSnackbar({ open: true, message: errorMsg, severity: 'error' })
+      
+      showNotification(errorMsg, 'error')
     } finally {
       setSubmitting(false)
     }
@@ -218,236 +255,456 @@ const VariantForm = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={60} sx={{ color: COMPANY_COLORS.darkCyan }} />
-      </Box>
+      <div className="flex items-center justify-center h-screen">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
     )
   }
 
   return (
-    <Box sx={{ p: 3, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" sx={{ color: COMPANY_COLORS.darkCyan }}>
-            {isEditMode ? 'Modifier la variante' : 'Nouvelle variante'}
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Définissez une déclinaison de produit (taille, couleur, etc.)
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button variant="outlined" onClick={() => navigate('/variants')} startIcon={<CancelIcon />} sx={{ borderColor: COMPANY_COLORS.darkCyan, color: COMPANY_COLORS.darkCyan }}>
-            Annuler
-          </Button>
-          <Button
-            variant="contained"
+    <div className="space-y-4 lg:space-y-6 p-3 lg:p-6">
+      {/* Notification */}
+      {notification.show && (
+        <div className="fixed top-16 lg:top-20 right-3 lg:right-6 z-50 animate-slideDown w-[calc(100%-1.5rem)] lg:w-auto max-w-md">
+          <div className={`alert ${notification.type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg`}>
+            {notification.type === 'success' ? (
+              <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+            )}
+            <span className="text-sm lg:text-base font-medium">{notification.message}</span>
+            <button 
+              className="btn btn-ghost btn-xs btn-circle"
+              onClick={() => setNotification({ ...notification, show: false })}
+            >
+              <X className="w-3 h-3 lg:w-4 lg:h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* En-tête */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate('/variants')}
+            className="btn btn-ghost btn-sm btn-circle"
+          >
+            <ArrowLeft className="w-4 h-4 lg:w-5 lg:h-5" />
+          </button>
+          <div>
+            <h1 className="text-xl lg:text-2xl font-bold text-base-content">
+              {isEditMode ? 'Modifier la variante' : 'Nouvelle variante'}
+            </h1>
+            <p className="text-xs lg:text-sm text-base-content/60">
+              Définissez une déclinaison de produit (taille, couleur, etc.)
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <button 
+            onClick={() => navigate('/variants')}
+            className="btn btn-outline btn-sm lg:btn-md gap-1 lg:gap-2"
+          >
+            <X className="w-3 h-3 lg:w-4 lg:h-4" />
+            <span className="hidden sm:inline">Annuler</span>
+          </button>
+          <button 
             onClick={handleSubmit}
             disabled={submitting}
-            startIcon={submitting ? <CircularProgress size={20} /> : <SaveIcon />}
-            sx={{
-              background: `linear-gradient(135deg, ${COMPANY_COLORS.darkCyan} 0%, ${COMPANY_COLORS.vividOrange} 100%)`,
-              '&:hover': { background: `linear-gradient(135deg, ${COMPANY_COLORS.darkCyan} 0%, ${COMPANY_COLORS.vividOrange} 80%)` }
-            }}
+            className="btn btn-primary btn-sm lg:btn-md gap-1 lg:gap-2"
           >
-            {submitting ? 'Enregistrement...' : 'Enregistrer'}
-          </Button>
-        </Box>
-      </Box>
+            {submitting ? (
+              <>
+                <Loader2 className="w-3 h-3 lg:w-4 lg:h-4 animate-spin" />
+                <span className="hidden sm:inline">Enregistrement...</span>
+                <span className="sm:hidden">En cours...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-3 h-3 lg:w-4 lg:h-4" />
+                <span className="hidden sm:inline">{isEditMode ? 'Mettre à jour' : 'Créer'}</span>
+                <span className="sm:hidden">Enregistrer</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ color: COMPANY_COLORS.darkCyan, fontWeight: 600, mb: 2 }}>
-                Informations générales
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Produit parent</InputLabel>
-                    <Select
-                      name="product"
-                      value={formData.product}
-                      label="Produit parent"
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+          {/* Formulaire principal */}
+          <div className="lg:col-span-2 space-y-4 lg:space-y-6">
+            {/* Informations générales */}
+            <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+              <div className="p-4 lg:p-6 border-b border-base-300 bg-base-200/50">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg">
+                    <Layers className="w-4 h-4 lg:w-5 lg:h-5 text-primary" />
+                  </div>
+                  <h2 className="text-base lg:text-lg font-bold text-base-content">
+                    Informations générales
+                  </h2>
+                </div>
+              </div>
+              
+              <div className="p-4 lg:p-6 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Produit parent */}
+                  <div className="form-control w-full">
+                    <label className="label pb-1">
+                      <span className="label-text font-medium text-sm">
+                        Produit parent <span className="text-error">*</span>
+                      </span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        name="product"
+                        value={formData.product}
+                        onChange={handleInputChange}
+                        className={`select select-bordered select-sm lg:select-md w-full appearance-none ${errors.product ? 'select-error' : ''}`}
+                      >
+                        <option value="">Sélectionner un produit</option>
+                        {products.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} ({p.reference})</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none" />
+                    </div>
+                    {errors.product && (
+                      <label className="label pt-1">
+                        <span className="label-text-alt text-error flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.product}
+                        </span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* SKU */}
+                  <div className="form-control w-full">
+                    <label className="label pb-1">
+                      <span className="label-text font-medium text-sm flex items-center gap-1">
+                        <Hash className="w-3 h-3" />
+                        SKU <span className="text-error">*</span>
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      name="sku"
+                      value={formData.sku}
                       onChange={handleInputChange}
-                    >
-                      {products.map(p => (
-                        <MenuItem key={p.id} value={p.id}>{p.name} ({p.reference})</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="SKU *"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleInputChange}
-                    required
-                    helperText="Code unique identifiant cette variante"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle1" gutterBottom>Attributs (ex: taille, couleur)</Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <TextField
-                      label="Clé"
-                      size="small"
+                      placeholder="Ex: TSHIRT-R-M"
+                      className={`input input-bordered input-sm lg:input-md w-full ${errors.sku ? 'input-error' : ''}`}
+                    />
+                    {errors.sku ? (
+                      <label className="label pt-1">
+                        <span className="label-text-alt text-error flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.sku}
+                        </span>
+                      </label>
+                    ) : (
+                      <label className="label pt-1">
+                        <span className="label-text-alt text-base-content/50 text-xs">
+                          Code unique identifiant cette variante
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Attributs */}
+                <div className="form-control w-full">
+                  <label className="label pb-1">
+                    <span className="label-text font-medium text-sm flex items-center gap-1">
+                      <Tag className="w-3 h-3" />
+                      Attributs
+                    </span>
+                  </label>
+                  
+                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                    <input
+                      type="text"
+                      placeholder="Clé (ex: taille)"
+                      className="input input-bordered input-sm flex-1"
                       value={attributeKey}
                       onChange={(e) => setAttributeKey(e.target.value)}
-                      placeholder="ex: taille"
                     />
-                    <TextField
-                      label="Valeur"
-                      size="small"
+                    <input
+                      type="text"
+                      placeholder="Valeur (ex: M)"
+                      className="input input-bordered input-sm flex-1"
                       value={attributeValue}
                       onChange={(e) => setAttributeValue(e.target.value)}
-                      placeholder="ex: M"
                     />
-                    <Button variant="outlined" onClick={addAttribute} startIcon={<AddIcon />}>
+                    <button
+                      type="button"
+                      onClick={addAttribute}
+                      className="btn btn-outline btn-sm gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
                       Ajouter
-                    </Button>
-                  </Box>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
                     {Object.entries(formData.attributes).map(([key, val]) => (
-                      <Chip key={key} label={`${key}: ${val}`} onDelete={() => removeAttribute(key)} />
+                      <span key={key} className="badge badge-lg gap-2 py-3">
+                        {key}: {val}
+                        <button
+                          type="button"
+                          onClick={() => removeAttribute(key)}
+                          className="ml-1 hover:text-error"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
                     ))}
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+                    {Object.keys(formData.attributes).length === 0 && (
+                      <span className="text-sm text-base-content/50">
+                        Aucun attribut défini
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <Card sx={{ borderRadius: 3, boxShadow: 2, mt: 3 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ color: COMPANY_COLORS.darkCyan, fontWeight: 600, mb: 2 }}>
-                Prix et stock
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Prix d'achat (HT) *"
-                    name="purchase_price"
-                    type="number"
-                    value={formData.purchase_price}
-                    onChange={handleInputChange}
-                    InputProps={{ startAdornment: <InputAdornment position="start">€</InputAdornment> }}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Prix de vente (HT) *"
-                    name="sale_price"
-                    type="number"
-                    value={formData.sale_price}
-                    onChange={handleInputChange}
-                    InputProps={{ startAdornment: <InputAdornment position="start">€</InputAdornment> }}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Quantité en stock"
-                    name="stock_quantity"
-                    type="number"
-                    value={formData.stock_quantity}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
+            {/* Prix et stock */}
+            <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+              <div className="p-4 lg:p-6 border-b border-base-300 bg-base-200/50">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <div className="p-1.5 lg:p-2 bg-success/10 rounded-lg">
+                    <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-success" />
+                  </div>
+                  <h2 className="text-base lg:text-lg font-bold text-base-content">
+                    Prix et stock
+                  </h2>
+                </div>
+              </div>
+              
+              <div className="p-4 lg:p-6 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Prix d'achat */}
+                  <div className="form-control w-full">
+                    <label className="label pb-1">
+                      <span className="label-text font-medium text-sm">
+                        Prix d'achat (HT) <span className="text-error">*</span>
+                      </span>
+                    </label>
+                    <label className={`input input-bordered input-sm lg:input-md flex items-center gap-2 ${errors.purchase_price ? 'input-error' : ''}`}>
+                      <span className="text-base-content/60">€</span>
+                      <input
+                        type="number"
+                        name="purchase_price"
+                        value={formData.purchase_price}
+                        onChange={handleInputChange}
+                        placeholder="0.00"
+                        step="0.01"
+                        className="grow"
+                      />
+                    </label>
+                    {errors.purchase_price && (
+                      <label className="label pt-1">
+                        <span className="label-text-alt text-error flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.purchase_price}
+                        </span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Prix de vente */}
+                  <div className="form-control w-full">
+                    <label className="label pb-1">
+                      <span className="label-text font-medium text-sm">
+                        Prix de vente (HT) <span className="text-error">*</span>
+                      </span>
+                    </label>
+                    <label className={`input input-bordered input-sm lg:input-md flex items-center gap-2 ${errors.sale_price ? 'input-error' : ''}`}>
+                      <span className="text-base-content/60">€</span>
+                      <input
+                        type="number"
+                        name="sale_price"
+                        value={formData.sale_price}
+                        onChange={handleInputChange}
+                        placeholder="0.00"
+                        step="0.01"
+                        className="grow"
+                      />
+                    </label>
+                    {errors.sale_price && (
+                      <label className="label pt-1">
+                        <span className="label-text-alt text-error flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.sale_price}
+                        </span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Stock */}
+                  <div className="form-control w-full">
+                    <label className="label pb-1">
+                      <span className="label-text font-medium text-sm flex items-center gap-1">
+                        <Box className="w-3 h-3" />
+                        Quantité en stock
+                      </span>
+                    </label>
+                    <input
+                      type="number"
+                      name="stock_quantity"
+                      value={formData.stock_quantity}
+                      onChange={handleInputChange}
+                      min="0"
+                      className="input input-bordered input-sm lg:input-md w-full"
+                    />
+                  </div>
+
+                  {/* Statut actif */}
+                  <div className="form-control flex justify-end">
+                    <label className="label cursor-pointer justify-start gap-3">
+                      <input
+                        type="checkbox"
+                        name="is_active"
                         checked={formData.is_active}
                         onChange={handleInputChange}
-                        name="is_active"
-                        color="success"
+                        className="toggle toggle-success toggle-sm lg:toggle-md"
                       />
+                      <span className="label-text font-medium text-sm">Variante active</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Upload d'image */}
+          <div className="lg:col-span-1">
+            <div className="bg-base-100 rounded-xl lg:rounded-2xl shadow-sm border border-base-300 overflow-hidden lg:sticky lg:top-20">
+              <div className="p-4 lg:p-6 border-b border-base-300 bg-base-200/50">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <div className="p-1.5 lg:p-2 bg-secondary/10 rounded-lg">
+                    <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5 text-secondary" />
+                  </div>
+                  <h2 className="text-base lg:text-lg font-bold text-base-content">
+                    Image de la variante
+                  </h2>
+                </div>
+              </div>
+              
+              <div className="p-4 lg:p-6">
+                <div
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  className={`
+                    relative border-2 border-dashed rounded-xl p-4 lg:p-6 text-center transition-all duration-200
+                    ${dragActive 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-base-300 hover:border-primary/50 bg-base-200/30'
                     }
-                    label="Variante active"
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ color: COMPANY_COLORS.darkCyan, fontWeight: 600, mb: 2 }}>
-                Image de la variante
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {imagePreview ? (
-                  <Avatar
-                    src={imagePreview}
-                    variant="rounded"
-                    sx={{ width: 200, height: 200, mb: 2 }}
-                  />
-                ) : (
-                  <Avatar
-                    variant="rounded"
-                    sx={{
-                      width: 200,
-                      height: 200,
-                      bgcolor: alpha(COMPANY_COLORS.darkCyan, 0.05),
-                      mb: 2,
-                      border: `2px dashed ${alpha(COMPANY_COLORS.vividOrange, 0.3)}`
-                    }}
-                  >
-                    <VariantIcon sx={{ fontSize: 60, color: COMPANY_COLORS.darkCyan }} />
-                  </Avatar>
-                )}
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    startIcon={<UploadIcon />}
-                    sx={{ borderColor: COMPANY_COLORS.vividOrange, color: COMPANY_COLORS.vividOrange }}
-                  >
-                    {imagePreview ? 'Changer l\'image' : 'Ajouter une image'}
-                    <input type="file" hidden accept="image/*" onChange={handleImageChange} />
-                  </Button>
-                  {imagePreview && (
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={handleRemoveImage}
-                    >
-                      Supprimer
-                    </Button>
+                  `}
+                >
+                  {imagePreview ? (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="Aperçu"
+                          className="w-full h-36 lg:h-40 object-contain rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="absolute -top-2 -right-2 btn btn-error btn-circle btn-xs"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-base-content/60">
+                        Cliquez ou déposez pour changer
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mx-auto w-14 h-14 lg:w-16 lg:h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                        <Layers className="w-7 h-7 lg:w-8 lg:h-8 text-primary" />
+                      </div>
+                      <p className="text-sm lg:text-base font-medium mb-1">
+                        Ajouter une image
+                      </p>
+                      <p className="text-xs text-base-content/60 mb-3">
+                        Glissez-déposez ou cliquez
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('variant-image-input').click()}
+                        className="btn btn-outline btn-xs lg:btn-sm gap-1"
+                      >
+                        <Upload className="w-3 h-3" />
+                        Parcourir
+                      </button>
+                    </>
                   )}
-                </Box>
-                <Typography variant="caption" color="textSecondary" sx={{ mt: 2, textAlign: 'center' }}>
-                  Formats acceptés: JPG, PNG, GIF<br />
-                  Taille maximale: 5MB
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                  
+                  <input
+                    id="variant-image-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </div>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+                <div className="mt-4 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs text-base-content/60">
+                    <CheckCircle className="w-3 h-3 text-success" />
+                    <span>JPG, PNG, GIF, WebP</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-base-content/60">
+                    <CheckCircle className="w-3 h-3 text-success" />
+                    <span>Taille max: 5 MB</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      {/* Barre d'actions flottante pour mobile */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-3 shadow-lg z-40">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => navigate('/variants')}
+            className="btn btn-outline btn-sm flex-1"
+          >
+            Annuler
+          </button>
+          <button 
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="btn btn-primary btn-sm flex-1"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                En cours...
+              </>
+            ) : (
+              <>
+                <Save className="w-3 h-3" />
+                {isEditMode ? 'Mettre à jour' : 'Créer'}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -15,6 +15,11 @@ import Units from './components/products/Units'
 import UnitForm from './components/products/UnitForm'
 import Variants from './components/products/Variants'
 import VariantForm from './components/products/VariantForm'
+import Stocks from './components/inventory/Stocks'
+import StockForm from './components/inventory/StockForm'
+import Warehouses from './components/inventory/Warehouses'
+import WarehouseForm from './components/inventory/WarehouseForm'
+import StockMovements from './components/inventory/StockMovements'
 import Users from './components/users/Users'
 import UserForm from './components/users/UserForm'
 import Roles from './components/users/Roles'
@@ -78,7 +83,18 @@ function App() {
                         {/* Variantes (si page dédiée)  */}
                         <Route path="/variants" element={<Variants />} />
                         <Route path="/variants/nouveau" element={<VariantForm />} />
-                         <Route path="/variants/:id/modifier" element={<VariantForm />} />
+                        <Route path="/variants/:id/modifier" element={<VariantForm />} />
+                        {/* Stocks (si page dédiée)  */}
+                        <Route path="/stocks" element={<Stocks />} />
+                        <Route path="/stocks/nouveau" element={<StockForm />} />
+                        <Route path="/stocks/:id/modifier" element={<StockForm />} />
+
+                         {/* Entrepots (si page dédiée)  */}
+                         <Route path="/entrepots" element={<Warehouses />} />
+                         <Route path="/entrepots/nouveau" element={<WarehouseForm />} />
+                         <Route path="/entrepots/:id/modifier" element={<WarehouseForm />} />
+
+                        <Route path="/mouvements-stock" element={<StockMovements />} />
 
                         {/* Gestion des clients 
                         <Route path="/clients" element={<Customers />} />
