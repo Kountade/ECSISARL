@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import logo from '../../assets/logo.svg'
 
 const PurchaseReceiptPDF = () => {
   const navigate = useNavigate()
@@ -74,23 +75,13 @@ const PurchaseReceiptPDF = () => {
       const element = pdfContentRef.current
       const isA5 = selectedFormat === 'A5'
       
-      // Configuration pour éviter l'erreur oklch
       const canvas = await html2canvas(element, {
-        scale: 3,
+        scale: 4,
         backgroundColor: '#ffffff',
         logging: false,
         useCORS: true,
         allowTaint: false,
-        foreignObjectRendering: false,
-        onclone: (clonedDoc, element) => {
-          // Supprimer les styles problématiques dans le clone
-          const styleElements = clonedDoc.querySelectorAll('style')
-          styleElements.forEach(style => {
-            if (style.innerHTML && style.innerHTML.includes('oklch')) {
-              style.innerHTML = style.innerHTML.replace(/oklch\([^)]+\)/g, '#1E3A5F')
-            }
-          })
-        }
+        foreignObjectRendering: false
       })
       
       const imgData = canvas.toDataURL('image/png', 1.0)
@@ -99,7 +90,7 @@ const PurchaseReceiptPDF = () => {
         unit: 'mm',
         format: isA5 ? 'a5' : 'a4',
         orientation: 'portrait',
-        compress: true
+        compress: false
       })
       
       const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -124,7 +115,7 @@ const PurchaseReceiptPDF = () => {
       
     } catch (error) {
       console.error('Erreur:', error)
-      alert('Erreur lors de la génération du PDF: ' + error.message)
+      alert('Erreur: ' + error.message)
     } finally {
       setGenerating(false)
     }
@@ -149,16 +140,17 @@ const PurchaseReceiptPDF = () => {
     }
 
     const getQualityStyle = (item) => {
-      if (!item.quality_checked) return { bg: '#F3F4F6', color: '#6B7280' }
-      if (item.quality_ok) return { bg: '#D1FAE5', color: '#059669' }
-      return { bg: '#FEE2E2', color: '#DC2626' }
+      if (!item.quality_checked) return { bg: '#F3F4F6', color: '#4B5563' }
+      if (item.quality_ok) return { bg: '#D1FAE5', color: '#065F46' }
+      return { bg: '#FEE2E2', color: '#991B1B' }
     }
 
     const padding = isA5 ? '8mm' : '12mm'
     const titleSize = isA5 ? '20px' : '28px'
     const docTitleSize = isA5 ? '16px' : '22px'
-    const bodySize = isA5 ? '9px' : '11px'
-    const headerSize = isA5 ? '9px' : '11px'
+    const bodySize = isA5 ? '10px' : '12px'
+    const headerSize = isA5 ? '10px' : '12px'
+    const smallSize = isA5 ? '8px' : '9px'
 
     return (
       <div ref={pdfContentRef} style={{
@@ -167,11 +159,12 @@ const PurchaseReceiptPDF = () => {
         padding: padding,
         width: isA5 ? '148mm' : '210mm',
         minHeight: isA5 ? '210mm' : '297mm',
-        color: '#111827',
-        lineHeight: '1.4',
+        color: '#000000',
+        lineHeight: '1.5',
+        fontWeight: '500',
         position: 'relative'
       }}>
-        {/* Header avec logo texte */}
+        {/* Header avec logo */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -180,27 +173,39 @@ const PurchaseReceiptPDF = () => {
           paddingBottom: '20px',
           borderBottom: '2px solid #1E3A5F'
         }}>
-          <div>
-            <h1 style={{
-              fontSize: titleSize,
-              fontWeight: '700',
-              color: '#1E3A5F',
-              letterSpacing: '-0.5px',
-              marginBottom: '5px'
-            }}>ECSI SARL</h1>
-            <p style={{ fontSize: bodySize, color: '#6B7280', margin: '2px 0' }}>Système de Gestion Intégré</p>
-            <p style={{ fontSize: bodySize, color: '#6B7280', margin: '2px 0' }}>RC: 123456 | IF: 1234567 | NIF: 123456789</p>
-            <p style={{ fontSize: bodySize, color: '#6B7280', margin: '2px 0' }}>Tél: +225 27 22 51 51 51 | Email: contact@ecsi.ci</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <img 
+              src={logo} 
+              alt="ECSI SARL" 
+              style={{
+                width: isA5 ? '60px' : '80px',
+                height: isA5 ? '60px' : '80px',
+                objectFit: 'contain'
+              }}
+              crossOrigin="anonymous"
+            />
+            <div>
+              <h1 style={{
+                fontSize: titleSize,
+                fontWeight: '800',
+                color: '#1E3A5F',
+                letterSpacing: '-0.5px',
+                marginBottom: '5px'
+              }}>ECSI SARL</h1>
+              <p style={{ fontSize: bodySize, color: '#000000', margin: '2px 0', fontWeight: '500' }}>Système de Gestion Intégré</p>
+              <p style={{ fontSize: smallSize, color: '#4B5563', margin: '2px 0' }}>RC: 123456 | IF: 1234567 | NIF: 123456789</p>
+              <p style={{ fontSize: smallSize, color: '#4B5563', margin: '2px 0' }}>Tél: +225 27 22 51 51 51 | Email: contact@ecsi.ci</p>
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <h2 style={{
               fontSize: docTitleSize,
-              fontWeight: '700',
+              fontWeight: '800',
               color: '#C9A03D',
               letterSpacing: '1px',
               marginBottom: '5px'
             }}>BON DE RÉCEPTION</h2>
-            <p style={{ fontSize: bodySize, fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+            <p style={{ fontSize: bodySize, fontWeight: '700', color: '#000000', marginBottom: '8px' }}>
               N° {receipt.receipt_number}
             </p>
             <div style={{ textAlign: 'right' }}>
@@ -209,7 +214,7 @@ const PurchaseReceiptPDF = () => {
                 padding: '4px 12px',
                 borderRadius: '20px',
                 fontSize: headerSize,
-                fontWeight: '600',
+                fontWeight: '700',
                 letterSpacing: '0.5px',
                 backgroundColor: orderStatus.bg,
                 color: orderStatus.color
@@ -222,7 +227,7 @@ const PurchaseReceiptPDF = () => {
         <div style={{ marginBottom: '25px' }}>
           <div style={{
             fontSize: isA5 ? '12px' : '14px',
-            fontWeight: '700',
+            fontWeight: '800',
             color: '#1E3A5F',
             textTransform: 'uppercase',
             letterSpacing: '1px',
@@ -239,20 +244,20 @@ const PurchaseReceiptPDF = () => {
             marginTop: '12px'
           }}>
             <div style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '12px' }}>
-              <div style={{ fontSize: isA5 ? '8px' : '10px', textTransform: 'uppercase', color: '#6B7280', letterSpacing: '0.5px', marginBottom: '6px' }}>COMMANDE N°</div>
-              <div style={{ fontSize: isA5 ? '12px' : '14px', fontWeight: '600', color: '#111827' }}>{receipt.purchase_order?.order_number || '-'}</div>
+              <div style={{ fontSize: smallSize, textTransform: 'uppercase', color: '#4B5563', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: '600' }}>COMMANDE N°</div>
+              <div style={{ fontSize: bodySize, fontWeight: '700', color: '#000000' }}>{receipt.purchase_order?.order_number || '-'}</div>
             </div>
             <div style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '12px' }}>
-              <div style={{ fontSize: isA5 ? '8px' : '10px', textTransform: 'uppercase', color: '#6B7280', letterSpacing: '0.5px', marginBottom: '6px' }}>FOURNISSEUR</div>
-              <div style={{ fontSize: isA5 ? '12px' : '14px', fontWeight: '600', color: '#C9A03D' }}>{receipt.purchase_order?.supplier_name || '-'}</div>
+              <div style={{ fontSize: smallSize, textTransform: 'uppercase', color: '#4B5563', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: '600' }}>FOURNISSEUR</div>
+              <div style={{ fontSize: bodySize, fontWeight: '700', color: '#C9A03D' }}>{receipt.purchase_order?.supplier_name || '-'}</div>
             </div>
             <div style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '12px' }}>
-              <div style={{ fontSize: isA5 ? '8px' : '10px', textTransform: 'uppercase', color: '#6B7280', letterSpacing: '0.5px', marginBottom: '6px' }}>DATE DE RÉCEPTION</div>
-              <div style={{ fontSize: isA5 ? '12px' : '14px', fontWeight: '600', color: '#111827' }}>{formatDate(receipt.receipt_date)}</div>
+              <div style={{ fontSize: smallSize, textTransform: 'uppercase', color: '#4B5563', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: '600' }}>DATE DE RÉCEPTION</div>
+              <div style={{ fontSize: bodySize, fontWeight: '700', color: '#000000' }}>{formatDate(receipt.receipt_date)}</div>
             </div>
             <div style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '12px' }}>
-              <div style={{ fontSize: isA5 ? '8px' : '10px', textTransform: 'uppercase', color: '#6B7280', letterSpacing: '0.5px', marginBottom: '6px' }}>REÇU PAR</div>
-              <div style={{ fontSize: isA5 ? '12px' : '14px', fontWeight: '600', color: '#111827' }}>{receipt.received_by_name || receipt.received_by?.email || '-'}</div>
+              <div style={{ fontSize: smallSize, textTransform: 'uppercase', color: '#4B5563', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: '600' }}>REÇU PAR</div>
+              <div style={{ fontSize: bodySize, fontWeight: '700', color: '#000000' }}>{receipt.received_by_name || receipt.received_by?.email || '-'}</div>
             </div>
           </div>
         </div>
@@ -261,7 +266,7 @@ const PurchaseReceiptPDF = () => {
         <div style={{ marginBottom: '25px' }}>
           <div style={{
             fontSize: isA5 ? '12px' : '14px',
-            fontWeight: '700',
+            fontWeight: '800',
             color: '#1E3A5F',
             textTransform: 'uppercase',
             letterSpacing: '1px',
@@ -271,12 +276,12 @@ const PurchaseReceiptPDF = () => {
             display: 'inline-block'
           }}>ARTICLES REÇUS</div>
           
-          <table style={{ width: '100%', borderCollapse: 'collapse', margin: '15px 0', fontSize: isA5 ? '9px' : '11px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', margin: '15px 0', fontSize: bodySize }}>
             <thead>
               <tr>
-                <th style={{ backgroundColor: '#1E3A5F', color: '#ffffff', padding: isA5 ? '8px 6px' : '10px 8px', textAlign: 'left' }}>Désignation</th>
-                <th style={{ backgroundColor: '#1E3A5F', color: '#ffffff', padding: isA5 ? '8px 6px' : '10px 8px', textAlign: 'center', width: '60px' }}>Qté</th>
-                <th style={{ backgroundColor: '#1E3A5F', color: '#ffffff', padding: isA5 ? '8px 6px' : '10px 8px', textAlign: 'center', width: '100px' }}>Contrôle Qualité</th>
+                <th style={{ backgroundColor: '#1E3A5F', color: '#ffffff', padding: isA5 ? '8px 6px' : '10px 8px', textAlign: 'left', fontWeight: '700' }}>Désignation</th>
+                <th style={{ backgroundColor: '#1E3A5F', color: '#ffffff', padding: isA5 ? '8px 6px' : '10px 8px', textAlign: 'center', width: '60px', fontWeight: '700' }}>Qté</th>
+                <th style={{ backgroundColor: '#1E3A5F', color: '#ffffff', padding: isA5 ? '8px 6px' : '10px 8px', textAlign: 'center', width: '100px', fontWeight: '700' }}>Contrôle Qualité</th>
               </tr>
             </thead>
             <tbody>
@@ -285,19 +290,19 @@ const PurchaseReceiptPDF = () => {
                 return (
                   <tr key={idx}>
                     <td style={{ padding: isA5 ? '8px 6px' : '10px 8px', borderBottom: '1px solid #E5E7EB' }}>
-                      <strong>{item.order_item?.product_name || item.product_name || '-'}</strong>
+                      <strong style={{ fontWeight: '700', color: '#000000' }}>{item.order_item?.product_name || item.product_name || '-'}</strong>
                       {item.order_item?.product_reference && (
-                        <div style={{ fontSize: isA5 ? '8px' : '9px', color: '#6B7280', marginTop: '2px' }}>Réf: {item.order_item.product_reference}</div>
+                        <div style={{ fontSize: smallSize, color: '#6B7280', marginTop: '2px' }}>Réf: {item.order_item.product_reference}</div>
                       )}
-                     </td>
-                    <td style={{ padding: isA5 ? '8px 6px' : '10px 8px', borderBottom: '1px solid #E5E7EB', textAlign: 'center', fontWeight: 'bold' }}>{item.quantity}</td>
+                    </td>
+                    <td style={{ padding: isA5 ? '8px 6px' : '10px 8px', borderBottom: '1px solid #E5E7EB', textAlign: 'center', fontWeight: '700', color: '#000000' }}>{item.quantity}</td>
                     <td style={{ padding: isA5 ? '8px 6px' : '10px 8px', borderBottom: '1px solid #E5E7EB', textAlign: 'center' }}>
                       <span style={{
                         display: 'inline-block',
                         padding: '3px 10px',
                         borderRadius: '20px',
-                        fontSize: isA5 ? '8px' : '10px',
-                        fontWeight: '600',
+                        fontSize: smallSize,
+                        fontWeight: '700',
                         backgroundColor: qualityStyle.bg,
                         color: qualityStyle.color
                       }}>{getQualityText(item)}</span>
@@ -311,25 +316,25 @@ const PurchaseReceiptPDF = () => {
           {/* Résumé */}
           <div style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '12px', marginTop: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #E5E7EB', marginBottom: '6px' }}>
-              <span style={{ fontWeight: '600', color: '#4B5563' }}>Nombre d'articles différents</span>
-              <span style={{ fontWeight: '700' }}>{receipt.items?.length || 0}</span>
+              <span style={{ fontWeight: '700', color: '#4B5563' }}>Nombre d'articles différents</span>
+              <span style={{ fontWeight: '700', color: '#000000' }}>{receipt.items?.length || 0}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
-              <span style={{ fontWeight: '600', color: '#4B5563' }}>Quantité totale reçue</span>
-              <span style={{ fontWeight: '700' }}>{formatNumber(totalQuantity)} unités</span>
+              <span style={{ fontWeight: '700', color: '#4B5563' }}>Quantité totale reçue</span>
+              <span style={{ fontWeight: '700', color: '#000000' }}>{formatNumber(totalQuantity)} unités</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
-              <span style={{ fontWeight: '600', color: '#4B5563' }}>Taux de conformité</span>
-              <span style={{ fontWeight: '700', color: conformityRate >= 80 ? '#059669' : conformityRate >= 50 ? '#D97706' : '#DC2626' }}>{conformityRate}%</span>
+              <span style={{ fontWeight: '700', color: '#4B5563' }}>Taux de conformité</span>
+              <span style={{ fontWeight: '800', color: conformityRate >= 80 ? '#065F46' : conformityRate >= 50 ? '#B45309' : '#991B1B' }}>{conformityRate}%</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
-              <span style={{ fontWeight: '600', color: '#4B5563' }}>✓ Articles conformes</span>
-              <span style={{ fontWeight: '700', color: '#059669' }}>{conformingCount}</span>
+              <span style={{ fontWeight: '700', color: '#4B5563' }}>✓ Articles conformes</span>
+              <span style={{ fontWeight: '700', color: '#065F46' }}>{conformingCount}</span>
             </div>
             {nonConformingCount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
-                <span style={{ fontWeight: '600', color: '#4B5563' }}>✗ Articles non conformes</span>
-                <span style={{ fontWeight: '700', color: '#DC2626' }}>{nonConformingCount}</span>
+                <span style={{ fontWeight: '700', color: '#4B5563' }}>✗ Articles non conformes</span>
+                <span style={{ fontWeight: '700', color: '#991B1B' }}>{nonConformingCount}</span>
               </div>
             )}
           </div>
@@ -340,7 +345,7 @@ const PurchaseReceiptPDF = () => {
           <div style={{ marginBottom: '25px' }}>
             <div style={{
               fontSize: isA5 ? '12px' : '14px',
-              fontWeight: '700',
+              fontWeight: '800',
               color: '#1E3A5F',
               textTransform: 'uppercase',
               letterSpacing: '1px',
@@ -353,9 +358,10 @@ const PurchaseReceiptPDF = () => {
               backgroundColor: '#FFFBEB',
               borderLeft: '3px solid #C9A03D',
               padding: '10px 12px',
-              fontSize: isA5 ? '9px' : '11px',
-              color: '#374151',
-              lineHeight: '1.5'
+              fontSize: bodySize,
+              color: '#000000',
+              lineHeight: '1.5',
+              fontWeight: '500'
             }}>{receipt.notes}</div>
           </div>
         )}
@@ -364,18 +370,18 @@ const PurchaseReceiptPDF = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '40px', paddingTop: '20px' }}>
           <div style={{ textAlign: 'center', width: '140px' }}>
             <div style={{ borderTop: '1px solid #9CA3AF', paddingTop: '8px', marginTop: '30px' }}></div>
-            <div style={{ fontSize: isA5 ? '8px' : '9px', color: '#6B7280', marginTop: '5px', fontWeight: '600' }}>RÉCEPTIONNAIRE</div>
-            <div style={{ fontSize: isA5 ? '7px' : '8px', color: '#9CA3AF', marginTop: '4px' }}>Nom et signature</div>
+            <div style={{ fontSize: bodySize, color: '#1E3A5F', marginTop: '5px', fontWeight: '700' }}>RÉCEPTIONNAIRE</div>
+            <div style={{ fontSize: smallSize, color: '#6B7280', marginTop: '4px' }}>Nom et signature</div>
           </div>
           <div style={{ textAlign: 'center', width: '140px' }}>
             <div style={{ borderTop: '1px solid #9CA3AF', paddingTop: '8px', marginTop: '30px' }}></div>
-            <div style={{ fontSize: isA5 ? '8px' : '9px', color: '#6B7280', marginTop: '5px', fontWeight: '600' }}>RESPONSABLE QUALITÉ</div>
-            <div style={{ fontSize: isA5 ? '7px' : '8px', color: '#9CA3AF', marginTop: '4px' }}>Nom et signature</div>
+            <div style={{ fontSize: bodySize, color: '#1E3A5F', marginTop: '5px', fontWeight: '700' }}>RESPONSABLE QUALITÉ</div>
+            <div style={{ fontSize: smallSize, color: '#6B7280', marginTop: '4px' }}>Nom et signature</div>
           </div>
           <div style={{ textAlign: 'center', width: '140px' }}>
             <div style={{ borderTop: '1px solid #9CA3AF', paddingTop: '8px', marginTop: '30px' }}></div>
-            <div style={{ fontSize: isA5 ? '8px' : '9px', color: '#6B7280', marginTop: '5px', fontWeight: '600' }}>CACHET ENTREPRISE</div>
-            <div style={{ fontSize: isA5 ? '7px' : '8px', color: '#9CA3AF', marginTop: '4px' }}>Cachet obligatoire</div>
+            <div style={{ fontSize: bodySize, color: '#1E3A5F', marginTop: '5px', fontWeight: '700' }}>CACHET ENTREPRISE</div>
+            <div style={{ fontSize: smallSize, color: '#6B7280', marginTop: '4px' }}>Cachet obligatoire</div>
           </div>
         </div>
 
@@ -384,11 +390,11 @@ const PurchaseReceiptPDF = () => {
           marginTop: '30px',
           paddingTop: '15px',
           textAlign: 'center',
-          fontSize: isA5 ? '7px' : '8px',
-          color: '#9CA3AF',
+          fontSize: smallSize,
+          color: '#6B7280',
           borderTop: '1px solid #E5E7EB'
         }}>
-          <p style={{ margin: '2px 0' }}>ECSI SARL - Document contractuel - Toute reproduction est interdite</p>
+          <p style={{ margin: '2px 0', fontWeight: '500' }}>ECSI SARL - Document contractuel - Toute reproduction est interdite</p>
           <p style={{ margin: '2px 0' }}>Siège social: Abidjan, Côte d'Ivoire | www.ecsi.ci</p>
           <p style={{ margin: '2px 0' }}>Généré le {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}</p>
         </div>
