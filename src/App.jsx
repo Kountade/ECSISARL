@@ -24,6 +24,10 @@ import Fournisseurs from './components/purchases/Fournisseurs'
 import PurchaseOrders from './components/purchases/PurchaseOrders'
 import PurchaseOrderForm from './components/purchases/PurchaseOrderForm'
 import FournisseurForm from './components/purchases/FournisseurForm'
+import PurchaseReceipts from './components/purchases/PurchaseReceipts'
+import PurchaseReceiptForm from './components/purchases/PurchaseReceiptForm'
+import PurchaseReceiptDetails from './components/purchases/PurchaseReceiptDetails'
+import PurchaseReceiptPDF from './components/purchases/PurchaseReceiptPDF'
 import Users from './components/users/Users'
 import UserForm from './components/users/UserForm'
 import Roles from './components/users/Roles'
@@ -33,6 +37,7 @@ import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
 import PasswordResetRequest from './components/PasswordResetRequest'
 import PasswordReset from './components/PasswordReset'
+
 
 
 
@@ -110,6 +115,16 @@ function App() {
                          <Route path="/commandes-fournisseurs" element={<PurchaseOrders />} />
                          <Route path="/commandes/nouveau" element={<PurchaseOrderForm />} />
                          <Route path="/commandes/:id/modifier" element={<PurchaseOrderForm />} />
+
+                         {/* recaptio (si page dédiée)  */}
+                         <Route path="/receptions" element={<PurchaseReceipts />} />
+                         <Route path="/receptions/nouveau" element={<PurchaseReceiptForm />} />
+                         <Route path="/receptions/:id/modifier" element={<PurchaseReceiptForm />} />
+                          <Route path="/receptions/:id" element={<PurchaseReceiptDetails />} />
+                          <Route path="/receptions/:id/pdf" element={<PurchaseReceiptPDF />} />
+
+
+
 
                         {/* Gestion des clients 
                         <Route path="/clients" element={<Customers />} />

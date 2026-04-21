@@ -292,7 +292,7 @@ export default function Navbar({ content, mode, toggleColorMode }) {
         { id: 'fournisseurs', text: 'Fournisseurs', icon: Building2, path: '/fournisseurs', permission: canViewSuppliers() },
         { id: 'evaluations', text: 'Évaluations', icon: Star, path: '/supplier-evaluations', permission: canViewSuppliers() },
         { id: 'commandes', text: 'Commandes', icon: FileText, path: '/commandes-fournisseurs', permission: canViewPurchases(), badge: achatsALivrer.length },
-        { id: 'receptions', text: 'Réceptions', icon: Truck, path: '/purchase-receipts', permission: canViewPurchases() },
+        { id: 'receptions', text: 'Réceptions', icon: Truck, path: '/receptions', permission: canViewPurchases() },
         { id: 'catalogue', text: 'Catalogue', icon: ClipboardList, path: '/supplier-catalogs', permission: canViewPurchases() },
         { id: 'prix', text: 'Historique prix', icon: History, path: '/price-history', permission: canViewPurchases() },
         { id: 'alertes', text: 'Alertes', icon: AlertTriangle, path: '/purchase-alerts', permission: canViewPurchases(), badge: alertsCount }
