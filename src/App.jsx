@@ -31,7 +31,11 @@ import PurchaseReceiptPDF from './components/purchases/PurchaseReceiptPDF'
 import Users from './components/users/Users'
 import UserForm from './components/users/UserForm'
 import Roles from './components/users/Roles'
-
+import Customers from './components/sales/Customers'
+import CustomerForm from './components/sales/CustomerForm'
+import CustomerDetails from './components/sales/CustomerDetails'
+import Sales from './components/sales/Sales'
+import SaleForm from './components/sales/SaleForm'
 
 import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
@@ -126,20 +130,24 @@ function App() {
 
 
 
-                        {/* Gestion des clients 
+                        {/* Gestion des clients */}
                         <Route path="/clients" element={<Customers />} />
                         <Route path="/clients/nouveau" element={<CustomerForm />} />
                         <Route path="/clients/:id" element={<CustomerDetails />} />
                         <Route path="/clients/:id/modifier" element={<CustomerForm />} />
-*/}
-                        {/* Profil utilisateur 
-                        <Route path="/profile" element={<Profile />} />*/}
+
+                        {/* Profil utilisateur */}
+                        
                         <Route path="/utilisateurs" element={<Users />} />
                         <Route path="/utilisateurs/nouveau" element={<UserForm />} />
                         <Route path="/utilisateurs/:id/modifier" element={<UserForm />} />
                          <Route path="/roles" element={<Roles />} />
 
 
+                           {/* GESTIOn VETES utilisateur */}
+                         <Route path="/ventes" element={<Sales />} />
+                         <Route path="/ventes/nouveau" element={<SaleForm />} />
+                         <Route path="/ventes/:id/modifier" element={<SaleForm />} />
 
 
             </Route>
