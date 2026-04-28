@@ -36,6 +36,11 @@ import CustomerForm from './components/sales/CustomerForm'
 import CustomerDetails from './components/sales/CustomerDetails'
 import Sales from './components/sales/Sales'
 import SaleForm from './components/sales/SaleForm'
+import Invoices from './components/sales/Invoices'
+import InvoiceForm from './components/sales/InvoiceForm'
+import InvoiceDetails from './components/sales/InvoiceDetails'
+import Payments from './components/sales/Payments'
+import PaymentForm from './components/sales/PaymentForm'
 
 import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
@@ -148,6 +153,18 @@ function App() {
                          <Route path="/ventes" element={<Sales />} />
                          <Route path="/ventes/nouveau" element={<SaleForm />} />
                          <Route path="/ventes/:id/modifier" element={<SaleForm />} />
+
+
+                             {/* GESTIOn VETES FACTURES */}
+                         <Route path="/factures" element={<Invoices />} />
+                          <Route path="/factures/nouveau" element={<InvoiceForm />} />
+                         <Route path="/factures/:id" element={<InvoiceDetails />} /> 
+
+
+                                         
+                          <Route path="/paiements" element={<Payments />} />
+                            <Route path="/paiements/nouveau" element={<PaymentForm />} />
+
 
 
             </Route>
