@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AxiosInstance from '../AxiosInstance'
+import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import {
   ArrowLeft,
   Receipt,
@@ -9,21 +10,328 @@ import {
   Download,
   Loader2,
   FileText,
-  LayoutGrid,
-  Printer
+  LayoutGrid
 } from 'lucide-react'
-import logo from '../../assets/logo.svg'
 
-const PurchaseReceiptPDF = () => {
-  const navigate = useNavigate()
-  const { id } = useParams()
+// Hook personnalisé pour charger le logo en base64
+const useLogo = () => {
+  const [logoSrc, setLogoSrc] = useState(null)
 
-  const [receipt, setReceipt] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [generating, setGenerating] = useState(false)
-  const [selectedFormat, setSelectedFormat] = useState('A4')
-  const [showPreview, setShowPreview] = useState(true)
+  useEffect(() => {
+    const loadLogo = async () => {
+      // Essayer plusieurs chemins possibles
+      const paths = [
+        '/logo.svg',
+        '/src/assets/logo.svg',
+        '/assets/logo.svg',
+        '/public/logo.svg',
+        '/ecsi-logo.svg'
+      ]
 
+      for (const path of paths) {
+        try {
+          const response = await fetch(path)
+          if (response.ok) {
+            const blob = await response.blob()
+            const reader = new FileReader()
+            reader.onloadend = () => {
+              setLogoSrc(reader.result)
+            }
+            reader.readAsDataURL(blob)
+            console.log(`Logo chargé depuis: ${path}`)
+            return
+          }
+        } catch (error) {
+          console.log(`Logo non trouvé au chemin: ${path}`)
+        }
+      }
+      
+      // Si aucun logo n'est trouvé, on utilise un texte à la place
+      console.warn('Aucun logo trouvé, utilisation du texte par défaut')
+    }
+
+    loadLogo()
+  }, [])
+
+  return logoSrc
+}
+
+// Styles pour le PDF
+const styles = StyleSheet.create({
+  page: {
+    padding: 30,
+    backgroundColor: '#ffffff',
+    fontSize: 10,
+    fontFamily: 'Helvetica'
+  },
+  // En-tête
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 25,
+    paddingBottom: 15,
+    borderBottomWidth: 3,
+    borderBottomColor: '#1E3A5F'
+  },
+  logoArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  logoImage: {
+    width: 60,
+    height: 60
+  },
+  logoPlaceholder: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#1E3A5F',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  logoPlaceholderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#C9A03D'
+  },
+  companyInfo: {
+    marginLeft: 8
+  },
+  companyName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1E3A5F',
+    marginBottom: 4
+  },
+  companySub: {
+    fontSize: 8,
+    color: '#4B5563',
+    marginBottom: 2
+  },
+  companyDetails: {
+    fontSize: 7,
+    color: '#6B7280',
+    marginBottom: 1
+  },
+  docHeader: {
+    alignItems: 'flex-end'
+  },
+  docTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#C9A03D',
+    marginBottom: 5,
+    letterSpacing: 1
+  },
+  receiptNumber: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#1E3A5F',
+    marginBottom: 8,
+    textAlign: 'right'
+  },
+  statusBadge: (bgColor) => ({
+    backgroundColor: bgColor,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignSelf: 'flex-end'
+  }),
+  statusText: (textColor) => ({
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: textColor,
+    letterSpacing: 0.5
+  }),
+  // Sections
+  section: {
+    marginBottom: 18
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1E3A5F',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 2,
+    borderBottomColor: '#C9A03D',
+    alignSelf: 'flex-start'
+  },
+  // Grille d'informations
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+    gap: 10
+  },
+  infoCard: {
+    width: '48%',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    padding: 8
+  },
+  infoLabel: {
+    fontSize: 7,
+    textTransform: 'uppercase',
+    color: '#6B7280',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+    fontWeight: 'bold'
+  },
+  infoValue: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#111827'
+  },
+  supplierValue: {
+    color: '#C9A03D'
+  },
+  // Tableau
+  table: {
+    marginTop: 8,
+    marginBottom: 8
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#1E3A5F',
+    paddingVertical: 6,
+    paddingHorizontal: 6
+  },
+  tableHeaderText: {
+    color: '#ffffff',
+    fontSize: 8,
+    fontWeight: 'bold'
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingVertical: 6,
+    paddingHorizontal: 6
+  },
+  productCol: { width: '55%' },
+  quantityCol: { width: '20%' },
+  qualityCol: { width: '25%' },
+  textCenter: { textAlign: 'center' },
+  productName: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 2
+  },
+  productRef: {
+    fontSize: 6,
+    color: '#6B7280'
+  },
+  qualityBadge: (bgColor) => ({
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+    backgroundColor: bgColor,
+    alignSelf: 'center'
+  }),
+  qualityText: (textColor) => ({
+    fontSize: 7,
+    fontWeight: 'bold',
+    color: textColor
+  }),
+  // Résumé
+  summaryBox: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    padding: 10,
+    marginTop: 10
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4
+  },
+  summaryBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginBottom: 4,
+    paddingBottom: 4
+  },
+  summaryLabel: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#4B5563'
+  },
+  summaryValue: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#111827'
+  },
+  textSuccess: { color: '#065F46' },
+  textDanger: { color: '#991B1B' },
+  // Notes
+  notesBox: {
+    backgroundColor: '#FFFBEB',
+    borderLeftWidth: 3,
+    borderLeftColor: '#C9A03D',
+    padding: 8,
+    marginTop: 8
+  },
+  notesText: {
+    fontSize: 8,
+    color: '#111827',
+    lineHeight: 1.3
+  },
+  // Signatures
+  signatures: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 30,
+    paddingTop: 15
+  },
+  signatureItem: {
+    alignItems: 'center',
+    width: '30%'
+  },
+  signatureLine: {
+    borderTopWidth: 1,
+    borderTopColor: '#9CA3AF',
+    width: '100%',
+    paddingTop: 6,
+    marginTop: 20
+  },
+  signatureLabel: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#1E3A5F',
+    marginTop: 4
+  },
+  signatureSub: {
+    fontSize: 6,
+    color: '#6B7280',
+    marginTop: 2
+  },
+  // Footer
+  footer: {
+    marginTop: 25,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    alignItems: 'center'
+  },
+  footerText: {
+    fontSize: 6,
+    color: '#6B7280',
+    marginBottom: 2
+  }
+})
+
+// Composant PDF du bon de réception
+const PurchaseReceiptPDFDocument = ({ receipt, logoSrc }) => {
   const statusConfig = {
     draft: { label: 'BROUILLON', color: '#6B7280', bg: '#F3F4F6' },
     sent: { label: 'ENVOYÉE', color: '#2563EB', bg: '#EFF6FF' },
@@ -48,6 +356,195 @@ const PurchaseReceiptPDF = () => {
     return new Intl.NumberFormat('fr-FR').format(number || 0)
   }
 
+  const getQualityText = (item) => {
+    if (!item.quality_checked) return 'Non contrôlé'
+    if (item.quality_ok) return 'Conforme'
+    return 'Non conforme'
+  }
+
+  const getQualityColor = (item) => {
+    if (!item.quality_checked) return '#6B7280'
+    if (item.quality_ok) return '#065F46'
+    return '#991B1B'
+  }
+
+  const getQualityBg = (item) => {
+    if (!item.quality_checked) return '#F3F4F6'
+    if (item.quality_ok) return '#D1FAE5'
+    return '#FEE2E2'
+  }
+
+  const orderStatus = statusConfig[receipt.purchase_order?.status] || statusConfig.draft
+  const totalQuantity = receipt.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0
+  const conformingCount = receipt.items?.filter(item => item.quality_ok).length || 0
+  const nonConformingCount = receipt.items?.filter(item => item.quality_checked && !item.quality_ok).length || 0
+  const conformityRate = (conformingCount + nonConformingCount) > 0 
+    ? Math.round((conformingCount / (conformingCount + nonConformingCount)) * 100) 
+    : 0
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        
+        {/* En-tête avec logo */}
+        <View style={styles.header}>
+          <View style={styles.logoArea}>
+            {logoSrc ? (
+              <Image src={logoSrc} style={styles.logoImage} />
+            ) : (
+              <View style={styles.logoPlaceholder}>
+                <Text style={styles.logoPlaceholderText}>ECSI</Text>
+              </View>
+            )}
+            <View style={styles.companyInfo}>
+              <Text style={styles.companyName}>ECSI SARL</Text>
+              <Text style={styles.companySub}>Système de Gestion Intégré</Text>
+              <Text style={styles.companyDetails}>RC: 123456 | IF: 1234567 | NIF: 123456789</Text>
+              <Text style={styles.companyDetails}>Tél: +225 27 22 51 51 51 | Email: contact@ecsi.ci</Text>
+            </View>
+          </View>
+          <View style={styles.docHeader}>
+            <Text style={styles.docTitle}>BON DE RÉCEPTION</Text>
+            <Text style={styles.receiptNumber}>N° {receipt.receipt_number}</Text>
+            <View style={styles.statusBadge(orderStatus.bg)}>
+              <Text style={styles.statusText(orderStatus.color)}>{orderStatus.label}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Informations générales */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>INFORMATIONS GÉNÉRALES</Text>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>COMMANDE N°</Text>
+              <Text style={styles.infoValue}>{receipt.purchase_order?.order_number || '-'}</Text>
+            </View>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>FOURNISSEUR</Text>
+              <Text style={[styles.infoValue, styles.supplierValue]}>{receipt.purchase_order?.supplier_name || '-'}</Text>
+            </View>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>DATE DE RÉCEPTION</Text>
+              <Text style={styles.infoValue}>{formatDate(receipt.receipt_date)}</Text>
+            </View>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>REÇU PAR</Text>
+              <Text style={styles.infoValue}>{receipt.received_by_name || receipt.received_by?.email || '-'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Articles reçus */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ARTICLES REÇUS</Text>
+          
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, styles.productCol]}>DÉSIGNATION</Text>
+              <Text style={[styles.tableHeaderText, styles.quantityCol, styles.textCenter]}>QTÉ</Text>
+              <Text style={[styles.tableHeaderText, styles.qualityCol, styles.textCenter]}>CONTRÔLE QUALITÉ</Text>
+            </View>
+            
+            {receipt.items?.map((item, idx) => (
+              <View key={idx} style={styles.tableRow}>
+                <View style={styles.productCol}>
+                  <Text style={styles.productName}>{item.order_item?.product_name || item.product_name || '-'}</Text>
+                  {item.order_item?.product_reference && (
+                    <Text style={styles.productRef}>Réf: {item.order_item.product_reference}</Text>
+                  )}
+                </View>
+                <Text style={[styles.quantityCol, styles.textCenter]}>{item.quantity}</Text>
+                <View style={[styles.qualityCol, styles.textCenter]}>
+                  <View style={styles.qualityBadge(getQualityBg(item))}>
+                    <Text style={styles.qualityText(getQualityColor(item))}>{getQualityText(item)}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Résumé */}
+          <View style={styles.summaryBox}>
+            <View style={[styles.summaryRow, styles.summaryBorder]}>
+              <Text style={styles.summaryLabel}>Nombre d'articles différents</Text>
+              <Text style={styles.summaryValue}>{receipt.items?.length || 0}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Quantité totale reçue</Text>
+              <Text style={styles.summaryValue}>{formatNumber(totalQuantity)} unités</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Taux de conformité</Text>
+              <Text style={[styles.summaryValue, conformityRate >= 80 ? styles.textSuccess : styles.textDanger]}>
+                {conformityRate}%
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>✓ Articles conformes</Text>
+              <Text style={[styles.summaryValue, styles.textSuccess]}>{conformingCount}</Text>
+            </View>
+            {nonConformingCount > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>✗ Articles non conformes</Text>
+                <Text style={[styles.summaryValue, styles.textDanger]}>{nonConformingCount}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Observations */}
+        {receipt.notes && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>OBSERVATIONS</Text>
+            <View style={styles.notesBox}>
+              <Text style={styles.notesText}>{receipt.notes}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Signatures */}
+        <View style={styles.signatures}>
+          <View style={styles.signatureItem}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>RÉCEPTIONNAIRE</Text>
+            <Text style={styles.signatureSub}>Nom et signature</Text>
+          </View>
+          <View style={styles.signatureItem}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>RESPONSABLE QUALITÉ</Text>
+            <Text style={styles.signatureSub}>Nom et signature</Text>
+          </View>
+          <View style={styles.signatureItem}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>CACHET ENTREPRISE</Text>
+            <Text style={styles.signatureSub}>Cachet obligatoire</Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>ECSI SARL - Document contractuel - Toute reproduction est interdite</Text>
+          <Text style={styles.footerText}>Siège social: Abidjan, Côte d'Ivoire | www.ecsi.ci</Text>
+          <Text style={styles.footerText}>
+            Généré le {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}
+          </Text>
+        </View>
+      </Page>
+    </Document>
+  )
+}
+
+// Composant principal
+const PurchaseReceiptPDF = () => {
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const logoSrc = useLogo()
+
+  const [receipt, setReceipt] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [showPreview, setShowPreview] = useState(true)
+
   const fetchData = async () => {
     setLoading(true)
     try {
@@ -63,488 +560,6 @@ const PurchaseReceiptPDF = () => {
   useEffect(() => {
     if (id) fetchData()
   }, [id])
-
-  const handlePrint = () => {
-    if (!receipt) return
-    
-    setGenerating(true)
-    
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) {
-      alert('Veuillez autoriser les popups')
-      setGenerating(false)
-      return
-    }
-    
-    printWindow.document.write(getPrintHTML())
-    printWindow.document.close()
-    
-    printWindow.onload = () => {
-      printWindow.print()
-      printWindow.onafterprint = () => {
-        printWindow.close()
-        setGenerating(false)
-      }
-    }
-  }
-
-  const getPrintHTML = () => {
-    if (!receipt) return ''
-    
-    const isA5 = selectedFormat === 'A5'
-    const orderStatus = statusConfig[receipt.purchase_order?.status] || statusConfig.draft
-    const totalQuantity = receipt.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0
-    const conformingCount = receipt.items?.filter(item => item.quality_ok).length || 0
-    const nonConformingCount = receipt.items?.filter(item => item.quality_checked && !item.quality_ok).length || 0
-    const conformityRate = (conformingCount + nonConformingCount) > 0 
-      ? Math.round((conformingCount / (conformingCount + nonConformingCount)) * 100) 
-      : 0
-
-    const getQualityText = (item) => {
-      if (!item.quality_checked) return 'Non contrôlé'
-      if (item.quality_ok) return 'Conforme'
-      return 'Non conforme'
-    }
-
-    const getQualityColor = (item) => {
-      if (!item.quality_checked) return '#6B7280'
-      if (item.quality_ok) return '#065F46'
-      return '#991B1B'
-    }
-
-    const getQualityBg = (item) => {
-      if (!item.quality_checked) return '#F3F4F6'
-      if (item.quality_ok) return '#D1FAE5'
-      return '#FEE2E2'
-    }
-
-    const pageWidth = isA5 ? '148mm' : '210mm'
-    const pageHeight = isA5 ? '210mm' : '297mm'
-    const padding = isA5 ? '10mm' : '15mm'
-    const titleSize = isA5 ? '20px' : '28px'
-    const docTitleSize = isA5 ? '16px' : '22px'
-    const bodySize = isA5 ? '10px' : '12px'
-    const headerSize = isA5 ? '10px' : '12px'
-    const smallSize = isA5 ? '8px' : '10px'
-
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Bon de réception ${receipt.receipt_number}</title>
-  <style>
-    @page {
-      size: ${pageWidth} ${pageHeight};
-      margin: 0;
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'Helvetica Neue', 'Segoe UI', 'Roboto', Arial, sans-serif;
-      background: white;
-      padding: ${padding};
-      width: ${pageWidth};
-      min-height: ${pageHeight};
-      margin: 0 auto;
-      color: #111827;
-      line-height: 1.5;
-    }
-    
-    /* Header */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 3px solid #1E3A5F;
-    }
-    
-    .logo-area {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    
-    .logo {
-      width: ${isA5 ? '60px' : '80px'};
-      height: ${isA5 ? '60px' : '80px'};
-      object-fit: contain;
-    }
-    
-    .company-name {
-      font-size: ${titleSize};
-      font-weight: 800;
-      color: #1E3A5F;
-      letter-spacing: -0.5px;
-      margin-bottom: 5px;
-    }
-    
-    .company-sub {
-      font-size: ${bodySize};
-      color: #4B5563;
-      margin: 2px 0;
-    }
-    
-    .company-details {
-      font-size: ${smallSize};
-      color: #6B7280;
-      margin: 2px 0;
-    }
-    
-    .doc-title {
-      font-size: ${docTitleSize};
-      font-weight: 800;
-      color: #C9A03D;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-      text-align: right;
-    }
-    
-    .receipt-number {
-      font-size: ${bodySize};
-      font-weight: 700;
-      color: #1E3A5F;
-      margin-bottom: 10px;
-      text-align: right;
-    }
-    
-    .status-badge {
-      display: inline-block;
-      padding: 5px 14px;
-      border-radius: 20px;
-      font-size: ${headerSize};
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      background: ${orderStatus.bg};
-      color: ${orderStatus.color};
-      text-align: right;
-    }
-    
-    .text-right {
-      text-align: right;
-    }
-    
-    /* Sections */
-    .section {
-      margin-bottom: 25px;
-    }
-    
-    .section-title {
-      font-size: ${isA5 ? '13px' : '15px'};
-      font-weight: 800;
-      color: #1E3A5F;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
-      padding-bottom: 6px;
-      border-bottom: 2px solid #C9A03D;
-      display: inline-block;
-    }
-    
-    /* Info grid */
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-top: 12px;
-    }
-    
-    .info-card {
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 12px;
-    }
-    
-    .info-label {
-      font-size: ${smallSize};
-      text-transform: uppercase;
-      color: #6B7280;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-    
-    .info-value {
-      font-size: ${bodySize};
-      font-weight: 700;
-      color: #111827;
-    }
-    
-    .supplier-value {
-      color: #C9A03D;
-    }
-    
-    /* Table */
-    .items-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 15px 0;
-      font-size: ${bodySize};
-    }
-    
-    .items-table th {
-      background: #1E3A5F;
-      color: white;
-      padding: ${isA5 ? '10px 6px' : '12px 8px'};
-      text-align: left;
-      font-weight: 700;
-    }
-    
-    .items-table td {
-      padding: ${isA5 ? '10px 6px' : '12px 8px'};
-      border-bottom: 1px solid #E5E7EB;
-      vertical-align: top;
-    }
-    
-    .text-center {
-      text-align: center;
-    }
-    
-    .quality-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: ${smallSize};
-      font-weight: 700;
-    }
-    
-    /* Summary */
-    .summary-box {
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 14px;
-      margin-top: 15px;
-    }
-    
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 6px 0;
-    }
-    
-    .summary-border {
-      border-bottom: 1px solid #E5E7EB;
-      margin-bottom: 6px;
-    }
-    
-    .summary-label {
-      font-weight: 700;
-      color: #4B5563;
-    }
-    
-    .summary-value {
-      font-weight: 700;
-      color: #111827;
-    }
-    
-    /* Notes */
-    .notes-box {
-      background: #FFFBEB;
-      border-left: 3px solid #C9A03D;
-      padding: 10px 12px;
-      font-size: ${bodySize};
-      color: #111827;
-      line-height: 1.5;
-    }
-    
-    /* Signatures */
-    .signatures {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 40px;
-      padding-top: 20px;
-    }
-    
-    .signature-item {
-      text-align: center;
-      width: 140px;
-    }
-    
-    .signature-line {
-      border-top: 1px solid #9CA3AF;
-      padding-top: 8px;
-      margin-top: 30px;
-    }
-    
-    .signature-label {
-      font-size: ${bodySize};
-      color: #1E3A5F;
-      margin-top: 5px;
-      font-weight: 700;
-    }
-    
-    .signature-sub {
-      font-size: ${smallSize};
-      color: #6B7280;
-      margin-top: 4px;
-    }
-    
-    /* Footer */
-    .footer {
-      margin-top: 30px;
-      padding-top: 15px;
-      text-align: center;
-      font-size: ${smallSize};
-      color: #6B7280;
-      border-top: 1px solid #E5E7EB;
-    }
-    
-    .text-success {
-      color: #065F46;
-    }
-    
-    .text-danger {
-      color: #991B1B;
-    }
-    
-    .fw-700 {
-      font-weight: 700;
-    }
-  </style>
-</head>
-<body>
-  <!-- Header avec logo -->
-  <div class="header">
-    <div class="logo-area">
-      <img src="${logo}" class="logo" alt="ECSI SARL" />
-      <div>
-        <div class="company-name">ECSI SARL</div>
-        <div class="company-sub">Système de Gestion Intégré</div>
-        <div class="company-details">RC: 123456 | IF: 1234567 | NIF: 123456789</div>
-        <div class="company-details">Tél: +225 27 22 51 51 51 | Email: contact@ecsi.ci</div>
-      </div>
-    </div>
-    <div>
-      <div class="doc-title">BON DE RÉCEPTION</div>
-      <div class="receipt-number">N° ${receipt.receipt_number}</div>
-      <div class="text-right">
-        <span class="status-badge">${orderStatus.label}</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Informations -->
-  <div class="section">
-    <div class="section-title">INFORMATIONS GÉNÉRALES</div>
-    <div class="info-grid">
-      <div class="info-card">
-        <div class="info-label">COMMANDE N°</div>
-        <div class="info-value">${receipt.purchase_order?.order_number || '-'}</div>
-      </div>
-      <div class="info-card">
-        <div class="info-label">FOURNISSEUR</div>
-        <div class="info-value supplier-value">${receipt.purchase_order?.supplier_name || '-'}</div>
-      </div>
-      <div class="info-card">
-        <div class="info-label">DATE DE RÉCEPTION</div>
-        <div class="info-value">${formatDate(receipt.receipt_date)}</div>
-      </div>
-      <div class="info-card">
-        <div class="info-label">REÇU PAR</div>
-        <div class="info-value">${receipt.received_by_name || receipt.received_by?.email || '-'}</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Articles -->
-  <div class="section">
-    <div class="section-title">ARTICLES REÇUS</div>
-    <table class="items-table">
-      <thead>
-        <tr>
-          <th>Désignation</th>
-          <th style="width: 60px;" class="text-center">Qté</th>
-          <th style="width: 110px;" class="text-center">Contrôle Qualité</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${receipt.items?.map(item => `
-          <tr>
-            <td>
-              <strong style="font-weight: 700; color: #111827;">${item.order_item?.product_name || item.product_name || '-'}</strong>
-              ${item.order_item?.product_reference ? `<div style="font-size: ${smallSize}; color: #6B7280; margin-top: 2px;">Réf: ${item.order_item.product_reference}</div>` : ''}
-            </td>
-            <td class="text-center fw-700">${item.quantity}</td>
-            <td class="text-center">
-              <span class="quality-badge" style="background: ${getQualityBg(item)}; color: ${getQualityColor(item)}">
-                ${getQualityText(item)}
-              </span>
-            </td>
-           </>
-        `).join('')}
-      </tbody>
-    </table>
-
-    <!-- Résumé -->
-    <div class="summary-box">
-      <div class="summary-row summary-border">
-        <span class="summary-label">Nombre d'articles différents</span>
-        <span class="summary-value">${receipt.items?.length || 0}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-label">Quantité totale reçue</span>
-        <span class="summary-value">${formatNumber(totalQuantity)} unités</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-label">Taux de conformité</span>
-        <span class="summary-value ${conformityRate >= 80 ? 'text-success' : 'text-danger'}">${conformityRate}%</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-label">✓ Articles conformes</span>
-        <span class="summary-value text-success">${conformingCount}</span>
-      </div>
-      ${nonConformingCount > 0 ? `
-      <div class="summary-row">
-        <span class="summary-label">✗ Articles non conformes</span>
-        <span class="summary-value text-danger">${nonConformingCount}</span>
-      </div>
-      ` : ''}
-    </div>
-  </div>
-
-  ${receipt.notes ? `
-  <div class="section">
-    <div class="section-title">OBSERVATIONS</div>
-    <div class="notes-box">${receipt.notes.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</div>
-  </div>
-  ` : ''}
-
-  <!-- Signatures -->
-  <div class="signatures">
-    <div class="signature-item">
-      <div class="signature-line"></div>
-      <div class="signature-label">RÉCEPTIONNAIRE</div>
-      <div class="signature-sub">Nom et signature</div>
-    </div>
-    <div class="signature-item">
-      <div class="signature-line"></div>
-      <div class="signature-label">RESPONSABLE QUALITÉ</div>
-      <div class="signature-sub">Nom et signature</div>
-    </div>
-    <div class="signature-item">
-      <div class="signature-line"></div>
-      <div class="signature-label">CACHET ENTREPRISE</div>
-      <div class="signature-sub">Cachet obligatoire</div>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    <div>ECSI SARL - Document contractuel - Toute reproduction est interdite</div>
-    <div>Siège social: Abidjan, Côte d'Ivoire | www.ecsi.ci</div>
-    <div>Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</div>
-  </div>
-</body>
-</html>`
-  }
 
   if (loading) {
     return (
@@ -599,63 +614,75 @@ const PurchaseReceiptPDF = () => {
               {showPreview ? 'Masquer' : 'Afficher'} aperçu
             </button>
             
-            <div className="flex border rounded-lg overflow-hidden">
-              <button 
-                className={`px-4 py-1.5 text-sm font-medium transition ${selectedFormat === 'A4' ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                onClick={() => setSelectedFormat('A4')}
-              >
-                Format A4
-              </button>
-              <button 
-                className={`px-4 py-1.5 text-sm font-medium transition ${selectedFormat === 'A5' ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                onClick={() => setSelectedFormat('A5')}
-              >
-                Format A5
-              </button>
-            </div>
-            
-            <button 
-              onClick={handlePrint} 
-              disabled={generating} 
-              className="px-4 py-1.5 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 flex items-center gap-2 text-sm font-medium transition shadow-sm"
+            <PDFDownloadLink
+              document={<PurchaseReceiptPDFDocument receipt={receipt} logoSrc={logoSrc} />}
+              fileName={`bon_reception_${receipt.receipt_number}.pdf`}
+              className="px-4 py-1.5 bg-blue-700 text-white rounded-lg hover:bg-blue-800 flex items-center gap-2 text-sm font-medium transition shadow-sm"
             >
-              {generating ? (
+              {({ loading: pdfLoading }) => (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Génération...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Télécharger PDF
+                  {pdfLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Préparation...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Télécharger PDF
+                    </>
+                  )}
                 </>
               )}
-            </button>
+            </PDFDownloadLink>
           </div>
         </div>
       </div>
 
       {/* Aperçu PDF */}
       {showPreview && receipt && (
-        <div className="flex justify-center">
+        <div className="flex justify-center p-4">
           <div 
             style={{
-              width: selectedFormat === 'A4' ? '210mm' : '148mm',
-              minHeight: selectedFormat === 'A4' ? '297mm' : '210mm',
+              width: '210mm',
+              minHeight: '297mm',
               backgroundColor: 'white',
               boxShadow: '0 20px 35px -10px rgba(0, 0, 0, 0.15)',
-              margin: '0 auto'
+              margin: '0 auto',
+              borderRadius: '4px',
+              overflow: 'hidden'
             }}
           >
-            <iframe
-              srcDoc={getPrintHTML()}
-              style={{
-                width: '100%',
-                minHeight: selectedFormat === 'A4' ? '297mm' : '210mm',
-                border: 'none'
-              }}
-              title="Aperçu du bon de réception"
-            />
+            <PDFDownloadLink
+              document={<PurchaseReceiptPDFDocument receipt={receipt} logoSrc={logoSrc} />}
+              fileName={`bon_reception_${receipt.receipt_number}.pdf`}
+            >
+              {({ loading: pdfLoading }) => (
+                <div 
+                  style={{
+                    width: '100%',
+                    minHeight: '297mm',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#f9fafb'
+                  }}
+                >
+                  {pdfLoading ? (
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-700 mx-auto mb-3" />
+                      <p className="text-gray-500">Génération de l'aperçu...</p>
+                    </div>
+                  ) : (
+                    <div className="text-center p-8">
+                      <FileText className="w-16 h-16 text-blue-700 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">Aperçu disponible</p>
+                      <p className="text-sm text-gray-400">Cliquez sur "Télécharger PDF" pour voir le document</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </PDFDownloadLink>
           </div>
         </div>
       )}
