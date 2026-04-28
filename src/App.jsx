@@ -2,6 +2,7 @@ import './App.css'
 import Register from './components/Register'
 import Login from './components/Login'
 import Home from './components/Home'
+import Dashboard from './components/Dashboard'
 import Navbar from './components/Navbar'
 import About from './components/About'
 import Products from './components/products/Products'
@@ -76,6 +77,7 @@ function App() {
       <Routes>
             <Route element={<ProtectedRoute/>}> 
                 <Route path="/home" element={<Home/>}/>
+                  <Route path="/dashboard" element={<Dashboard/>}/>
                 <Route path="/about" element={<About/>}/>
 
 
