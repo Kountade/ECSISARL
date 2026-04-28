@@ -41,6 +41,7 @@ import InvoiceForm from './components/sales/InvoiceForm'
 import InvoiceDetails from './components/sales/InvoiceDetails'
 import Payments from './components/sales/Payments'
 import PaymentForm from './components/sales/PaymentForm'
+import PointOfSale from './components/sales/PointOfSale'
 
 import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
@@ -165,6 +166,10 @@ function App() {
                           <Route path="/paiements" element={<Payments />} />
                             <Route path="/paiements/nouveau" element={<PaymentForm />} />
 
+
+
+                                  {/* GESTIOn VETES FACTURES */}
+                              <Route path="/point-de-vente" element={<PointOfSale />} />
 
 
             </Route>
