@@ -45,6 +45,7 @@ import PaymentForm from './components/sales/PaymentForm'
 import PointOfSale from './components/sales/PointOfSale'
 import Quotations from './components/sales/Quotations'
 import QuotationForm from './components/sales/QuotationForm'
+import QuotationDetail from './components/sales/QuotationDetail'
 import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
 import PasswordResetRequest from './components/PasswordResetRequest'
@@ -174,9 +175,10 @@ function App() {
                                   {/* GESTIOn VETES FACTURES */}
                               <Route path="/point-de-vente" element={<PointOfSale />} />
 
-                                 <Route path="/devis" element={<Quotations />} />
-                               <Route path="/devis/nouveau" element={<QuotationForm />} />
-                                <Route path="/devis/:id" element={<QuotationForm />} /> 
+                           <Route path="/devis" element={<Quotations />} />
+                           <Route path="/devis/nouveau" element={<QuotationForm />} />
+                           <Route path="/devis/:id/edit" element={<QuotationForm />} />   // édition
+                           <Route path="/devis/:id/detail" element={<QuotationDetail />} /> // détail
 
 
             </Route>
