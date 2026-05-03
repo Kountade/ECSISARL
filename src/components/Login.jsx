@@ -35,7 +35,7 @@ const Login = () => {
             localStorage.setItem('Token', response.data.token)
             localStorage.setItem('User', JSON.stringify(response.data.user))
 
-            navigate('/home')
+            navigate('/dashboard')
 
         } catch (error) {
             let errorMessage = 'Échec de connexion. Veuillez réessayer.'

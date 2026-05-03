@@ -37,6 +37,7 @@ import CustomerForm from './components/sales/CustomerForm'
 import CustomerDetails from './components/sales/CustomerDetails'
 import Sales from './components/sales/Sales'
 import SaleForm from './components/sales/SaleForm'
+import SalesReport from './components/sales/SalesReport' 
 import Invoices from './components/sales/Invoices'
 import InvoiceForm from './components/sales/InvoiceForm'
 import InvoiceDetails from './components/sales/InvoiceDetails'
@@ -179,6 +180,7 @@ function App() {
                            <Route path="/devis/nouveau" element={<QuotationForm />} />
                            <Route path="/devis/:id/edit" element={<QuotationForm />} />   // édition
                            <Route path="/devis/:id/detail" element={<QuotationDetail />} /> // détail
+                           <Route path="/rapports-ventes" element={<SalesReport />} />
 
 
             </Route>

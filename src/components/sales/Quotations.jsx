@@ -227,8 +227,8 @@ const Quotations = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-          <p className="mt-4 text-gray-600">Chargement des devis...</p>
+          <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto" />
+          <p className="mt-5 text-xl text-gray-600">Chargement des devis...</p>
         </div>
       </div>
     )
@@ -239,9 +239,9 @@ const Quotations = () => {
       {/* Notification */}
       {notification.show && (
         <div className="fixed top-20 right-6 z-50 animate-slide-in">
-          <div className={`alert ${notification.type === 'success' ? 'alert-success' : notification.type === 'error' ? 'alert-error' : 'alert-warning'} shadow-lg text-sm`}>
-            {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
-            <span>{notification.message}</span>
+          <div className={`alert ${notification.type === 'success' ? 'alert-success' : notification.type === 'error' ? 'alert-error' : 'alert-warning'} shadow-lg text-base`}>
+            {notification.type === 'success' ? <CheckCircle className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
+            <span className="text-base">{notification.message}</span>
             <button onClick={() => setNotification({ ...notification, show: false })} className="btn btn-sm btn-ghost">✕</button>
           </div>
         </div>
@@ -250,15 +250,15 @@ const Quotations = () => {
       {/* En-tête */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Devis</h1>
-          <p className="text-gray-500 mt-1">Gérez vos devis clients</p>
+          <h1 className="text-4xl font-bold text-gray-800">Devis</h1>
+          <p className="text-gray-500 text-base mt-1">Gérez vos devis clients</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={fetchData} className="btn btn-outline gap-2">
-            <RefreshCw className="w-4 h-4" /> Actualiser
+          <button onClick={fetchData} className="btn btn-outline gap-2 normal-case text-base">
+            <RefreshCw className="w-5 h-5" /> Actualiser
           </button>
-          <Link to="/devis/nouveau" className="btn btn-primary gap-2">
-            <Plus className="w-4 h-4" /> Nouveau devis
+          <Link to="/devis/nouveau" className="btn btn-primary gap-2 normal-case text-base">
+            <Plus className="w-5 h-5" /> Nouveau devis
           </Link>
         </div>
       </div>
@@ -267,22 +267,22 @@ const Quotations = () => {
       <div className="card bg-base-100 shadow-lg mb-6 p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="form-control">
-            <label className="label"><span className="label-text">Recherche</span></label>
+            <label className="label"><span className="label-text text-base font-medium">Recherche</span></label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="N° devis, client..."
-                className="input input-bordered w-full pl-10"
+                className="input input-bordered w-full pl-11 text-base py-3 h-auto"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
           <div className="form-control">
-            <label className="label"><span className="label-text">Client</span></label>
+            <label className="label"><span className="label-text text-base font-medium">Client</span></label>
             <select
-              className="select select-bordered w-full"
+              className="select select-bordered w-full text-base py-2 h-auto"
               value={filterCustomer}
               onChange={(e) => setFilterCustomer(e.target.value)}
             >
@@ -293,9 +293,9 @@ const Quotations = () => {
             </select>
           </div>
           <div className="form-control">
-            <label className="label"><span className="label-text">Statut</span></label>
+            <label className="label"><span className="label-text text-base font-medium">Statut</span></label>
             <select
-              className="select select-bordered w-full"
+              className="select select-bordered w-full text-base py-2 h-auto"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
@@ -307,10 +307,10 @@ const Quotations = () => {
           </div>
           <div className="form-control justify-end">
             <button
-              className="btn btn-outline mt-8 gap-2"
+              className="btn btn-outline mt-8 gap-2 normal-case text-base"
               onClick={() => { setFilterCustomer(''); setFilterStatus(''); setSearchTerm('') }}
             >
-              <Filter className="w-4 h-4" /> Réinitialiser
+              <Filter className="w-5 h-5" /> Réinitialiser
             </button>
           </div>
         </div>
@@ -319,24 +319,24 @@ const Quotations = () => {
       {/* Tableau des devis */}
       <div className="card bg-base-100 shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="table table-zebra w-full">
+          <table className="table w-full">
             <thead>
-              <tr className="bg-gray-50 text-gray-700">
-                <th>N° DEVIS</th>
-                <th>CLIENT</th>
-                <th>DATE</th>
-                <th>VALIDITÉ</th>
-                <th>STATUT</th>
-                <th className="text-right">MONTANT</th>
-                <th className="text-center">ACTIONS</th>
+              <tr className="bg-gray-50 text-gray-700 text-base">
+                <th className="py-4 px-3">N° DEVIS</th>
+                <th className="py-4 px-3">CLIENT</th>
+                <th className="py-4 px-3">DATE</th>
+                <th className="py-4 px-3">VALIDITÉ</th>
+                <th className="py-4 px-3">STATUT</th>
+                <th className="text-right py-4 px-3">MONTANT</th>
+                <th className="text-center py-4 px-3">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
               {paginatedQuotations.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-12">
-                    <Receipt className="w-16 h-16 mx-auto text-gray-300 mb-3" />
-                    <p className="text-gray-400">
+                    <Receipt className="w-20 h-20 mx-auto text-gray-300 mb-3" />
+                    <p className="text-gray-400 text-base">
                       {searchTerm || filterCustomer || filterStatus ? 'Aucun devis trouvé' : 'Aucun devis enregistré'}
                     </p>
                   </td>
@@ -355,52 +355,52 @@ const Quotations = () => {
                   else badgeColor = 'badge-ghost'
 
                   return (
-                    <tr key={q.id} className="hover:bg-gray-50 transition">
-                      <td>
+                    <tr key={q.id} className="hover:bg-gray-50 transition text-sm">
+                      <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
                           <div className="avatar placeholder">
-                            <div className="bg-primary/10 text-primary rounded-full w-10 h-10 flex items-center justify-center">
-                              <Receipt className="w-5 h-5" />
+                            <div className="bg-primary/10 text-primary rounded-full w-12 h-12 flex items-center justify-center">
+                              <Receipt className="w-6 h-6" />
                             </div>
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-800">{q.quotation_number}</div>
-                            <div className="text-xs text-gray-500">{q.items_count || 0} produit(s)</div>
+                            <div className="font-semibold text-gray-800 text-base">{q.quotation_number}</div>
+                            <div className="text-sm text-gray-500">{q.items_count || 0} produit(s)</div>
                           </div>
                         </div>
-                      </td>
-                      <td>
+                       </td>
+                      <td className="px-3 py-3">
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-gray-400" />
-                          <span>{q.customer_name}</span>
+                          <Users className="w-5 h-5 text-gray-400" />
+                          <span className="text-base">{q.customer_name}</span>
                         </div>
                       </td>
-                      <td>{new Date(q.quotation_date).toLocaleDateString('fr-FR')}</td>
-                      <td className={isExpired ? 'text-error' : ''}>
+                      <td className="px-3 py-3 text-base">{new Date(q.quotation_date).toLocaleDateString('fr-FR')}</td>
+                      <td className={`px-3 py-3 text-base ${isExpired ? 'text-error' : ''}`}>
                         {new Date(q.valid_until).toLocaleDateString('fr-FR')}
                       </td>
-                      <td>
-                        <div className={`badge ${badgeColor} badge-sm`}>{status.label}</div>
+                      <td className="px-3 py-3">
+                        <div className={`badge ${badgeColor} badge-md text-sm`}>{status.label}</div>
                       </td>
-                      <td className="text-right font-bold text-primary">{formatNumber(displayTotal)} €</td>
-                      <td>
+                      <td className="text-right font-bold text-primary text-lg px-3 py-3">{formatNumber(displayTotal)} €</td>
+                      <td className="px-3 py-3">
                         <div className="flex justify-center gap-2">
                           {/* Voir détail */}
                           <button
                             onClick={() => navigate(`/devis/${q.id}/detail`)}
-                            className="btn btn-ghost btn-sm tooltip"
+                            className="btn btn-ghost btn-sm gap-1 tooltip"
                             data-tip="Voir le détail"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-5 h-5" />
                           </button>
 
                           {/* Modifier */}
                           <button
                             onClick={() => navigate(`/devis/${q.id}/edit`)}
-                            className="btn btn-ghost btn-sm tooltip"
+                            className="btn btn-ghost btn-sm gap-1 tooltip"
                             data-tip="Modifier"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-5 h-5" />
                           </button>
 
                           {q.status === 'draft' && (
@@ -408,17 +408,17 @@ const Quotations = () => {
                               <button
                                 onClick={() => handleSendQuotation(q.id)}
                                 disabled={sendingId === q.id}
-                                className="btn btn-ghost btn-sm text-info tooltip"
+                                className="btn btn-ghost btn-sm text-info gap-1 tooltip"
                                 data-tip="Envoyer"
                               >
-                                {sendingId === q.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                {sendingId === q.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                               </button>
                               <button
                                 onClick={() => { setQuotationToDelete(q); setShowDeleteModal(true) }}
-                                className="btn btn-ghost btn-sm text-error tooltip"
+                                className="btn btn-ghost btn-sm text-error gap-1 tooltip"
                                 data-tip="Supprimer"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-5 h-5" />
                               </button>
                             </>
                           )}
@@ -428,18 +428,18 @@ const Quotations = () => {
                               <button
                                 onClick={() => handleApproveQuotation(q.id)}
                                 disabled={approvingId === q.id}
-                                className="btn btn-ghost btn-sm text-success tooltip"
+                                className="btn btn-ghost btn-sm text-success gap-1 tooltip"
                                 data-tip="Approuver"
                               >
-                                {approvingId === q.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                {approvingId === q.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                               </button>
                               <button
                                 onClick={() => handleRejectQuotation(q.id)}
                                 disabled={rejectingId === q.id}
-                                className="btn btn-ghost btn-sm text-error tooltip"
+                                className="btn btn-ghost btn-sm text-error gap-1 tooltip"
                                 data-tip="Rejeter"
                               >
-                                {rejectingId === q.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                                {rejectingId === q.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
                               </button>
                             </>
                           )}
@@ -448,10 +448,10 @@ const Quotations = () => {
                             <button
                               onClick={() => handleConvertToSale(q.id)}
                               disabled={convertingId === q.id}
-                              className="btn btn-ghost btn-sm text-success tooltip"
+                              className="btn btn-ghost btn-sm text-success gap-1 tooltip"
                               data-tip="Convertir en vente"
                             >
-                              {convertingId === q.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                              {convertingId === q.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
                             </button>
                           )}
                         </div>
@@ -466,10 +466,10 @@ const Quotations = () => {
 
         {/* Pagination */}
         <div className="flex justify-between items-center p-4 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">Lignes par page :</span>
+          <div className="flex items-center gap-3">
+            <span className="text-base text-gray-700">Lignes par page :</span>
             <select
-              className="select select-bordered select-sm w-20"
+              className="select select-bordered select-sm w-20 text-base"
               value={rowsPerPage}
               onChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0) }}
             >
@@ -478,15 +478,15 @@ const Quotations = () => {
           </div>
           <div className="join">
             <button
-              className="join-item btn btn-sm"
+              className="join-item btn btn-md"
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
             >
               «
             </button>
-            <span className="join-item btn btn-sm">Page {page + 1} / {pageCount || 1}</span>
+            <span className="join-item btn btn-md text-base">Page {page + 1} / {pageCount || 1}</span>
             <button
-              className="join-item btn btn-sm"
+              className="join-item btn btn-md"
               disabled={page >= pageCount - 1}
               onClick={() => setPage(page + 1)}
             >
@@ -500,16 +500,16 @@ const Quotations = () => {
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 text-center">
-            <div className="mx-auto w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mb-4">
-              <Trash2 className="w-8 h-8 text-error" />
+            <div className="mx-auto w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mb-4">
+              <Trash2 className="w-10 h-10 text-error" />
             </div>
-            <h3 className="text-xl font-bold mb-2">Confirmer la suppression</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="text-2xl font-bold mb-2">Confirmer la suppression</h3>
+            <p className="text-gray-600 text-base mb-6">
               Êtes-vous sûr de vouloir supprimer le devis <strong className="text-orange-600">"{quotationToDelete?.quotation_number}"</strong> ? Cette action est irréversible.
             </p>
             <div className="flex gap-3 justify-center">
-              <button onClick={() => setShowDeleteModal(false)} className="btn btn-outline">Annuler</button>
-              <button onClick={handleDeleteQuotation} className="btn btn-error">Supprimer</button>
+              <button onClick={() => setShowDeleteModal(false)} className="btn btn-outline text-base">Annuler</button>
+              <button onClick={handleDeleteQuotation} className="btn btn-error text-base">Supprimer</button>
             </div>
           </div>
         </div>
@@ -520,28 +520,28 @@ const Quotations = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
             <div className="flex justify-between items-center mb-4 border-b pb-3">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <Warehouse className="w-5 h-5" /> Sélectionner l'entrepôt
+              <h3 className="text-2xl font-bold flex items-center gap-2">
+                <Warehouse className="w-6 h-6" /> Sélectionner l'entrepôt
               </h3>
               <button onClick={() => setShowWarehouseModal(false)} className="btn btn-sm btn-ghost">
-                <X className="w-4 h-4" />
+                <X className="w-6 h-6" />
               </button>
             </div>
             <div className="mb-4">
-              <p className="text-gray-500 text-sm">Choisissez l'entrepôt qui sera utilisé pour la vente.</p>
+              <p className="text-gray-500 text-base">Choisissez l'entrepôt qui sera utilisé pour la vente.</p>
             </div>
             {loadingWarehouses ? (
               <div className="flex justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
               </div>
             ) : warehouses.length === 0 ? (
-              <div className="alert alert-warning">Aucun entrepôt trouvé. Veuillez d'abord créer un entrepôt.</div>
+              <div className="alert alert-warning text-base">Aucun entrepôt trouvé. Veuillez d'abord créer un entrepôt.</div>
             ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {warehouses.map((wh) => (
                   <label
                     key={wh.id}
-                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                    className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
                       selectedWarehouse?.id === wh.id ? 'border-primary bg-primary/5' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
@@ -551,33 +551,33 @@ const Quotations = () => {
                       value={wh.id}
                       checked={selectedWarehouse?.id === wh.id}
                       onChange={() => setSelectedWarehouse(wh)}
-                      className="radio radio-primary mt-1"
+                      className="radio radio-primary mt-1 scale-110"
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        {wh.is_default ? <Home className="w-4 h-4 text-primary" /> : <Store className="w-4 h-4" />}
-                        <span className="font-semibold">{wh.name}</span>
+                        {wh.is_default ? <Home className="w-5 h-5 text-primary" /> : <Store className="w-5 h-5" />}
+                        <span className="font-semibold text-base">{wh.name}</span>
                         {wh.is_default && <span className="badge badge-primary badge-sm">Par défaut</span>}
                       </div>
-                      {wh.location && <p className="text-xs text-gray-500 mt-1">{wh.location}</p>}
+                      {wh.location && <p className="text-sm text-gray-500 mt-1">{wh.location}</p>}
                     </div>
                   </label>
                 ))}
               </div>
             )}
             {!loadingWarehouses && warehouses.length > 0 && selectedWarehouse && (
-              <div className="mt-4 p-3 bg-orange-50 rounded-lg text-sm">
+              <div className="mt-4 p-3 bg-orange-50 rounded-lg text-base">
                 <strong>Entrepôt sélectionné :</strong> {selectedWarehouse.name} {selectedWarehouse.is_default && '(Par défaut)'}
               </div>
             )}
             <div className="flex justify-end gap-3 mt-6 pt-3 border-t">
-              <button onClick={() => setShowWarehouseModal(false)} className="btn btn-outline">Annuler</button>
+              <button onClick={() => setShowWarehouseModal(false)} className="btn btn-outline text-base">Annuler</button>
               <button
                 onClick={confirmConvertToSale}
                 disabled={!selectedWarehouse || loadingWarehouses}
-                className="btn btn-primary gap-2"
+                className="btn btn-primary gap-2 text-base"
               >
-                <CheckCircle className="w-4 h-4" /> Convertir en vente
+                <CheckCircle className="w-5 h-5" /> Convertir en vente
               </button>
             </div>
           </div>
