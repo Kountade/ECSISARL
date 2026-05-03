@@ -49,7 +49,18 @@ const Invoices = () => {
 
   const formatNumber = (number) => {
     if (typeof number !== 'number') number = parseFloat(number) || 0
-    return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number)
+    return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(number)
+  }
+
+  const formatCurrency = (amount) => `${formatNumber(amount)} FCFA`
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
   }
 
   const showNotification = (message, type = 'success') => {
@@ -162,13 +173,13 @@ const Invoices = () => {
   }
 
   return (
-    <div className="space-y-4 p-4 bg-base-200 min-h-screen">
+    <div className="space-y-5 p-5 bg-base-200 min-h-screen">
       
       {/* Notification */}
       {notification.show && (
         <div className="fixed top-16 right-3 sm:right-6 z-50 animate-slide-in">
-          <div className={`alert ${notification.type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg text-sm`}>
-            {notification.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          <div className={`alert ${notification.type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg text-base`}>
+            {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
             <span className="font-semibold">{notification.message}</span>
             <button onClick={() => setNotification({ ...notification, show: false })} className="btn btn-sm btn-ghost">✕</button>
           </div>
@@ -176,55 +187,65 @@ const Invoices = () => {
       )}
 
       {/* En-tête */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-base-content bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="text-3xl font-black text-base-content bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Factures
           </h1>
-          <p className="text-xs text-base-content/60">Gérez vos factures clients</p>
+          <p className="text-base text-base-content/60">Gérez vos factures clients</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={fetchData} className="btn btn-sm btn-outline gap-1"><RefreshCw className="w-3 h-3" /> Actualiser</button>
-          <Link to="/factures/nouveau" className="btn btn-sm btn-primary gap-1"><Plus className="w-3 h-3" /> Nouvelle facture</Link>
+        <div className="flex gap-3">
+          <button onClick={fetchData} className="btn btn-md btn-outline gap-2"><RefreshCw className="w-4 h-4" /> Actualiser</button>
+          <Link to="/factures/nouveau" className="btn btn-md btn-primary gap-2"><Plus className="w-4 h-4" /> Nouvelle facture</Link>
         </div>
       </div>
 
       {/* Cartes statistiques */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-2">
-          <div className="stat-figure text-primary"><Receipt className="w-5 h-5" /></div>
-          <div className="stat-title text-xs font-semibold">Total factures</div>
-          <div className="stat-value text-xl font-black">{stats.total}</div>
-          <div className="stat-desc text-xs">{formatNumber(stats.total_amount)} €</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-4">
+          <div className="stat-figure text-primary"><Receipt className="w-6 h-6" /></div>
+          <div className="stat-title text-sm font-semibold">Total factures</div>
+          <div className="stat-value text-2xl font-black">{stats.total}</div>
+          <div className="stat-desc text-sm">{formatCurrency(stats.total_amount)}</div>
         </div>
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-2">
-          <div className="stat-figure text-success"><CheckCircle className="w-5 h-5" /></div>
-          <div className="stat-title text-xs font-semibold">Payées</div>
-          <div className="stat-value text-xl font-black">{stats.paid}</div>
-          <div className="stat-desc text-xs">{formatNumber(stats.paid_amount)} €</div>
+        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-4">
+          <div className="stat-figure text-success"><CheckCircle className="w-6 h-6" /></div>
+          <div className="stat-title text-sm font-semibold">Payées</div>
+          <div className="stat-value text-2xl font-black">{stats.paid}</div>
+          <div className="stat-desc text-sm">{formatCurrency(stats.paid_amount)}</div>
         </div>
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-2">
-          <div className="stat-figure text-warning"><DollarSign className="w-5 h-5" /></div>
-          <div className="stat-title text-xs font-semibold">En attente</div>
-          <div className="stat-value text-xl font-black">{stats.unpaid}</div>
+        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-4">
+          <div className="stat-figure text-warning"><DollarSign className="w-6 h-6" /></div>
+          <div className="stat-title text-sm font-semibold">En attente</div>
+          <div className="stat-value text-2xl font-black">{stats.unpaid}</div>
         </div>
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-2">
-          <div className="stat-figure text-error"><AlertCircle className="w-5 h-5" /></div>
-          <div className="stat-title text-xs font-semibold">En retard</div>
-          <div className="stat-value text-xl font-black">{stats.overdue}</div>
+        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-4">
+          <div className="stat-figure text-error"><AlertCircle className="w-6 h-6" /></div>
+          <div className="stat-title text-sm font-semibold">En retard</div>
+          <div className="stat-value text-2xl font-black">{stats.overdue}</div>
         </div>
       </div>
 
       {/* Filtres */}
-      <div className="bg-base-100 rounded-xl shadow-md border border-base-200 p-3">
-        <div className="flex flex-col sm:flex-row gap-2">
+      <div className="bg-base-100 rounded-xl shadow-md border border-base-200 p-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-base-content/40" />
-            <input type="text" placeholder="Rechercher par numéro, client..." className="input input-bordered w-full pl-8 text-sm input-sm" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40" />
+            <input 
+              type="text" 
+              placeholder="Rechercher par numéro, client..." 
+              className="input input-bordered w-full pl-9 text-base py-2" 
+              value={searchTerm} 
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }} 
+            />
           </div>
-          <button onClick={() => setShowFilters(!showFilters)} className="btn btn-outline btn-sm sm:hidden gap-1"><Filter className="w-3 h-3" /> Filtres</button>
-          <div className={`${showFilters ? 'flex' : 'hidden'} sm:flex gap-2`}>
-            <select className="select select-bordered select-sm w-32" value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1) }}>
+          <button onClick={() => setShowFilters(!showFilters)} className="btn btn-outline btn-md sm:hidden gap-2"><Filter className="w-4 h-4" /> Filtres</button>
+          <div className={`${showFilters ? 'flex' : 'hidden'} sm:flex gap-3`}>
+            <select 
+              className="select select-bordered select-md w-36 text-base" 
+              value={filterStatus} 
+              onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1) }}
+            >
               <option value="">Tous statuts</option>
               <option value="draft">Brouillon</option>
               <option value="sent">Envoyée</option>
@@ -233,8 +254,11 @@ const Invoices = () => {
               <option value="overdue">En retard</option>
               <option value="cancelled">Annulée</option>
             </select>
-            <button className="btn btn-outline btn-sm gap-1" onClick={() => { setFilterStatus(''); setSearchTerm(''); setCurrentPage(1) }}>
-              <Filter className="w-3 h-3" /> Réinit
+            <button 
+              className="btn btn-outline btn-md gap-2" 
+              onClick={() => { setFilterStatus(''); setSearchTerm(''); setCurrentPage(1) }}
+            >
+              <Filter className="w-4 h-4" /> Réinit
             </button>
           </div>
         </div>
@@ -243,23 +267,23 @@ const Invoices = () => {
       {/* Tableau des factures */}
       <div className="bg-base-100 rounded-xl shadow-xl border border-base-200 overflow-hidden">
         {paginatedInvoices.length === 0 ? (
-          <div className="p-8 text-center">
-            <Receipt className="w-12 h-12 mx-auto mb-3 text-base-content/30" />
-            <p className="font-semibold text-base-content/50">Aucune facture trouvée</p>
-            <Link to="/factures/nouveau" className="btn btn-sm btn-primary mt-3 gap-1"><Plus className="w-3 h-3" /> Nouvelle facture</Link>
+          <div className="p-12 text-center">
+            <Receipt className="w-16 h-16 mx-auto mb-4 text-base-content/30" />
+            <p className="text-lg font-semibold text-base-content/50">Aucune facture trouvée</p>
+            <Link to="/factures/nouveau" className="btn btn-md btn-primary mt-4 gap-2"><Plus className="w-4 h-4" /> Nouvelle facture</Link>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="table table-xs w-full">
+              <table className="table table-md w-full">
                 <thead>
-                  <tr className="text-xs">
-                    <th><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('invoice_number')}>N° facture<ArrowUpDown className="w-3 h-3" /></button></th>
-                    <th><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('customer_name')}>Client<ArrowUpDown className="w-3 h-3" /></button></th>
-                    <th><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('invoice_date')}>Date<ArrowUpDown className="w-3 h-3" /></button></th>
-                    <th><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('due_date')}>Échéance<ArrowUpDown className="w-3 h-3" /></button></th>
+                  <tr className="text-sm bg-gray-50">
+                    <th className="py-3"><button className="flex items-center gap-2 hover:text-primary font-semibold" onClick={() => handleSort('invoice_number')}>N° facture<ArrowUpDown className="w-4 h-4" /></button></th>
+                    <th><button className="flex items-center gap-2 hover:text-primary font-semibold" onClick={() => handleSort('customer_name')}>Client<ArrowUpDown className="w-4 h-4" /></button></th>
+                    <th><button className="flex items-center gap-2 hover:text-primary font-semibold" onClick={() => handleSort('invoice_date')}>Date<ArrowUpDown className="w-4 h-4" /></button></th>
+                    <th><button className="flex items-center gap-2 hover:text-primary font-semibold" onClick={() => handleSort('due_date')}>Échéance<ArrowUpDown className="w-4 h-4" /></button></th>
                     <th className="text-center">Statut</th>
-                    <th className="text-right"><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('total')}>Montant<ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="text-right"><button className="flex items-center gap-2 hover:text-primary font-semibold" onClick={() => handleSort('total')}>Montant<ArrowUpDown className="w-4 h-4" /></button></th>
                     <th className="text-right">Payé</th>
                     <th className="text-right">Restant</th>
                     <th className="text-center">Actions</th>
@@ -273,25 +297,27 @@ const Invoices = () => {
                     const paidPercent = inv.total > 0 ? (inv.paid_amount / inv.total) * 100 : 0
                     
                     return (
-                      <tr key={inv.id} className="hover">
-                        <td className="font-mono text-xs font-semibold">{inv.invoice_number}</td>
-                        <td><div className="flex items-center gap-1"><Users className="w-3 h-3 text-primary" /><span className="text-sm">{customerName}</span></div></td>
-                        <td className="text-sm">{new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</td>
-                        <td className={`text-sm ${inv.status === 'overdue' ? 'text-error' : ''}`}>{new Date(inv.due_date).toLocaleDateString('fr-FR')}</td>
-                        <td className="text-center"><span className={`badge badge-${status.color} badge-sm gap-1`}><StatusIcon className="w-2.5 h-2.5" /> {status.label}</span></td>
-                        <td className="text-right font-bold text-sm">{formatNumber(inv.total)} €</td>
-                        <td className="text-right text-success text-sm">{formatNumber(inv.paid_amount)} €</td>
-                        <td className="text-right text-sm">
-                          <span className={inv.remaining_amount > 0 ? 'text-warning' : 'text-success'}>{formatNumber(inv.remaining_amount)} €</span>
-                          {inv.status !== 'paid' && inv.total > 0 && <progress className="progress progress-warning w-20 h-1 mt-1" value={paidPercent} max="100"></progress>}
+                      <tr key={inv.id} className="hover border-b border-gray-100">
+                        <td className="font-mono text-base font-semibold">{inv.invoice_number}</td>
+                        <td><div className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" /><span className="text-base">{customerName}</span></div></td>
+                        <td className="text-base">{formatDate(inv.invoice_date)}</td>
+                        <td className={`text-base ${inv.status === 'overdue' ? 'text-error font-semibold' : ''}`}>{formatDate(inv.due_date)}</td>
+                        <td className="text-center"><span className={`badge badge-${status.color} badge-md gap-1 text-sm py-2 px-3`}><StatusIcon className="w-3.5 h-3.5" /> {status.label}</span></td>
+                        <td className="text-right font-bold text-base">{formatCurrency(inv.total)}</td>
+                        <td className="text-right text-success text-base">{formatCurrency(inv.paid_amount)}</td>
+                        <td className="text-right text-base">
+                          <span className={inv.remaining_amount > 0 ? 'text-warning font-semibold' : 'text-success'}>{formatCurrency(inv.remaining_amount)}</span>
+                          {inv.status !== 'paid' && inv.total > 0 && (
+                            <progress className="progress progress-warning w-24 h-2 mt-1" value={paidPercent} max="100"></progress>
+                          )}
                         </td>
                         <td className="text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => navigate(`/factures/${inv.id}`)} className="btn btn-ghost btn-xs" title="Voir"><Eye className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => navigate(`/factures/${inv.id}`)} className="btn btn-ghost btn-md" title="Voir"><Eye className="w-4 h-4" /></button>
                             {inv.status === 'draft' && (
                               <>
-                                <button onClick={() => handleSendInvoice(inv.id)} className="btn btn-ghost btn-xs text-info" title="Envoyer"><Send className="w-3.5 h-3.5" /></button>
-                                <button onClick={() => { setInvoiceToDelete(inv); setShowDeleteModal(true) }} className="btn btn-ghost btn-xs text-error" title="Supprimer"><Trash2 className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => handleSendInvoice(inv.id)} className="btn btn-ghost btn-md text-info" title="Envoyer"><Send className="w-4 h-4" /></button>
+                                <button onClick={() => { setInvoiceToDelete(inv); setShowDeleteModal(true) }} className="btn btn-ghost btn-md text-error" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
                               </>
                             )}
                           </div>
@@ -300,12 +326,12 @@ const Invoices = () => {
                     )
                   })}
                 </tbody>
-                <tfoot className="bg-base-100 border-t-2">
-                  <tr className="text-xs font-bold">
+                <tfoot className="bg-gray-50 border-t-2">
+                  <tr className="text-sm font-bold">
                     <td colSpan="5" className="text-right">Total:</td>
-                    <td className="text-right">{formatNumber(sortedInvoices.reduce((s, i) => s + (i.total || 0), 0))} €</td>
-                    <td className="text-right">{formatNumber(sortedInvoices.reduce((s, i) => s + (i.paid_amount || 0), 0))} €</td>
-                    <td className="text-right">{formatNumber(sortedInvoices.reduce((s, i) => s + (i.remaining_amount || 0), 0))} €</td>
+                    <td className="text-right">{formatCurrency(sortedInvoices.reduce((s, i) => s + (i.total || 0), 0))}</td>
+                    <td className="text-right">{formatCurrency(sortedInvoices.reduce((s, i) => s + (i.paid_amount || 0), 0))}</td>
+                    <td className="text-right">{formatCurrency(sortedInvoices.reduce((s, i) => s + (i.remaining_amount || 0), 0))}</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -314,17 +340,30 @@ const Invoices = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="p-3 border-t border-base-200">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-                  <div className="text-xs text-base-content/60">
+              <div className="p-4 border-t border-base-200">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="text-sm text-base-content/60">
                     {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, sortedInvoices.length)} sur {sortedInvoices.length}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select className="select select-bordered select-xs w-20" value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1) }}>
-                      <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+                  <div className="flex items-center gap-3">
+                    <select 
+                      className="select select-bordered select-sm w-24 text-sm" 
+                      value={itemsPerPage} 
+                      onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1) }}
+                    >
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
                     </select>
                     <div className="join">
-                      <button className="join-item btn btn-xs" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ChevronLeft className="w-3 h-3" /></button>
+                      <button 
+                        className="join-item btn btn-sm" 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
                       {[...Array(Math.min(5, totalPages))].map((_, i) => {
                         let pageNum = i + 1
                         if (totalPages > 5 && currentPage > 3) {
@@ -332,12 +371,22 @@ const Invoices = () => {
                           if (pageNum > totalPages) return null
                         }
                         return (
-                          <button key={i} className={`join-item btn btn-xs ${currentPage === pageNum ? 'btn-primary' : ''}`} onClick={() => setCurrentPage(pageNum)}>
+                          <button 
+                            key={i} 
+                            className={`join-item btn btn-sm ${currentPage === pageNum ? 'btn-primary' : ''}`} 
+                            onClick={() => setCurrentPage(pageNum)}
+                          >
                             {pageNum}
                           </button>
                         )
                       })}
-                      <button className="join-item btn btn-xs" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><ChevronRight className="w-3 h-3" /></button>
+                      <button 
+                        className="join-item btn btn-sm" 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -350,16 +399,16 @@ const Invoices = () => {
       {/* Modal Suppression */}
       {showDeleteModal && invoiceToDelete && (
         <div className="modal modal-open">
-          <div className="modal-box w-11/12 max-w-md p-4">
-            <div className="text-center mb-3">
-              <div className="avatar placeholder mb-2"><div className="bg-error/10 text-error rounded-full w-12 h-12"><AlertCircle className="w-6 h-6" /></div></div>
-              <h3 className="font-bold text-base mb-1">Confirmer la suppression</h3>
-              <p className="text-xs text-base-content/70">Supprimer la facture <strong>"{invoiceToDelete.invoice_number}"</strong> ?</p>
-              <p className="text-xs text-base-content/50 mt-1">Cette action est irréversible.</p>
+          <div className="modal-box w-11/12 max-w-md p-5">
+            <div className="text-center mb-4">
+              <div className="avatar placeholder mb-3"><div className="bg-error/10 text-error rounded-full w-16 h-16"><AlertCircle className="w-8 h-8" /></div></div>
+              <h3 className="font-bold text-xl mb-2">Confirmer la suppression</h3>
+              <p className="text-base text-base-content/70">Supprimer la facture <strong className="text-error">"{invoiceToDelete.invoice_number}"</strong> ?</p>
+              <p className="text-sm text-base-content/50 mt-2">Cette action est irréversible.</p>
             </div>
-            <div className="flex gap-2">
-              <button className="btn btn-sm btn-ghost flex-1" onClick={() => setShowDeleteModal(false)}>Annuler</button>
-              <button className="btn btn-sm btn-error flex-1" onClick={handleDeleteInvoice}>Supprimer</button>
+            <div className="flex gap-3">
+              <button className="btn btn-md btn-ghost flex-1" onClick={() => setShowDeleteModal(false)}>Annuler</button>
+              <button className="btn btn-md btn-error flex-1" onClick={handleDeleteInvoice}>Supprimer</button>
             </div>
           </div>
         </div>
