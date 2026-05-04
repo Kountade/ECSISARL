@@ -29,6 +29,7 @@ import PurchaseReceipts from './components/purchases/PurchaseReceipts'
 import PurchaseReceiptForm from './components/purchases/PurchaseReceiptForm'
 import PurchaseReceiptDetails from './components/purchases/PurchaseReceiptDetails'
 import PurchaseReceiptPDF from './components/purchases/PurchaseReceiptPDF'
+import PurchaseAlerts from './components/purchases/PurchaseAlerts'
 import Users from './components/users/Users'
 import UserForm from './components/users/UserForm'
 import Roles from './components/users/Roles'
@@ -47,6 +48,7 @@ import PointOfSale from './components/sales/PointOfSale'
 import Quotations from './components/sales/Quotations'
 import QuotationForm from './components/sales/QuotationForm'
 import QuotationDetail from './components/sales/QuotationDetail'
+import NotificationsPage from './components/notifications/NotificationsPage'
 import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
 import PasswordResetRequest from './components/PasswordResetRequest'
@@ -137,6 +139,7 @@ function App() {
                          <Route path="/receptions/:id/modifier" element={<PurchaseReceiptForm />} />
                           <Route path="/receptions/:id" element={<PurchaseReceiptDetails />} />
                           <Route path="/receptions/:id/pdf" element={<PurchaseReceiptPDF />} />
+                          <Route path="/purchase-alerts" element={<PurchaseAlerts />} />
 
 
 
@@ -182,7 +185,7 @@ function App() {
                            <Route path="/devis/:id/detail" element={<QuotationDetail />} /> // détail
                            <Route path="/rapports-ventes" element={<SalesReport />} />
 
-
+                        <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
           </Routes>
         }
