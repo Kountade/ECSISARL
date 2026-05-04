@@ -49,6 +49,7 @@ import Quotations from './components/sales/Quotations'
 import QuotationForm from './components/sales/QuotationForm'
 import QuotationDetail from './components/sales/QuotationDetail'
 import NotificationsPage from './components/notifications/NotificationsPage'
+import AuditLog from './components/audit/AuditLog'
 import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
 import PasswordResetRequest from './components/PasswordResetRequest'
@@ -186,6 +187,7 @@ function App() {
                            <Route path="/rapports-ventes" element={<SalesReport />} />
 
                         <Route path="/notifications" element={<NotificationsPage />} />
+                        <Route path="/audit" element={<AuditLog />} />
             </Route>
           </Routes>
         }

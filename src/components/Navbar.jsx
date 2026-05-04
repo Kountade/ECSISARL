@@ -203,14 +203,16 @@ export default function Navbar({ content, mode, toggleColorMode }) {
       ]
     },
     {
-      name: 'ADMIN',
-      icon: Settings,
-      permission: canViewAdmin(),
-      items: [
-        { id: 'utilisateurs', text: 'Utilisateurs', icon: Users2, path: '/utilisateurs', permission: canViewAdmin() },
-        { id: 'parametres', text: 'Paramètres', icon: Settings, path: '/parametres', permission: canViewAdmin() }
-      ]
-    },
+  name: 'ADMIN',
+  icon: Settings,
+  permission: canViewAdmin(),
+  items: [
+    { id: 'utilisateurs', text: 'Utilisateurs', icon: Users2, path: '/utilisateurs', permission: canViewAdmin() },
+    { id: 'audit', text: 'Journal Audit', icon: History, path: '/audit', permission: canViewAdmin() },
+    { id: 'parametres', text: 'Paramètres', icon: Settings, path: '/parametres', permission: canViewAdmin() }
+  ]
+}
+   ,
     {
       name: 'MON ESPACE',
       icon: User,
