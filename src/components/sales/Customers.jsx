@@ -145,117 +145,142 @@ const Customers = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-200px)] bg-base-200">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="text-center space-y-4">
-          <div className="loading loading-spinner loading-lg text-primary w-12 h-12 sm:w-16 sm:h-16"></div>
-          <p className="text-base sm:text-xl font-semibold text-base-content/70 animate-pulse">
-            Chargement des clients...
-          </p>
+          <div className="loading loading-spinner loading-lg text-primary w-12 h-12"></div>
+          <p className="text-base font-semibold text-gray-600">Chargement des clients...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 p-4 bg-base-200 min-h-screen">
+    <div className="space-y-6 p-6 bg-gray-100 min-h-screen">
       
       {/* Notification */}
       {notification.show && (
-        <div className="fixed top-16 right-3 sm:right-6 z-50 animate-slide-in">
+        <div className="fixed top-20 right-6 z-50 animate-slide-in">
           <div className={`alert ${notification.type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg text-sm`}>
-            {notification.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-            <span className="font-semibold">{notification.message}</span>
+            {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            <span>{notification.message}</span>
             <button onClick={() => setNotification({ ...notification, show: false })} className="btn btn-sm btn-ghost">✕</button>
           </div>
         </div>
       )}
 
       {/* En-tête */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-base-content bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Clients
-          </h1>
-          <p className="text-xs text-base-content/60">Gérez votre portefeuille clients ({stats.total} au total)</p>
+          <h1 className="text-2xl font-bold text-gray-800">Clients</h1>
+          <p className="text-sm text-gray-500">Gérez votre portefeuille clients ({stats.total} au total)</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={fetchData} className="btn btn-sm btn-outline gap-1"><RefreshCw className="w-3 h-3" /> Actualiser</button>
-          <button onClick={() => navigate('/clients/nouveau')} className="btn btn-sm btn-primary gap-1"><UserPlus className="w-3 h-3" /> Nouveau client</button>
+          <button onClick={fetchData} className="btn btn-outline btn-sm gap-2">
+            <RefreshCw className="w-4 h-4" /> Actualiser
+          </button>
+          <button onClick={() => navigate('/clients/nouveau')} className="btn btn-primary btn-sm gap-2">
+            <UserPlus className="w-4 h-4" /> Nouveau client
+          </button>
         </div>
       </div>
 
-      {/* Cartes statistiques */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-2">
-          <div className="stat-figure text-primary"><Users className="w-5 h-5" /></div>
-          <div className="stat-title text-xs font-semibold">Total</div>
-          <div className="stat-value text-xl font-black">{stats.total}</div>
+      {/* Cartes statistiques (style NotificationsPage) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <div className="bg-white rounded-xl shadow-sm p-4 text-center border-l-4 border-primary">
+          <div className="text-2xl font-bold text-primary">{stats.total}</div>
+          <div className="text-sm text-gray-600 font-medium">Total clients</div>
         </div>
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-2">
-          <div className="stat-figure text-success"><CheckCircle className="w-5 h-5" /></div>
-          <div className="stat-title text-xs font-semibold">Actifs</div>
-          <div className="stat-value text-xl font-black">{stats.active}</div>
+        <div className="bg-white rounded-xl shadow-sm p-4 text-center border-l-4 border-success">
+          <div className="text-2xl font-bold text-success">{stats.active}</div>
+          <div className="text-sm text-gray-600 font-medium">Actifs</div>
         </div>
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-2">
-          <div className="stat-figure text-error"><XCircle className="w-5 h-5" /></div>
-          <div className="stat-title text-xs font-semibold">Inactifs</div>
-          <div className="stat-value text-xl font-black">{stats.inactive}</div>
+        <div className="bg-white rounded-xl shadow-sm p-4 text-center border-l-4 border-error">
+          <div className="text-2xl font-bold text-error">{stats.inactive}</div>
+          <div className="text-sm text-gray-600 font-medium">Inactifs</div>
         </div>
-        <div className="stat bg-base-100 rounded-xl shadow-md border border-base-200 p-2">
-          <div className="stat-figure text-warning"><DollarSign className="w-5 h-5" /></div>
-          <div className="stat-title text-xs font-semibold">CA total</div>
-          <div className="stat-value text-sm font-black truncate">{formatNumber(stats.totalSpent)} €</div>
+        <div className="bg-white rounded-xl shadow-sm p-4 text-center border-l-4 border-warning">
+          <div className="text-2xl font-bold text-warning drop-shadow-sm">{formatNumber(stats.totalSpent)} €</div>
+          <div className="text-sm text-gray-600 font-medium">CA total</div>
         </div>
       </div>
 
       {/* Filtres */}
-      <div className="bg-base-100 rounded-xl shadow-md border border-base-200 p-3">
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-base-content/40" />
-            <input type="text" placeholder="Rechercher par nom, code, email..." className="input input-bordered w-full pl-8 text-sm input-sm" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }} />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="label text-xs font-semibold text-gray-600 mb-1">Recherche</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Nom, code, email..."
+                className="input input-bordered w-full pl-9 py-2 h-10 text-sm"
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
+              />
+            </div>
           </div>
-          <button onClick={() => setShowFilters(!showFilters)} className="btn btn-outline btn-sm sm:hidden gap-1"><Filter className="w-3 h-3" /> Filtres</button>
-          <div className={`${showFilters ? 'flex' : 'hidden'} sm:flex gap-2`}>
-            <select className="select select-bordered select-sm w-32" value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1) }}>
-              <option value="">Tous types</option>
+          <div className="w-44">
+            <label className="label text-xs font-semibold text-gray-600 mb-1">Type</label>
+            <select
+              className="select select-bordered w-full h-10 text-sm"
+              value={filterType}
+              onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1) }}
+            >
+              <option value="">Tous</option>
               <option value="individual">Particuliers</option>
               <option value="company">Entreprises</option>
               <option value="government">Administrations</option>
               <option value="reseller">Revendeurs</option>
             </select>
-            <select className="select select-bordered select-sm w-28" value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1) }}>
-              <option value="">Tous statuts</option>
+          </div>
+          <div className="w-40">
+            <label className="label text-xs font-semibold text-gray-600 mb-1">Statut</label>
+            <select
+              className="select select-bordered w-full h-10 text-sm"
+              value={filterStatus}
+              onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1) }}
+            >
+              <option value="">Tous</option>
               <option value="active">Actifs</option>
               <option value="inactive">Inactifs</option>
             </select>
-            <button className="btn btn-outline btn-sm gap-1" onClick={() => { setFilterType(''); setFilterStatus(''); setSearchTerm(''); setCurrentPage(1) }}><Filter className="w-3 h-3" /> Réinit</button>
+          </div>
+          <div>
+            <button
+              className="btn btn-outline h-10 px-5 gap-2 text-sm"
+              onClick={() => { setFilterType(''); setFilterStatus(''); setSearchTerm(''); setCurrentPage(1) }}
+            >
+              <Filter className="w-4 h-4" /> Réinitialiser
+            </button>
           </div>
         </div>
       </div>
 
       {/* Tableau des clients */}
-      <div className="bg-base-100 rounded-xl shadow-xl border border-base-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {paginatedCustomers.length === 0 ? (
-          <div className="p-8 text-center">
-            <Users className="w-12 h-12 mx-auto mb-3 text-base-content/30" />
-            <p className="font-semibold text-base-content/50">Aucun client trouvé</p>
-            <button className="btn btn-sm btn-primary mt-3" onClick={() => navigate('/clients/nouveau')}><UserPlus className="w-3 h-3" /> Nouveau client</button>
+          <div className="p-12 text-center">
+            <Users className="w-16 h-16 mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-500">Aucun client trouvé</p>
+            <button className="btn btn-primary btn-sm mt-4" onClick={() => navigate('/clients/nouveau')}>
+              <UserPlus className="w-4 h-4" /> Nouveau client
+            </button>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="table table-xs w-full">
-                <thead>
-                  <tr className="text-xs">
-                    <th><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('code')}>Code<ArrowUpDown className="w-3 h-3" /></button></th>
-                    <th><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('full_name')}>Client<ArrowUpDown className="w-3 h-3" /></button></th>
-                    <th>Type</th>
-                    <th>Contact</th>
-                    <th>Localisation</th>
-                    <th><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('total_spent')}>CA<ArrowUpDown className="w-3 h-3" /></button></th>
-                    <th>Statut</th>
-                    <th className="text-center">Actions</th>
+              <table className="table w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr className="text-sm font-semibold text-gray-700">
+                    <th className="py-3 px-4"><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('code')}>Code <ArrowUpDown className="w-4 h-4" /></button></th>
+                    <th className="py-3 px-4"><button className="flex items-center gap-1 hover:text-primary" onClick={() => handleSort('full_name')}>Client <ArrowUpDown className="w-4 h-4" /></button></th>
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4">Contact</th>
+                    <th className="py-3 px-4">Localisation</th>
+                    <th className="py-3 px-4 text-right"><button className="flex items-center gap-1 hover:text-primary justify-end" onClick={() => handleSort('total_spent')}>CA <ArrowUpDown className="w-4 h-4" /></button></th>
+                    <th className="py-3 px-4">Statut</th>
+                    <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,55 +290,54 @@ const Customers = () => {
                     const displayName = customer.full_name || customer.company_name
                     const isActive = customer.is_active !== false
                     const badgeColor = typeInfo.color
-                    
                     return (
-                      <tr key={customer.id} className="hover">
-                        <td className="font-mono text-xs font-semibold">{customer.code}</td>
-                        <td>
+                      <tr key={customer.id} className="border-b hover:bg-gray-50 text-sm">
+                        <td className="py-3 px-4 font-mono text-sm font-semibold">{customer.code}</td>
+                        <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-full bg-${badgeColor}/10 flex items-center justify-center`}>
-                              <TypeIcon className={`w-3.5 h-3.5 text-${badgeColor}`} />
+                            <div className={`w-8 h-8 rounded-full bg-${badgeColor}/10 flex items-center justify-center`}>
+                              <TypeIcon className={`w-4 h-4 text-${badgeColor}`} />
                             </div>
                             <div>
-                              <p className="font-medium text-sm">{displayName}</p>
+                              <p className="font-medium text-gray-800">{displayName}</p>
                               {customer.company_name && customer.customer_type === 'individual' && (
-                                <p className="text-xs text-base-content/50">{customer.company_name}</p>
+                                <p className="text-xs text-gray-500">{customer.company_name}</p>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td><span className={`badge badge-${badgeColor} badge-xs`}>{typeInfo.label}</span></td>
-                        <td>
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-1 text-xs"><Mail className="w-3 h-3 text-primary" /><span className="truncate max-w-[150px]">{customer.email}</span></div>
-                            <div className="flex items-center gap-1 text-xs"><Phone className="w-3 h-3 text-primary" />{customer.phone}</div>
+                        <td className="py-3 px-4"><span className={`badge badge-${badgeColor} badge-sm text-xs`}>{typeInfo.label}</span></td>
+                        <td className="py-3 px-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-sm"><Mail className="w-3.5 h-3.5 text-gray-400" /><span className="truncate max-w-[180px]">{customer.email}</span></div>
+                            <div className="flex items-center gap-1 text-sm"><Phone className="w-3.5 h-3.5 text-gray-400" />{customer.phone}</div>
                           </div>
                         </td>
-                        <td className="text-xs">{customer.city || '-'}</td>
-                        <td className="text-xs font-semibold">{formatNumber(customer.total_spent)} €</td>
-                        <td>
+                        <td className="py-3 px-4 text-sm">{customer.city || '-'}</td>
+                        <td className="py-3 px-4 text-right font-semibold">{formatNumber(customer.total_spent)} €</td>
+                        <td className="py-3 px-4">
                           {isActive ? (
-                            <span className="badge badge-success badge-xs gap-1"><CheckCircle className="w-2.5 h-2.5" /> Actif</span>
+                            <span className="badge badge-success badge-sm gap-1"><CheckCircle className="w-3 h-3" /> Actif</span>
                           ) : (
-                            <span className="badge badge-ghost badge-xs gap-1"><XCircle className="w-2.5 h-2.5" /> Inactif</span>
+                            <span className="badge badge-ghost badge-sm gap-1"><XCircle className="w-3 h-3" /> Inactif</span>
                           )}
                         </td>
-                        <td className="text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => navigate(`/clients/${customer.id}`)} className="btn btn-ghost btn-xs" title="Détails"><Eye className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => navigate(`/clients/${customer.id}/modifier`)} className="btn btn-ghost btn-xs text-primary" title="Modifier"><Edit className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => { setCustomerToDelete(customer); setShowDeleteModal(true) }} className="btn btn-ghost btn-xs text-error" title="Supprimer"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex justify-center gap-2">
+                            <button onClick={() => navigate(`/clients/${customer.id}`)} className="btn btn-ghost btn-sm" title="Détails"><Eye className="w-4 h-4" /></button>
+                            <button onClick={() => navigate(`/clients/${customer.id}/modifier`)} className="btn btn-ghost btn-sm text-primary" title="Modifier"><Edit className="w-4 h-4" /></button>
+                            <button onClick={() => { setCustomerToDelete(customer); setShowDeleteModal(true) }} className="btn btn-ghost btn-sm text-error" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </td>
                       </tr>
                     )
                   })}
                 </tbody>
-                <tfoot className="bg-base-100 border-t-2">
-                  <tr className="text-xs font-bold">
-                    <td colSpan="5" className="text-right">Total:</td>
-                    <td className="font-bold">{formatNumber(sortedCustomers.reduce((s, c) => s + (parseFloat(c.total_spent) || 0), 0))} €</td>
-                    <td colSpan="2"></td>
+                <tfoot className="bg-gray-50 border-t">
+                  <tr className="text-sm font-semibold">
+                    <td colSpan="5" className="py-3 px-4 text-right">Total :</td>
+                    <td className="py-3 px-4 text-right font-bold">{formatNumber(sortedCustomers.reduce((s, c) => s + (parseFloat(c.total_spent) || 0), 0))} €</td>
+                    <td colSpan="2" className="py-3 px-4"></td>
                   </tr>
                 </tfoot>
               </table>
@@ -321,34 +345,52 @@ const Customers = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="p-3 border-t border-base-200">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-                  <div className="text-xs text-base-content/60">
-                    {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, sortedCustomers.length)} sur {sortedCustomers.length}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select className="select select-bordered select-xs w-20" value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1) }}>
-                      <option value="10">10</option>
-                      <option value="25">25</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                    </select>
-                    <div className="join">
-                      <button className="join-item btn btn-xs" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ChevronLeft className="w-3 h-3" /></button>
-                      {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                        let pageNum = i + 1
-                        if (totalPages > 5 && currentPage > 3) {
-                          pageNum = currentPage - 2 + i
-                          if (pageNum > totalPages) return null
-                        }
-                        return (
-                          <button key={i} className={`join-item btn btn-xs ${currentPage === pageNum ? 'btn-primary' : ''}`} onClick={() => setCurrentPage(pageNum)}>
-                            {pageNum}
-                          </button>
-                        )
-                      })}
-                      <button className="join-item btn btn-xs" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><ChevronRight className="w-3 h-3" /></button>
-                    </div>
+              <div className="px-4 py-3 border-t border-gray-200 flex flex-wrap justify-between items-center gap-3">
+                <div className="text-sm text-gray-500">
+                  {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, sortedCustomers.length)} sur {sortedCustomers.length}
+                </div>
+                <div className="flex items-center gap-3">
+                  <select
+                    className="select select-bordered select-sm w-20 text-sm"
+                    value={itemsPerPage}
+                    onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1) }}
+                  >
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <div className="join">
+                    <button
+                      className="join-item btn btn-sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                      let pageNum = i + 1
+                      if (totalPages > 5 && currentPage > 3) {
+                        pageNum = currentPage - 2 + i
+                        if (pageNum > totalPages) return null
+                      }
+                      return (
+                        <button
+                          key={i}
+                          className={`join-item btn btn-sm ${currentPage === pageNum ? 'btn-primary' : ''}`}
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    })}
+                    <button
+                      className="join-item btn btn-sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -357,18 +399,20 @@ const Customers = () => {
         )}
       </div>
 
-      {/* Modal Suppression */}
+      {/* Modal suppression */}
       {showDeleteModal && customerToDelete && (
-        <div className="modal modal-open">
-          <div className="modal-box w-11/12 max-w-md p-4">
-            <div className="text-center mb-3">
-              <div className="avatar placeholder mb-2"><div className="bg-error/10 text-error rounded-full w-12 h-12"><AlertCircle className="w-6 h-6" /></div></div>
-              <h3 className="font-bold text-base mb-1">Confirmer la suppression</h3>
-              <p className="text-xs text-base-content/70">Supprimer "{customerToDelete.full_name || customerToDelete.company_name}" ?</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 text-center">
+            <div className="mx-auto w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mb-4">
+              <AlertCircle className="w-8 h-8 text-error" />
             </div>
-            <div className="flex gap-2">
-              <button className="btn btn-sm btn-ghost flex-1" onClick={() => setShowDeleteModal(false)}>Annuler</button>
-              <button className="btn btn-sm btn-error flex-1" onClick={handleDeleteCustomer}>Supprimer</button>
+            <h3 className="text-xl font-bold mb-2">Confirmer la suppression</h3>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer le client <strong className="text-error">"{customerToDelete.full_name || customerToDelete.company_name}"</strong> ? Cette action est irréversible.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button onClick={() => setShowDeleteModal(false)} className="btn btn-outline">Annuler</button>
+              <button onClick={handleDeleteCustomer} className="btn btn-error">Supprimer</button>
             </div>
           </div>
         </div>
