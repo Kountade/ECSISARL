@@ -48,8 +48,10 @@ import PointOfSale from './components/sales/PointOfSale'
 import Quotations from './components/sales/Quotations'
 import QuotationForm from './components/sales/QuotationForm'
 import QuotationDetail from './components/sales/QuotationDetail'
+import SaleDetail from './components/sales/SaleDetail'
 import NotificationsPage from './components/notifications/NotificationsPage'
 import AuditLog from './components/audit/AuditLog'
+
 import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
 import PasswordResetRequest from './components/PasswordResetRequest'
@@ -159,10 +161,11 @@ function App() {
                          <Route path="/roles" element={<Roles />} />
 
 
-                           {/* GESTIOn VETES utilisateur */}
+                           {/* GESTIOn VEnTES  */}
                          <Route path="/ventes" element={<Sales />} />
                          <Route path="/ventes/nouveau" element={<SaleForm />} />
                          <Route path="/ventes/:id/modifier" element={<SaleForm />} />
+                         <Route path="/ventes/:id" element={<SaleDetail />} />
 
 
                              {/* GESTIOn VETES FACTURES */}
