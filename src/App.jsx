@@ -123,7 +123,8 @@ function App() {
                          <Route path="/entrepots/nouveau" element={<WarehouseForm />} />
                          <Route path="/entrepots/:id/modifier" element={<WarehouseForm />} />
 
-                        <Route path="/mouvements-stock" element={<StockMovements />} />
+                       <Route path="/stocks/mouvements" element={<StockMovements />} />
+                        
 
                            {/* Fournisseurs (si page dédiée)  */}
                          <Route path="/fournisseurs" element={<Fournisseurs />} />
