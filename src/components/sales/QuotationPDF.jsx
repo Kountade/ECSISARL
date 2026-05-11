@@ -1,72 +1,74 @@
 // src/components/sales/QuotationPDF.jsx
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 
-// Enregistrement des polices
-Font.register({
-  family: 'Helvetica',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/opensans/v18/mem8YaGs126MiZpBA-UFVZ0e.ttf', fontWeight: 'normal' },
-    { src: 'https://fonts.gstatic.com/s/opensans/v18/mem5YaGs126MiZpBA-UN7rgOUuhp.ttf', fontWeight: 'bold' }
-  ]
-})
+// Chemin absolu vers le logo (dossier public)
+const LOGO_URL = '/logo.jpeg'
 
-// Styles professionnels noir et blanc
 const styles = StyleSheet.create({
   page: {
     padding: 40,
     backgroundColor: '#FFFFFF',
     fontFamily: 'Helvetica'
   },
-  // En-tête
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 30,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
+    borderBottomWidth: 1,
+    borderBottomColor: '#CCCCCC',
     paddingBottom: 15
   },
   companyBox: {
-    flex: 1
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    objectFit: 'contain'
+  },
+  companyInfo: {
+    flexDirection: 'column'
   },
   companyName: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#000000',
-    marginBottom: 4
+    marginBottom: 2
   },
   companySub: {
-    fontSize: 10,
-    color: '#444444',
-    marginBottom: 2
+    fontSize: 8,
+    color: '#666666',
+    marginBottom: 1
   },
   docBox: {
     alignItems: 'flex-end'
   },
   docTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 4
   },
   docNumber: {
-    fontSize: 12,
-    color: '#555555',
+    fontSize: 11,
+    color: '#666666',
     marginBottom: 4
   },
   statusBadge: {
-    backgroundColor: '#333333',
+    borderWidth: 1,
+    borderColor: '#999999',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 3,
     marginTop: 4
   },
   statusText: {
     fontSize: 9,
-    color: '#FFFFFF',
+    color: '#333333',
     fontWeight: 'bold'
   },
-  // Sections d'informations
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -77,14 +79,13 @@ const styles = StyleSheet.create({
     width: '48%'
   },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
     color: '#000000',
     borderBottomWidth: 1,
     borderBottomColor: '#CCCCCC',
     paddingBottom: 4,
-    marginBottom: 8,
-    letterSpacing: 1
+    marginBottom: 8
   },
   infoLine: {
     flexDirection: 'row',
@@ -94,49 +95,53 @@ const styles = StyleSheet.create({
   infoLabel: {
     width: 70,
     fontWeight: 'bold',
-    color: '#333333'
+    color: '#555555'
   },
   infoValue: {
     flex: 1,
     color: '#000000'
   },
-  // Tableau des produits
   table: {
     marginTop: 10,
-    marginBottom: 20
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#CCCCCC'
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#000000',
-    paddingVertical: 6,
+    backgroundColor: '#EEEEEE',
+    borderBottomWidth: 1,
+    borderBottomColor: '#CCCCCC'
+  },
+  tableHeaderCell: {
+    paddingVertical: 8,
     paddingHorizontal: 5
   },
   tableHeaderText: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: '#FFFFFF'
+    color: '#333333'
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#DDDDDD',
-    paddingVertical: 5,
+    borderBottomColor: '#DDDDDD'
+  },
+  tableCell: {
+    paddingVertical: 6,
     paddingHorizontal: 5
   },
-  tableRowAlt: {
-    flexDirection: 'row',
-    backgroundColor: '#F9F9F9',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#DDDDDD',
-    paddingVertical: 5,
-    paddingHorizontal: 5
+  tableCellText: {
+    fontSize: 8,
+    color: '#000000'
   },
-  colProduct: { width: '40%', fontSize: 8 },
-  colRef: { width: '20%', fontSize: 8 },
-  colQty: { width: '12%', fontSize: 8, textAlign: 'center' },
-  colPrice: { width: '13%', fontSize: 8, textAlign: 'right' },
-  colTotal: { width: '15%', fontSize: 8, textAlign: 'right' },
-  // Totaux
+  colProduct: { width: '40%' },
+  colRef: { width: '20%' },
+  colQty: { width: '12%', textAlign: 'center' },
+  colPrice: { width: '13%', textAlign: 'right' },
+  colTotal: { width: '15%', textAlign: 'right' },
+  textCenter: { textAlign: 'center' },
+  textRight: { textAlign: 'right' },
   totalsBox: {
     marginTop: 10,
     alignItems: 'flex-end',
@@ -153,19 +158,21 @@ const styles = StyleSheet.create({
     width: 120,
     fontSize: 9,
     textAlign: 'right',
-    paddingRight: 10
+    paddingRight: 10,
+    color: '#555555'
   },
   totalValue: {
     width: 100,
     fontSize: 9,
-    textAlign: 'right'
+    textAlign: 'right',
+    color: '#000000'
   },
   grandTotalLine: {
     flexDirection: 'row',
     marginTop: 6,
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: '#000000',
+    borderTopColor: '#999999',
     width: 250
   },
   grandTotalLabel: {
@@ -173,15 +180,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     textAlign: 'right',
-    paddingRight: 10
+    paddingRight: 10,
+    color: '#000000'
   },
   grandTotalValue: {
     width: 100,
     fontSize: 11,
     fontWeight: 'bold',
-    textAlign: 'right'
+    textAlign: 'right',
+    color: '#000000'
   },
-  // Footer
   footer: {
     marginTop: 30,
     paddingTop: 10,
@@ -191,19 +199,19 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 7,
-    color: '#888888',
+    color: '#999999',
     marginBottom: 2
   },
-  // Notes section
   notesBox: {
     marginTop: 15,
     padding: 8,
-    backgroundColor: '#F5F5F5'
+    borderWidth: 1,
+    borderColor: '#EEEEEE'
   },
   notesTitle: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: '#000000',
+    color: '#333333',
     marginBottom: 4
   },
   notesText: {
@@ -213,7 +221,7 @@ const styles = StyleSheet.create({
   }
 })
 
-export const QuotationPDF = ({ quotation }) => {
+const QuotationPDF = ({ quotation }) => {
   const formatNumber = (number) => {
     if (typeof number !== 'number') number = parseFloat(number) || 0
     return new Intl.NumberFormat('fr-FR', {
@@ -246,11 +254,7 @@ export const QuotationPDF = ({ quotation }) => {
   const customer = quotation.customer || {}
   const items = quotation.items || []
 
-  // Calcul des totaux
-  let subtotal = 0
-  let taxTotal = 0
-  let total = 0
-
+  let subtotal = 0, taxTotal = 0, total = 0
   if (items.length > 0) {
     items.forEach(item => {
       const qty = parseFloat(item.quantity) || 0
@@ -274,12 +278,14 @@ export const QuotationPDF = ({ quotation }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* ===== EN-TÊTE ===== */}
         <View style={styles.header}>
           <View style={styles.companyBox}>
-            <Text style={styles.companyName}>GALSENSHOP ERP</Text>
-            <Text style={styles.companySub}>Système de gestion intégré</Text>
-            <Text style={styles.companySub}>Solution ERP professionnelle</Text>
+            <Image src={LOGO_URL} style={styles.logo} />
+            <View style={styles.companyInfo}>
+              <Text style={styles.companyName}>ECSISARL</Text>
+              <Text style={styles.companySub}> Telephone: </Text>
+              <Text style={styles.companySub}>Email: ecsisarlinfo@gmail.com </Text>
+            </View>
           </View>
           <View style={styles.docBox}>
             <Text style={styles.docTitle}>DEVIS</Text>
@@ -290,7 +296,6 @@ export const QuotationPDF = ({ quotation }) => {
           </View>
         </View>
 
-        {/* ===== INFORMATIONS ===== */}
         <View style={styles.infoRow}>
           <View style={styles.infoBox}>
             <Text style={styles.sectionTitle}>CLIENT</Text>
@@ -306,7 +311,7 @@ export const QuotationPDF = ({ quotation }) => {
             )}
             {customer.phone && (
               <View style={styles.infoLine}>
-                <Text style={styles.infoLabel}>Téléphone :</Text>
+                <Text style={styles.infoLabel}>Tél :</Text>
                 <Text style={styles.infoValue}>{customer.phone}</Text>
               </View>
             )}
@@ -321,7 +326,7 @@ export const QuotationPDF = ({ quotation }) => {
           <View style={styles.infoBox}>
             <Text style={styles.sectionTitle}>DÉTAILS DEVIS</Text>
             <View style={styles.infoLine}>
-              <Text style={styles.infoLabel}>Date devis :</Text>
+              <Text style={styles.infoLabel}>Date :</Text>
               <Text style={styles.infoValue}>{formatDate(quotation.quotation_date)}</Text>
             </View>
             <View style={styles.infoLine}>
@@ -335,45 +340,61 @@ export const QuotationPDF = ({ quotation }) => {
           </View>
         </View>
 
-        {/* ===== TABLEAU DES PRODUITS ===== */}
         <View style={styles.table}>
-          {/* En-tête du tableau */}
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, styles.colProduct]}>DÉSIGNATION</Text>
-            <Text style={[styles.tableHeaderText, styles.colRef]}>RÉFÉRENCE</Text>
-            <Text style={[styles.tableHeaderText, styles.colQty]}>QTE</Text>
-            <Text style={[styles.tableHeaderText, styles.colPrice]}>PRIX U.</Text>
-            <Text style={[styles.tableHeaderText, styles.colTotal]}>TOTAL HT</Text>
+            <View style={[styles.tableHeaderCell, styles.colProduct]}>
+              <Text style={styles.tableHeaderText}>DÉSIGNATION</Text>
+            </View>
+            <View style={[styles.tableHeaderCell, styles.colRef]}>
+              <Text style={styles.tableHeaderText}>RÉFÉRENCE</Text>
+            </View>
+            <View style={[styles.tableHeaderCell, styles.colQty]}>
+              <Text style={[styles.tableHeaderText, styles.textCenter]}>QTÉ</Text>
+            </View>
+            <View style={[styles.tableHeaderCell, styles.colPrice]}>
+              <Text style={[styles.tableHeaderText, styles.textRight]}>PRIX U.</Text>
+            </View>
+            <View style={[styles.tableHeaderCell, styles.colTotal]}>
+              <Text style={[styles.tableHeaderText, styles.textRight]}>TOTAL HT</Text>
+            </View>
           </View>
 
-          {/* Lignes des produits */}
           {items.map((item, idx) => {
             const qty = parseFloat(item.quantity) || 0
             const price = parseFloat(item.unit_price) || 0
             const itemTotal = parseFloat(item.total) || (qty * price)
             const itemSubtotal = parseFloat(item.subtotal) || (itemTotal / 1.2)
-            const rowStyle = idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt
 
             return (
-              <View key={idx} style={rowStyle}>
-                <Text style={styles.colProduct}>{item.product?.name || item.product_name || '-'}</Text>
-                <Text style={styles.colRef}>{item.product?.reference || item.product_reference || '-'}</Text>
-                <Text style={styles.colQty}>{formatNumber(qty)}</Text>
-                <Text style={styles.colPrice}>{formatNumber(price)} FCFA</Text>
-                <Text style={styles.colTotal}>{formatNumber(itemSubtotal)} FCFA</Text>
+              <View key={idx} style={styles.tableRow}>
+                <View style={[styles.tableCell, styles.colProduct]}>
+                  <Text style={styles.tableCellText}>{item.product?.name || item.product_name || '-'}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colRef]}>
+                  <Text style={styles.tableCellText}>{item.product?.reference || item.product_reference || '-'}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colQty]}>
+                  <Text style={[styles.tableCellText, styles.textCenter]}>{formatNumber(qty)}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colPrice]}>
+                  <Text style={[styles.tableCellText, styles.textRight]}>{formatNumber(price)} FCFA</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colTotal]}>
+                  <Text style={[styles.tableCellText, styles.textRight]}>{formatNumber(itemSubtotal)} FCFA</Text>
+                </View>
               </View>
             )
           })}
 
-          {/* Message si aucun produit */}
           {items.length === 0 && (
             <View style={styles.tableRow}>
-              <Text style={[styles.colProduct, { textAlign: 'center' }]}>Aucun article</Text>
+              <View style={[styles.tableCell, { width: '100%' }]}>
+                <Text style={[styles.tableCellText, styles.textCenter]}>Aucun article</Text>
+              </View>
             </View>
           )}
         </View>
 
-        {/* ===== TOTAUX ===== */}
         <View style={styles.totalsBox}>
           <View style={styles.totalLine}>
             <Text style={styles.totalLabel}>SOUS-TOTAL HT :</Text>
@@ -395,7 +416,6 @@ export const QuotationPDF = ({ quotation }) => {
           </View>
         </View>
 
-        {/* ===== NOTES ===== */}
         {quotation.notes && (
           <View style={styles.notesBox}>
             <Text style={styles.notesTitle}>📝 NOTES</Text>
@@ -403,7 +423,6 @@ export const QuotationPDF = ({ quotation }) => {
           </View>
         )}
 
-        {/* ===== CONDITIONS GÉNÉRALES ===== */}
         {quotation.terms_conditions && (
           <View style={[styles.notesBox, { marginTop: 8 }]}>
             <Text style={styles.notesTitle}>📋 CONDITIONS GÉNÉRALES</Text>
@@ -411,13 +430,14 @@ export const QuotationPDF = ({ quotation }) => {
           </View>
         )}
 
-        {/* ===== FOOTER ===== */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>ECSISARL</Text>
-          <Text style={styles.footerText}>Devis valable 30 jours à compter de la date d'émission</Text>
+          <Text style={styles.footerText}>GALSENSHOP ERP - Solution ERP intégrée</Text>
+          <Text style={styles.footerText}>Devis valable 30 jours</Text>
           <Text style={styles.footerText}>Document généré le {formatDate(new Date().toISOString())}</Text>
         </View>
       </Page>
     </Document>
   )
 }
+
+export default QuotationPDF

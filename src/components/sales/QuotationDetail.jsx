@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import AxiosInstance from '../AxiosInstance'
-import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { PDFDownloadLink } from '@react-pdf/renderer'
+import QuotationPDF from './QuotationPDF'
 import {
   ArrowLeft,
   Users,
@@ -29,439 +30,6 @@ import {
   Eye
 } from 'lucide-react'
 
-// ========== STYLES PDF ÉCONOMIQUES ==========
-const pdfStyles = StyleSheet.create({
-  page: {
-    padding: 40,
-    backgroundColor: '#FFFFFF',
-    fontFamily: 'Helvetica'
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCCCCC',
-    paddingBottom: 15
-  },
-  companyBox: {
-    flex: 1
-  },
-  companyName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 4
-  },
-  companySub: {
-    fontSize: 9,
-    color: '#666666',
-    marginBottom: 2
-  },
-  docBox: {
-    alignItems: 'flex-end'
-  },
-  docTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 4
-  },
-  docNumber: {
-    fontSize: 11,
-    color: '#666666',
-    marginBottom: 4
-  },
-  statusBadge: {
-    borderWidth: 1,
-    borderColor: '#999999',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 4
-  },
-  statusText: {
-    fontSize: 9,
-    color: '#333333',
-    fontWeight: 'bold'
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 25,
-    marginTop: 10
-  },
-  infoBox: {
-    width: '48%'
-  },
-  sectionTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#000000',
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCCCCC',
-    paddingBottom: 4,
-    marginBottom: 8
-  },
-  infoLine: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    fontSize: 9
-  },
-  infoLabel: {
-    width: 70,
-    fontWeight: 'bold',
-    color: '#555555'
-  },
-  infoValue: {
-    flex: 1,
-    color: '#000000'
-  },
-  // Tableau avec bordures
-  table: {
-    marginTop: 10,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#CCCCCC'
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#EEEEEE',
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCCCCC'
-  },
-  tableHeaderCell: {
-    paddingVertical: 8,
-    paddingHorizontal: 5
-  },
-  tableHeaderText: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#333333'
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#DDDDDD'
-  },
-  tableCell: {
-    paddingVertical: 6,
-    paddingHorizontal: 5
-  },
-  tableCellText: {
-    fontSize: 8,
-    color: '#000000'
-  },
-  colProduct: { width: '40%' },
-  colRef: { width: '20%' },
-  colQty: { width: '12%' },
-  colPrice: { width: '13%' },
-  colTotal: { width: '15%' },
-  textCenter: { textAlign: 'center' },
-  textRight: { textAlign: 'right' },
-  totalsBox: {
-    marginTop: 10,
-    alignItems: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#CCCCCC',
-    paddingTop: 10
-  },
-  totalLine: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    width: 250
-  },
-  totalLabel: {
-    width: 120,
-    fontSize: 9,
-    textAlign: 'right',
-    paddingRight: 10,
-    color: '#555555'
-  },
-  totalValue: {
-    width: 100,
-    fontSize: 9,
-    textAlign: 'right',
-    color: '#000000'
-  },
-  grandTotalLine: {
-    flexDirection: 'row',
-    marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#999999',
-    width: 250
-  },
-  grandTotalLabel: {
-    width: 120,
-    fontSize: 11,
-    fontWeight: 'bold',
-    textAlign: 'right',
-    paddingRight: 10,
-    color: '#000000'
-  },
-  grandTotalValue: {
-    width: 100,
-    fontSize: 11,
-    fontWeight: 'bold',
-    textAlign: 'right',
-    color: '#000000'
-  },
-  footer: {
-    marginTop: 30,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    alignItems: 'center'
-  },
-  footerText: {
-    fontSize: 7,
-    color: '#999999',
-    marginBottom: 2
-  },
-  notesBox: {
-    marginTop: 15,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#EEEEEE'
-  },
-  notesTitle: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 4
-  },
-  notesText: {
-    fontSize: 8,
-    color: '#555555',
-    lineHeight: 1.4
-  }
-})
-
-// ========== COMPOSANT PDF ==========
-const QuotationPDF = ({ quotation }) => {
-  const formatNumber = (number) => {
-    if (typeof number !== 'number') number = parseFloat(number) || 0
-    return new Intl.NumberFormat('fr-FR', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(number)
-  }
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
-
-  const getStatusLabel = (status) => {
-    const statusMap = {
-      draft: 'BROUILLON',
-      sent: 'ENVOYÉ',
-      approved: 'APPROUVÉ',
-      rejected: 'REJETÉ',
-      expired: 'EXPIRÉ',
-      converted: 'CONVERTI'
-    }
-    return statusMap[status] || status.toUpperCase()
-  }
-
-  const customer = quotation.customer || {}
-  const items = quotation.items || []
-
-  let subtotal = 0, taxTotal = 0, total = 0
-  if (items.length > 0) {
-    items.forEach(item => {
-      const qty = parseFloat(item.quantity) || 0
-      const price = parseFloat(item.unit_price) || 0
-      const itemTotal = parseFloat(item.total) || (qty * price)
-      const itemSubtotal = parseFloat(item.subtotal) || (itemTotal / 1.2)
-      const itemTax = parseFloat(item.tax_amount) || (itemTotal - itemSubtotal)
-      subtotal += itemSubtotal
-      taxTotal += itemTax
-      total += itemTotal
-    })
-  } else {
-    subtotal = parseFloat(quotation.subtotal) || 0
-    taxTotal = parseFloat(quotation.tax_total) || 0
-    total = parseFloat(quotation.total) || 0
-  }
-
-  const discount = parseFloat(quotation.discount) || 0
-  const finalTotal = total - discount
-
-  return (
-    <Document>
-      <Page size="A4" style={pdfStyles.page}>
-        {/* En-tête */}
-        <View style={pdfStyles.header}>
-          <View style={pdfStyles.companyBox}>
-            <Text style={pdfStyles.companyName}>ECSISARL</Text>
-            <Text style={pdfStyles.companySub}>Talephone: </Text>
-            <Text style={pdfStyles.companySub}>Email: ecsisarlinfo@gmail.com</Text>
-          </View>
-          <View style={pdfStyles.docBox}>
-            <Text style={pdfStyles.docTitle}>DEVIS</Text>
-            <Text style={pdfStyles.docNumber}>N° {quotation.quotation_number}</Text>
-            <View style={pdfStyles.statusBadge}>
-              <Text style={pdfStyles.statusText}>{getStatusLabel(quotation.status)}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Informations */}
-        <View style={pdfStyles.infoRow}>
-          <View style={pdfStyles.infoBox}>
-            <Text style={pdfStyles.sectionTitle}>CLIENT</Text>
-            <View style={pdfStyles.infoLine}>
-              <Text style={pdfStyles.infoLabel}>Nom :</Text>
-              <Text style={pdfStyles.infoValue}>{customer.full_name || customer.company_name || '-'}</Text>
-            </View>
-            {customer.email && (
-              <View style={pdfStyles.infoLine}>
-                <Text style={pdfStyles.infoLabel}>Email :</Text>
-                <Text style={pdfStyles.infoValue}>{customer.email}</Text>
-              </View>
-            )}
-            {customer.phone && (
-              <View style={pdfStyles.infoLine}>
-                <Text style={pdfStyles.infoLabel}>Tél :</Text>
-                <Text style={pdfStyles.infoValue}>{customer.phone}</Text>
-              </View>
-            )}
-            {customer.address && (
-              <View style={pdfStyles.infoLine}>
-                <Text style={pdfStyles.infoLabel}>Adresse :</Text>
-                <Text style={pdfStyles.infoValue}>{customer.address}</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={pdfStyles.infoBox}>
-            <Text style={pdfStyles.sectionTitle}>DÉTAILS DEVIS</Text>
-            <View style={pdfStyles.infoLine}>
-              <Text style={pdfStyles.infoLabel}>Date :</Text>
-              <Text style={pdfStyles.infoValue}>{formatDate(quotation.quotation_date)}</Text>
-            </View>
-            <View style={pdfStyles.infoLine}>
-              <Text style={pdfStyles.infoLabel}>Validité :</Text>
-              <Text style={pdfStyles.infoValue}>{formatDate(quotation.valid_until)}</Text>
-            </View>
-            <View style={pdfStyles.infoLine}>
-              <Text style={pdfStyles.infoLabel}>Créé par :</Text>
-              <Text style={pdfStyles.infoValue}>{quotation.created_by?.email || '-'}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Tableau avec bordures et en-tête gris clair */}
-        <View style={pdfStyles.table}>
-          <View style={pdfStyles.tableHeader}>
-            <View style={[pdfStyles.tableHeaderCell, pdfStyles.colProduct]}>
-              <Text style={pdfStyles.tableHeaderText}>DÉSIGNATION</Text>
-            </View>
-            <View style={[pdfStyles.tableHeaderCell, pdfStyles.colRef]}>
-              <Text style={pdfStyles.tableHeaderText}>RÉFÉRENCE</Text>
-            </View>
-            <View style={[pdfStyles.tableHeaderCell, pdfStyles.colQty]}>
-              <Text style={[pdfStyles.tableHeaderText, pdfStyles.textCenter]}>QTÉ</Text>
-            </View>
-            <View style={[pdfStyles.tableHeaderCell, pdfStyles.colPrice]}>
-              <Text style={[pdfStyles.tableHeaderText, pdfStyles.textRight]}>PRIX U.</Text>
-            </View>
-            <View style={[pdfStyles.tableHeaderCell, pdfStyles.colTotal]}>
-              <Text style={[pdfStyles.tableHeaderText, pdfStyles.textRight]}>TOTAL HT</Text>
-            </View>
-          </View>
-
-          {items.map((item, idx) => {
-            const qty = parseFloat(item.quantity) || 0
-            const price = parseFloat(item.unit_price) || 0
-            const itemTotal = parseFloat(item.total) || (qty * price)
-            const itemSubtotal = parseFloat(item.subtotal) || (itemTotal / 1.2)
-
-            return (
-              <View key={idx} style={pdfStyles.tableRow}>
-                <View style={[pdfStyles.tableCell, pdfStyles.colProduct]}>
-                  <Text style={pdfStyles.tableCellText}>{item.product?.name || item.product_name || '-'}</Text>
-                </View>
-                <View style={[pdfStyles.tableCell, pdfStyles.colRef]}>
-                  <Text style={pdfStyles.tableCellText}>{item.product?.reference || item.product_reference || '-'}</Text>
-                </View>
-                <View style={[pdfStyles.tableCell, pdfStyles.colQty]}>
-                  <Text style={[pdfStyles.tableCellText, pdfStyles.textCenter]}>{formatNumber(qty)}</Text>
-                </View>
-                <View style={[pdfStyles.tableCell, pdfStyles.colPrice]}>
-                  <Text style={[pdfStyles.tableCellText, pdfStyles.textRight]}>{formatNumber(price)} FCFA</Text>
-                </View>
-                <View style={[pdfStyles.tableCell, pdfStyles.colTotal]}>
-                  <Text style={[pdfStyles.tableCellText, pdfStyles.textRight]}>{formatNumber(itemSubtotal)} FCFA</Text>
-                </View>
-              </View>
-            )
-          })}
-
-          {items.length === 0 && (
-            <View style={pdfStyles.tableRow}>
-              <View style={[pdfStyles.tableCell, { width: '100%' }]}>
-                <Text style={[pdfStyles.tableCellText, pdfStyles.textCenter]}>Aucun article</Text>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Totaux */}
-        <View style={pdfStyles.totalsBox}>
-          <View style={pdfStyles.totalLine}>
-            <Text style={pdfStyles.totalLabel}>SOUS-TOTAL HT :</Text>
-            <Text style={pdfStyles.totalValue}>{formatNumber(subtotal)} FCFA</Text>
-          </View>
-          <View style={pdfStyles.totalLine}>
-            <Text style={pdfStyles.totalLabel}>TVA (20%) :</Text>
-            <Text style={pdfStyles.totalValue}>{formatNumber(taxTotal)} FCFA</Text>
-          </View>
-          {discount > 0 && (
-            <View style={pdfStyles.totalLine}>
-              <Text style={pdfStyles.totalLabel}>REMISE :</Text>
-              <Text style={pdfStyles.totalValue}>- {formatNumber(discount)} FCFA</Text>
-            </View>
-          )}
-          <View style={pdfStyles.grandTotalLine}>
-            <Text style={pdfStyles.grandTotalLabel}>TOTAL TTC :</Text>
-            <Text style={pdfStyles.grandTotalValue}>{formatNumber(finalTotal)} FCFA</Text>
-          </View>
-        </View>
-
-        {/* Notes */}
-        {quotation.notes && (
-          <View style={pdfStyles.notesBox}>
-            <Text style={pdfStyles.notesTitle}>📝 NOTES</Text>
-            <Text style={pdfStyles.notesText}>{quotation.notes}</Text>
-          </View>
-        )}
-
-        {/* Conditions */}
-        {quotation.terms_conditions && (
-          <View style={[pdfStyles.notesBox, { marginTop: 8 }]}>
-            <Text style={pdfStyles.notesTitle}>📋 CONDITIONS GÉNÉRALES</Text>
-            <Text style={pdfStyles.notesText}>{quotation.terms_conditions}</Text>
-          </View>
-        )}
-
-        {/* Footer */}
-        <View style={pdfStyles.footer}>
-          <Text style={pdfStyles.footerText}>GALSENSHOP ERP - Solution ERP intégrée</Text>
-          <Text style={pdfStyles.footerText}>Devis valable 30 jours</Text>
-          <Text style={pdfStyles.footerText}>Document généré le {formatDate(new Date().toISOString())}</Text>
-        </View>
-      </Page>
-    </Document>
-  )
-}
-
-// ========== COMPOSANT PRINCIPAL ==========
 const QuotationDetail = () => {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -661,7 +229,6 @@ const QuotationDetail = () => {
   const isExpired = new Date(quotation.valid_until) < new Date() && quotation.status !== 'converted'
   const customer = quotation.customer || {}
 
-  // Calcul des totaux
   let subtotal = 0, taxTotal = 0, total = 0
   if (quotation.items && quotation.items.length > 0) {
     quotation.items.forEach(item => {
@@ -682,7 +249,6 @@ const QuotationDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 px-4 md:px-8 py-6">
-      {/* Notification Toast */}
       {notification.show && (
         <div className="fixed top-20 right-6 z-50 animate-slide-in">
           <div className={`alert shadow-lg text-sm ${notification.type === 'success' ? 'alert-success' : 'alert-error'}`}>
@@ -693,7 +259,6 @@ const QuotationDetail = () => {
         </div>
       )}
 
-      {/* En-tête */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Link to="/devis" className="btn btn-ghost btn-sm gap-2">
@@ -758,7 +323,6 @@ const QuotationDetail = () => {
         </div>
       </div>
 
-      {/* Carte principale */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className={`px-6 py-4 ${status.bgColor} border-b flex justify-between items-center`}>
           <div className="flex items-center gap-3">
@@ -778,7 +342,6 @@ const QuotationDetail = () => {
         </div>
 
         <div className="p-6">
-          {/* Informations client et devis */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div className="space-y-4">
               <h2 className="text-lg font-semibold flex items-center gap-2 border-b pb-2">
@@ -843,7 +406,6 @@ const QuotationDetail = () => {
             </div>
           </div>
 
-          {/* Tableau des produits */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold flex items-center gap-2 border-b pb-2 mb-4">
               <Package className="w-5 h-5 text-primary" /> Articles
@@ -875,7 +437,7 @@ const QuotationDetail = () => {
                           <td className="py-3 px-4 text-center font-semibold">{formatNumber(qty)}</td>
                           <td className="py-3 px-4 text-right">{formatCurrency(price)}</td>
                           <td className="py-3 px-4 text-right font-semibold">{formatCurrency(itemSubtotal)}</td>
-                        </tr>
+                         </tr>
                       )
                     })
                   ) : (
@@ -910,7 +472,6 @@ const QuotationDetail = () => {
             </div>
           </div>
 
-          {/* Notes et conditions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {quotation.notes && (
               <div className="bg-gray-50 rounded-xl p-4">
@@ -932,7 +493,6 @@ const QuotationDetail = () => {
         </div>
       </div>
 
-      {/* Modal sélection entrepôt */}
       {showWarehouseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
@@ -992,7 +552,6 @@ const QuotationDetail = () => {
         </div>
       )}
 
-      {/* Modal suppression */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center">
