@@ -2,8 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import AxiosInstance from '../AxiosInstance'
-import { PDFDownloadLink } from '@react-pdf/renderer'
-import QuotationPDF from './QuotationPDF'
+import QuotationPDF from './QuotationPDF'  // <-- Import de la fonction jsPDF
 import {
   ArrowLeft,
   Users,
@@ -20,7 +19,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  DollarSign,
   Clock,
   Download,
   Printer,
@@ -36,6 +34,7 @@ const QuotationDetail = () => {
   const [quotation, setQuotation] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [pdfGenerating, setPdfGenerating] = useState(false) // État pour le bouton PDF
   const [showWarehouseModal, setShowWarehouseModal] = useState(false)
   const [warehouses, setWarehouses] = useState([])
   const [selectedWarehouse, setSelectedWarehouse] = useState(null)
@@ -201,6 +200,24 @@ const QuotationDetail = () => {
     window.print()
   }
 
+  // Fonction pour générer le PDF avec jsPDF
+  const handleGeneratePDF = async () => {
+  if (!quotation) return
+  setPdfGenerating(true)
+  try {
+    await QuotationPDF(quotation)
+    // Pas de notification de succès car le téléchargement se déclenche
+  } catch (error) {
+    console.error('Erreur génération PDF:', error)
+    showNotification(
+      error.message || 'Erreur lors de la génération du PDF. Vérifiez la console.',
+      'error'
+    )
+  } finally {
+    setPdfGenerating(false)
+  }
+}
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -273,18 +290,19 @@ const QuotationDetail = () => {
           <button onClick={handlePrint} className="btn btn-sm btn-outline gap-1">
             <Printer className="w-4 h-4" /> Imprimer
           </button>
-          <PDFDownloadLink
-            document={<QuotationPDF quotation={quotation} />}
-            fileName={`devis_${quotation.quotation_number}.pdf`}
+          {/* Bouton PDF modifié */}
+          <button
+            onClick={handleGeneratePDF}
+            disabled={pdfGenerating}
             className="btn btn-sm btn-primary gap-1"
           >
-            {({ loading: pdfLoading }) => (
-              <>
-                <Download className="w-4 h-4" />
-                {pdfLoading ? 'Préparation...' : 'PDF'}
-              </>
+            {pdfGenerating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
             )}
-          </PDFDownloadLink>
+            {pdfGenerating ? 'Génération...' : 'PDF'}
+          </button>
           {quotation.status === 'draft' && (
             <>
               <button onClick={handleSend} disabled={actionLoading} className="btn btn-sm btn-info gap-2">
@@ -323,6 +341,7 @@ const QuotationDetail = () => {
         </div>
       </div>
 
+      {/* Contenu principal (inchangé) */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className={`px-6 py-4 ${status.bgColor} border-b flex justify-between items-center`}>
           <div className="flex items-center gap-3">
@@ -437,7 +456,7 @@ const QuotationDetail = () => {
                           <td className="py-3 px-4 text-center font-semibold">{formatNumber(qty)}</td>
                           <td className="py-3 px-4 text-right">{formatCurrency(price)}</td>
                           <td className="py-3 px-4 text-right font-semibold">{formatCurrency(itemSubtotal)}</td>
-                         </tr>
+                        </tr>
                       )
                     })
                   ) : (
@@ -450,23 +469,23 @@ const QuotationDetail = () => {
                   <tr className="font-semibold">
                     <td colSpan="4" className="py-3 px-4 text-right">Sous-total HT :</td>
                     <td className="py-3 px-4 text-right">{formatCurrency(subtotal)}</td>
-                  </tr>
+                   </tr>
                   <tr className="font-semibold">
                     <td colSpan="4" className="py-3 px-4 text-right">TVA (20%) :</td>
                     <td className="py-3 px-4 text-right">{formatCurrency(taxTotal)}</td>
-                  </tr>
+                   </tr>
                   {quotation.discount > 0 && (
                     <tr className="text-success">
                       <td colSpan="4" className="py-2 px-4 text-right">Remise :</td>
                       <td className="py-2 px-4 text-right">- {formatCurrency(quotation.discount)}</td>
-                    </tr>
+                     </tr>
                   )}
                   <tr className="bg-primary/5">
                     <td colSpan="4" className="py-3 px-4 text-right text-lg font-bold">TOTAL TTC :</td>
                     <td className="py-3 px-4 text-right text-xl font-bold text-primary">
                       {formatCurrency(total - (quotation.discount || 0))}
-                    </td>
-                  </tr>
+                     </td>
+                   </tr>
                 </tfoot>
               </table>
             </div>
@@ -493,6 +512,7 @@ const QuotationDetail = () => {
         </div>
       </div>
 
+      {/* Modal entrepôt */}
       {showWarehouseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
@@ -552,6 +572,7 @@ const QuotationDetail = () => {
         </div>
       )}
 
+      {/* Modal suppression */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center">
