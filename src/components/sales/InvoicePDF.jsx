@@ -82,7 +82,11 @@ const InvoicePDF = async (invoice) => {
       slogan: 'EXPERTISE INFORMATIQUE - TELECOMMUNICATIONS - FORMATIONS'
     };
 
-    const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(parseFloat(n) || 0);
+    // Formatage avec espace comme séparateur de milliers
+    const formatNumber = (n) => {
+      const num = parseFloat(n) || 0;
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    };
     const formatCurrency = (amt) => `${formatNumber(amt)} CFA`;
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '-';
 
@@ -158,24 +162,19 @@ const InvoicePDF = async (invoice) => {
     doc.line(margins.left, y, pageWidth - margins.right, y);
     y += 8;
 
-    // === DATES (labels ET valeurs en rouge) ===
+    // Dates (labels ET valeurs en rouge)
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-
-    // Date de la facture
     doc.setTextColor(200, 0, 0);
+
     doc.text('Date de la facture : ', margins.left, y);
     const date1LabelWidth = doc.getTextWidth('Date de la facture : ');
     doc.text(formatDate(invoiceDate), margins.left + date1LabelWidth, y);
 
-    // Date d'échéance
-    doc.setTextColor(200, 0, 0);
     doc.text('Date d\'échéance : ', margins.left + 70, y);
     const date2LabelWidth = doc.getTextWidth('Date d\'échéance : ');
     doc.text(formatDate(dueDate), margins.left + 70 + date2LabelWidth, y);
 
-    // Date de livraison
-    doc.setTextColor(200, 0, 0);
     doc.text('Date de livraison : ', margins.left + 140, y);
     const date3LabelWidth = doc.getTextWidth('Date de livraison : ');
     doc.text(formatDate(deliveryDate), margins.left + 140 + date3LabelWidth, y);
@@ -244,46 +243,48 @@ const InvoicePDF = async (invoice) => {
 
     y = currentY + 5;
 
-    // Bloc communication de paiement & montants
-    const comBlockW = contentWidth * 0.55;
-    const comBlockX = margins.left;
-    const comBlockH = 30;
-    doc.setFillColor(250, 250, 250);
-    doc.rect(comBlockX, y, comBlockW, comBlockH, 'F');
-    doc.setDrawColor(180, 180, 180);
-    doc.rect(comBlockX, y, comBlockW, comBlockH, 'S');
+    // === SECTION COMMUNICATION DE PAIEMENT (à gauche) ET MONTANTS (à droite) ===
+    // Communication de paiement - sans bordure
+    let leftY = y;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text('Communication de paiement :', comBlockX + 3, y + 5);
+    doc.text('Communication de paiement :', margins.left + 3, leftY + 5);
     doc.setFont('helvetica', 'normal');
-    doc.text(invoiceNumber, comBlockX + 3, y + 11);
-    doc.text('sur ce compte : CI1630120200000026823082 - GTBANK', comBlockX + 3, y + 17);
-    doc.text('Référence :', comBlockX + 3, y + 23);
-    doc.text(invoiceNumber, comBlockX + 3 + 20, y + 23);
+    doc.text(invoiceNumber, margins.left + 3, leftY + 11);
+    doc.text('sur ce compte : CI1630120200000026823082 - GTBANK', margins.left + 3, leftY + 17);
+    doc.text('Référence :', margins.left + 3, leftY + 23);
+    doc.text(invoiceNumber, margins.left + 3 + 20, leftY + 23);
+    // Hauteur approximative de ce bloc : 28 mm
 
+    // Bloc montants (à droite) - sans bordure, avec "Montant total en toutes lettres" intégré
     const amountBlockW = contentWidth * 0.4;
     const amountBlockX = pageWidth - margins.right - amountBlockW;
-    doc.rect(amountBlockX, y, amountBlockW, comBlockH, 'S');
     let ay = y + 5;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text('Montant hors taxes', amountBlockX + 3, ay);
-    doc.text(formatCurrency(subtotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
+    doc.text(formatNumber(subtotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
     ay += 5;
     doc.text(`T.V.A. ${taxRate}%`, amountBlockX + 3, ay);
-    doc.text(formatCurrency(taxTotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
+    doc.text(formatNumber(taxTotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
     ay += 6;
     doc.setFont('helvetica', 'bold');
     doc.text('Total', amountBlockX + 3, ay);
-    doc.text(formatCurrency(total), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
-    y += comBlockH + 5;
-
-    doc.setFontSize(8);
+    doc.text(formatNumber(total), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
+    ay += 6;
+    // Montant en toutes lettres, juste sous le total
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Montant total en toutes lettres : ${totalEnLettres}`, margins.left, y);
-    y += 10;
+    doc.setFontSize(7);
+    doc.text('Montant total en toutes lettres :', amountBlockX + 3, ay);
+    doc.text(totalEnLettres, amountBlockX + amountBlockW - 5, ay, { align: 'right' });
+    ay += 5;
+
+    // Calcul de la hauteur maximale utilisée par les deux blocs
+    const leftHeight = 28; // hauteur fixe du bloc communication (4 lignes espacées)
+    const rightHeight = (ay + 2) - (y + 5); // hauteur réelle du bloc montants
+    const maxHeight = Math.max(leftHeight, rightHeight);
+    y += maxHeight + 5;
 
     // Pied de page
     const footerY = pageHeight - margins.bottom - 25;
@@ -306,4 +307,4 @@ const InvoicePDF = async (invoice) => {
   }
 };
 
-export default InvoicePDF;s
+export default InvoicePDF;
