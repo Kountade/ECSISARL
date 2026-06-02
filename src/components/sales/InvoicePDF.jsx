@@ -82,7 +82,6 @@ const InvoicePDF = async (invoice) => {
       slogan: 'EXPERTISE INFORMATIQUE - TELECOMMUNICATIONS - FORMATIONS'
     };
 
-    // Formatage avec espace comme séparateur de milliers
     const formatNumber = (n) => {
       const num = parseFloat(n) || 0;
       return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -123,19 +122,19 @@ const InvoicePDF = async (invoice) => {
     let logoData = null;
     try { logoData = await loadLogo(logoSvg); } catch { /* ignore */ }
 
-    // ==================== EN-TÊTE ====================
+    // ==================== EN-TÊTE (logo + infos) ====================
     const logoWidth = 30;
     const logoHeight = 15;
     if (logoData) {
       doc.addImage(logoData, 'PNG', margins.left, y, logoWidth, logoHeight);
     } else {
-      doc.setFontSize(12);
+      doc.setFontSize(13); // augmenté
       doc.setFont('helvetica', 'bold');
       doc.text(company.name, margins.left, y + 6);
     }
 
     const textStartX = margins.left + logoWidth + 4;
-    doc.setFontSize(8);
+    doc.setFontSize(9); // augmenté (était 8)
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text(company.name, textStartX, y + 4);
@@ -144,28 +143,20 @@ const InvoicePDF = async (invoice) => {
     doc.text(company.addressLine1, textStartX, y + 8);
     doc.text(company.addressLine2, textStartX, y + 12);
     doc.text(`Tél: ${company.phone}`, textStartX, y + 16);
-    y += 22;
-
-    // Suppression du trait avant le titre : on ne met aucune ligne ici
-    // On ajoute simplement une marge verticale
-    y += 4; // petite marge supplémentaire
+    y = y + 31; // 15 mm d'espace après l'en-tête
 
     // ==================== TITRE ====================
-    doc.setFontSize(16);
+    doc.setFontSize(20); // augmenté (était 16)
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(200, 0, 0);
     doc.text('FACTURE', margins.left, y);
     const factureWidth = doc.getTextWidth('FACTURE');
     doc.setTextColor(40, 40, 40);
     doc.text(` ${invoiceNumber}`, margins.left + factureWidth, y);
-    y += 7;
-    // Trait sous le titre (on le conserve)
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margins.left, y, pageWidth - margins.right, y);
-    y += 8;
+    y += 20; // espace après titre
 
     // ==================== DATES ====================
-    doc.setFontSize(9);
+    doc.setFontSize(11); // augmenté (était 9)
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(200, 0, 0);
 
@@ -180,7 +171,6 @@ const InvoicePDF = async (invoice) => {
     doc.text('Date de livraison : ', margins.left + 140, y);
     const date3LabelWidth = doc.getTextWidth('Date de livraison : ');
     doc.text(formatDate(deliveryDate), margins.left + 140 + date3LabelWidth, y);
-
     y += 10;
 
     // ==================== TABLEAU DES ARTICLES ====================
@@ -189,7 +179,7 @@ const InvoicePDF = async (invoice) => {
     const colPriceX = pageWidth - margins.right - 35;
     const colTotalX = pageWidth - margins.right;
 
-    doc.setFontSize(9);
+    doc.setFontSize(10); // augmenté (était 9)
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text('Description', colDescX, y);
@@ -210,10 +200,10 @@ const InvoicePDF = async (invoice) => {
       const price = item.unit_price || 0;
       const itemTotal = item.total || (qty * price);
 
-      if (currentY > pageHeight - 70) {
+      if (currentY > pageHeight - 80) { // ajusté pour police plus grande
         doc.addPage();
         currentY = margins.top;
-        doc.setFontSize(9);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text('Description', colDescX, currentY);
         doc.text('Qté', colQtyX, currentY, { align: 'right' });
@@ -225,7 +215,7 @@ const InvoicePDF = async (invoice) => {
       }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(9); // augmenté (était 8)
       doc.setTextColor(0, 0, 0);
       doc.text(productName, colDescX, currentY);
       doc.text(qty.toString(), colQtyX, currentY, { align: 'right' });
@@ -235,34 +225,30 @@ const InvoicePDF = async (invoice) => {
 
       if (description) {
         const descLines = doc.splitTextToSize(description, contentWidth - 10);
-        doc.setFontSize(7);
+        doc.setFontSize(8); // augmenté (était 7)
         doc.setTextColor(100, 100, 100);
         doc.text(descLines, colDescX + 2, currentY);
-        currentY += descLines.length * 3.5 + 2;
+        currentY += descLines.length * 4 + 2; // ajusté pour police plus grande
       }
       currentY += 3;
     }
-
     y = currentY + 5;
 
     // ==================== COMMUNICATION DE PAIEMENT ET MONTANTS ====================
-    // Bloc communication (gauche) sans bordure
-    let leftY = y;
-    doc.setFontSize(8);
+    doc.setFontSize(9); // augmenté (était 8)
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text('Communication de paiement :', margins.left + 3, leftY + 5);
+    doc.text('Communication de paiement :', margins.left + 3, y + 5);
     doc.setFont('helvetica', 'normal');
-    doc.text(invoiceNumber, margins.left + 3, leftY + 11);
-    doc.text('sur ce compte : CI1630120200000026823082 - GTBANK', margins.left + 3, leftY + 17);
-    doc.text('Référence :', margins.left + 3, leftY + 23);
-    doc.text(invoiceNumber, margins.left + 3 + 20, leftY + 23);
+    doc.text(invoiceNumber, margins.left + 3, y + 11);
+    doc.text('sur ce compte : CI1630120200000026823082 - GTBANK', margins.left + 3, y + 17);
+    doc.text('Référence :', margins.left + 3, y + 23);
+    doc.text(invoiceNumber, margins.left + 3 + 20, y + 23);
 
-    // Bloc montants (droite) sans bordure, avec montant en toutes lettres intégré
     const amountBlockW = contentWidth * 0.4;
     const amountBlockX = pageWidth - margins.right - amountBlockW;
     let ay = y + 5;
-    doc.setFontSize(8);
+    doc.setFontSize(9); // augmenté (était 8)
     doc.setFont('helvetica', 'normal');
     doc.text('Montant hors taxes', amountBlockX + 3, ay);
     doc.text(formatNumber(subtotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
@@ -274,29 +260,25 @@ const InvoicePDF = async (invoice) => {
     doc.text('Total', amountBlockX + 3, ay);
     doc.text(formatNumber(total), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
     ay += 6;
-    // Montant en toutes lettres sous le total
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(8); // augmenté (était 7)
     doc.text('Montant total en toutes lettres :', amountBlockX + 3, ay);
     doc.text(totalEnLettres, amountBlockX + amountBlockW - 5, ay, { align: 'right' });
 
-    // Ajustement de la hauteur
     const leftHeight = 28;
     const rightHeight = (ay + 2) - (y + 5);
     const maxHeight = Math.max(leftHeight, rightHeight);
     y += maxHeight + 5;
 
-    // ==================== PIED DE PAGE ====================
-    const footerY = pageHeight - margins.bottom - 25;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margins.left, footerY, pageWidth - margins.right, footerY);
-    doc.setFontSize(7);
+    // ==================== PIED DE PAGE (sans trait) ====================
+    const footerY = pageHeight - margins.bottom - 20;
+    doc.setFontSize(8); // augmenté (était 7)
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(company.slogan, pageWidth / 2, footerY + 5, { align: 'center' });
-    doc.text('Consultance - Intégration de Solutions - Vente d’équipements informatiques', pageWidth / 2, footerY + 9, { align: 'center' });
-    doc.text(`18 BP 1057 ABIDJAN 18 - RCCM N°: ${company.rccm} - CC: ${company.cc}`, pageWidth / 2, footerY + 13, { align: 'center' });
-    doc.text(`Email: ${company.email} - Tél: ${company.phone} / ${company.phone2} - Site : ${company.website}`, pageWidth / 2, footerY + 17, { align: 'center' });
+    doc.text(company.slogan, pageWidth / 2, footerY, { align: 'center' });
+    doc.text('Consultance - Intégration de Solutions - Vente d’équipements informatiques', pageWidth / 2, footerY + 4, { align: 'center' });
+    doc.text(`18 BP 1057 ABIDJAN 18 - RCCM N°: ${company.rccm} - CC: ${company.cc}`, pageWidth / 2, footerY + 8, { align: 'center' });
+    doc.text(`Email: ${company.email} - Tél: ${company.phone} / ${company.phone2} - Site : ${company.website}`, pageWidth / 2, footerY + 12, { align: 'center' });
 
     doc.save(`Facture_${invoiceNumber}.pdf`);
     return true;
