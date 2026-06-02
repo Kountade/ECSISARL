@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 import logoSvg from '../../assets/logo.svg';
 
 /**
- * Convertit un nombre en toutes lettres (FCFA)
+ * Convertit un nombre en toutes lettres (jusqu'à 999 999)
  */
 const nombreEnLettres = (montant) => {
   const unite = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
@@ -30,7 +30,7 @@ const nombreEnLettres = (montant) => {
         else if (u === 4) lettres += 'quatorze';
         else if (u === 5) lettres += 'quinze';
         else if (u === 6) lettres += 'seize';
-        else lettres + dizaine[1] + (u ? '-' + unite[u] : '');
+        else lettres += dizaine[1] + (u ? '-' + unite[u] : '');
       } else {
         const d = Math.floor(reste / 10);
         const u = reste % 10;
@@ -60,7 +60,7 @@ const nombreEnLettres = (montant) => {
 };
 
 /**
- * Génère une facture professionnelle style Mindtech (sans bordures de tableau)
+ * Génère une facture professionnelle style Mindtech
  * @param {Object} invoice - La facture (avec sale, items, etc.)
  */
 const InvoicePDF = async (invoice) => {
@@ -76,11 +76,12 @@ const InvoicePDF = async (invoice) => {
     const contentWidth = pageWidth - margins.left - margins.right;
     let y = margins.top;
 
-    // === Informations société (Mindtech) ===
+    // === Informations société (à adapter) ===
     const company = {
       name: 'MINDTECH',
-      address: 'Cocody, Angré 8e Tranche, Cité Abri 2000, Abidjan Côte d’Ivoire',
-      phone1: '07 04 51 53 51',
+      addressLine1: 'Cocody, Angré 8e Tranche, Cité Abri 2000',
+      addressLine2: 'Abidjan Côte d’Ivoire',
+      phone: '07 04 51 53 51',
       phone2: '07 08 15 17 19',
       email: 'info@mindtechcl.net',
       website: 'www.mindtechcl.net',
@@ -100,15 +101,30 @@ const InvoicePDF = async (invoice) => {
     const dueDate = invoice.due_date || invoiceDate;
     const deliveryDate = invoice.delivery_date || invoiceDate;
     const subtotal = invoice.subtotal || 0;
-    const taxRate = 0;
+    const taxRate = 0; // TVA 0% dans l'exemple
     const taxTotal = invoice.tax_total || 0;
     const total = invoice.total || 0;
 
     // Articles
     const items = invoice.sale?.items || invoice.items || [];
-    const displayItems = items.length ? items : [];
+    // Si aucun article, on prend des exemples (à enlever en production)
+    const displayItems = items.length ? items : [
+      { 
+        product_name: 'MikroTik HAP ax lite', 
+        description: 'Routeur 256 Mo RAM, ARM 800 MHz, 4 ports Gigabit, gain antenne 4,3 dBi', 
+        quantity: 1, 
+        unit_price: 0, 
+        total: 0 
+      },
+      { 
+        product_name: 'MikroTik HAP AX3', 
+        description: 'Routeur WiFi 6, 4 ports 1 Gbps (1 PoE out), 1 port 2,5 Gbps, antennes externes', 
+        quantity: 1, 
+        unit_price: 0, 
+        total: 0 
+      }
+    ];
 
-    // Montant en toutes lettres
     const totalEnLettres = nombreEnLettres(total);
 
     // === Chargement du logo ===
@@ -129,28 +145,37 @@ const InvoicePDF = async (invoice) => {
     try { logoData = await loadLogo(logoSvg); } catch { /* ignore */ }
 
     // ============================================================
-    // 1. EN-TÊTE
+    // 1. EN-TÊTE : logo à gauche, infos entreprise juste à côté
     // ============================================================
+    const logoWidth = 30;
+    const logoHeight = 15;
     if (logoData) {
-      doc.addImage(logoData, 'PNG', margins.left, y, 30, 15);
+      doc.addImage(logoData, 'PNG', margins.left, y, logoWidth, logoHeight);
     } else {
-      doc.setFontSize(14);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text(company.name, margins.left, y + 5);
+      doc.text(company.name, margins.left, y + 6);
     }
-    const rightX = pageWidth - margins.right;
-    doc.setFontSize(9);
+
+    // Texte à côté du logo
+    const textStartX = margins.left + logoWidth + 4;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(company.name, textStartX, y + 4);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
-    doc.text(`${company.name} - ${company.phone1}`, rightX, y + 4, { align: 'right' });
-    doc.text(company.address, rightX, y + 9, { align: 'right' });
-    y += 20;
+    doc.text(company.addressLine1, textStartX, y + 8);
+    doc.text(company.addressLine2, textStartX, y + 12);
+    doc.text(`Tél: ${company.phone}`, textStartX, y + 16);
+    y += 22;
 
-    // Titre Facture
+    // Ligne de séparation
     doc.setDrawColor(200, 200, 200);
     doc.line(margins.left, y, pageWidth - margins.right, y);
     y += 5;
+
+    // Titre Facture
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(40, 40, 40);
@@ -166,18 +191,18 @@ const InvoicePDF = async (invoice) => {
     doc.text(`Date de la facture : ${formatDate(invoiceDate)}`, margins.left, y);
     doc.text(`Date d'échéance : ${formatDate(dueDate)}`, margins.left + 70, y);
     doc.text(`Date de livraison : ${formatDate(deliveryDate)}`, margins.left + 140, y);
-    y += 12;
+    y += 10;
 
     // ============================================================
-    // 2. TABLEAU DES ARTICLES (sans bordures)
+    // 2. TABLEAU DES ARTICLES (sans bordures, alignements à droite)
     // ============================================================
-    // Définition des colonnes (en mm)
+    // Coordonnées des colonnes
     const colDescX = margins.left;
     const colQtyX = pageWidth - margins.right - 55;   // aligné à droite
     const colPriceX = pageWidth - margins.right - 35; // aligné à droite
     const colTotalX = pageWidth - margins.right;      // aligné à droite
 
-    // En-tête (texte seulement, pas de fond ni bordures)
+    // En-tête du tableau (sans bordure)
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
@@ -185,58 +210,63 @@ const InvoicePDF = async (invoice) => {
     doc.text('Qté', colQtyX, y, { align: 'right' });
     doc.text('Prix unit.', colPriceX, y, { align: 'right' });
     doc.text('Total', colTotalX, y, { align: 'right' });
-    y += 5;
-    // Ligne fine sous l'en-tête
+    y += 4;
     doc.setDrawColor(200, 200, 200);
     doc.line(colDescX, y, pageWidth - margins.right, y);
     y += 5;
 
     let startY = y;
     let currentY = y;
-    for (const item of displayItems) {
-      // Éviter débordement de page
-      if (currentY > pageHeight - 80) {
-        doc.addPage();
-        currentY = margins.top;
-        // Répéter l'en-tête sur la nouvelle page
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Description', colDescX, currentY);
-        doc.text('Qté', colQtyX, currentY, { align: 'right' });
-        doc.text('Prix unit.', colPriceX, currentY, { align: 'right' });
-        doc.text('Total', colTotalX, currentY, { align: 'right' });
-        currentY += 5;
-        doc.line(colDescX, currentY, pageWidth - margins.right, currentY);
-        currentY += 5;
-      }
 
+    for (let idx = 0; idx < displayItems.length; idx++) {
+      const item = displayItems[idx];
       const productName = item.product_name || '-';
       const description = item.description || '';
       const qty = item.quantity || 0;
       const price = item.unit_price || 0;
       const itemTotal = item.total || (qty * price);
 
-      // Nom du produit
+      // Vérifier la place (gestion de saut de page)
+      if (currentY > pageHeight - 70) {
+        doc.addPage();
+        currentY = margins.top;
+        // Rétablir l'en-tête du tableau sur la nouvelle page
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Description', colDescX, currentY);
+        doc.text('Qté', colQtyX, currentY, { align: 'right' });
+        doc.text('Prix unit.', colPriceX, currentY, { align: 'right' });
+        doc.text('Total', colTotalX, currentY, { align: 'right' });
+        currentY += 4;
+        doc.line(colDescX, currentY, pageWidth - margins.right, currentY);
+        currentY += 5;
+      }
+
+      // Ligne produit
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
       doc.text(productName, colDescX, currentY);
       doc.text(qty.toString(), colQtyX, currentY, { align: 'right' });
       doc.text(formatCurrency(price), colPriceX, currentY, { align: 'right' });
       doc.text(formatCurrency(itemTotal), colTotalX, currentY, { align: 'right' });
       currentY += 5;
 
-      // Description (si présente)
+      // Ligne description (si présente)
       if (description) {
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
         const descLines = doc.splitTextToSize(description, contentWidth - 10);
-        doc.text(descLines, colDescX, currentY);
-        currentY += descLines.length * 4;
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.text(descLines, colDescX + 2, currentY);
+        currentY += descLines.length * 3.5;
+        currentY += 2;
       }
 
-      // Espacement entre les lignes
+      // Petit trait de séparation entre les produits (optionnel, sans bordure lourde)
+      if (idx < displayItems.length - 1) {
+        doc.setDrawColor(230, 230, 230);
+        doc.line(colDescX, currentY - 1, pageWidth - margins.right, currentY - 1);
+      }
       currentY += 3;
     }
 
@@ -248,8 +278,9 @@ const InvoicePDF = async (invoice) => {
     const comBlockW = contentWidth * 0.55;
     const comBlockX = margins.left;
     const comBlockH = 30;
-    // On trace les bordures des blocs (légères) mais on peut les enlever si souhaité
-    doc.setDrawColor(200, 200, 200);
+    doc.setFillColor(250, 250, 250);
+    doc.rect(comBlockX, y, comBlockW, comBlockH, 'F');
+    doc.setDrawColor(180, 180, 180);
     doc.rect(comBlockX, y, comBlockW, comBlockH, 'S');
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
@@ -261,6 +292,7 @@ const InvoicePDF = async (invoice) => {
     doc.text('Référence :', comBlockX + 3, y + 23);
     doc.text(invoiceNumber, comBlockX + 3 + 20, y + 23);
 
+    // Bloc montants (à droite)
     const amountBlockW = contentWidth * 0.4;
     const amountBlockX = pageWidth - margins.right - amountBlockW;
     doc.rect(amountBlockX, y, amountBlockW, comBlockH, 'S');
@@ -286,7 +318,7 @@ const InvoicePDF = async (invoice) => {
     y += 10;
 
     // ============================================================
-    // 4. PIED DE PAGE
+    // 4. PIED DE PAGE (infos légales)
     // ============================================================
     const footerY = pageHeight - margins.bottom - 25;
     doc.setDrawColor(200, 200, 200);
@@ -297,8 +329,9 @@ const InvoicePDF = async (invoice) => {
     doc.text(company.slogan, pageWidth / 2, footerY + 5, { align: 'center' });
     doc.text(`Consultance - Intégration de Solutions - Vente d’équipements informatiques`, pageWidth / 2, footerY + 9, { align: 'center' });
     doc.text(`18 BP 1057 ABIDJAN 18 - RCCM N°: ${company.rccm} - CC: ${company.cc}`, pageWidth / 2, footerY + 13, { align: 'center' });
-    doc.text(`Email: ${company.email} - Tél: ${company.phone1} / ${company.phone2} - Site : ${company.website}`, pageWidth / 2, footerY + 17, { align: 'center' });
+    doc.text(`Email: ${company.email} - Tél: ${company.phone} / ${company.phone2} - Site : ${company.website}`, pageWidth / 2, footerY + 17, { align: 'center' });
 
+    // Sauvegarde du PDF
     doc.save(`Facture_${invoiceNumber}.pdf`);
     return true;
 
