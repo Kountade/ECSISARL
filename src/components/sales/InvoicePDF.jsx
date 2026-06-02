@@ -3,7 +3,6 @@ import jsPDF from 'jspdf';
 import logoSvg from '../../assets/logo.svg';
 
 const nombreEnLettres = (montant) => {
-  // ... (fonction inchangée, identique à la version précédente)
   const unite = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
   const dizaine = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
   const centaine = ['', 'cent', 'deux cents', 'trois cents', 'quatre cents', 'cinq cents', 'six cents', 'sept cents', 'huit cents', 'neuf cents'];
@@ -70,7 +69,7 @@ const InvoicePDF = async (invoice) => {
     const contentWidth = pageWidth - margins.left - margins.right;
     let y = margins.top;
 
-    // ========== NOUVELLES INFORMATIONS SOCIÉTÉ ==========
+    // ========== INFORMATIONS ECSI - Sarl ==========
     const company = {
       name: 'ECSI - Sarl',
       activities: 'TRAVAUX BÂTIMENT - GÉNIE CIVIL - ENTRETIEN ROUTIER',
@@ -95,7 +94,7 @@ const InvoicePDF = async (invoice) => {
     const formatCurrency = (amt) => `${formatNumber(amt)} CFA`;
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '-';
 
-    const invoiceNumber = invoice.invoice_number || 'DBFAC-26-03-228';
+    const invoiceNumber = invoice.invoice_number || 'FACT-000001';
     const invoiceDate = invoice.invoice_date || new Date().toISOString().split('T')[0];
     const dueDate = invoice.due_date || invoiceDate;
     const deliveryDate = invoice.delivery_date || invoiceDate;
@@ -105,13 +104,11 @@ const InvoicePDF = async (invoice) => {
     const total = invoice.total || 0;
 
     const items = invoice.sale?.items || invoice.items || [];
-    const displayItems = items.length ? items : [
-      { product_name: 'MikroTik HAP ax lite', description: 'Routeur 256 Mo RAM, ARM 800 MHz, 4 ports Gigabit, gain antenne 4,3 dBi', quantity: 1, unit_price: 0, total: 0 },
-      { product_name: 'MikroTik HAP AX3', description: 'Routeur WiFi 6, 4 ports 1 Gbps (1 PoE out), 1 port 2,5 Gbps, antennes externes', quantity: 1, unit_price: 0, total: 0 }
-    ];
+    const displayItems = items.length ? items : [];
 
     const totalEnLettres = nombreEnLettres(total);
 
+    // Logo (optionnel, ne pas bloquer)
     const loadLogo = (src) => new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'Anonymous';
@@ -128,7 +125,7 @@ const InvoicePDF = async (invoice) => {
     let logoData = null;
     try { logoData = await loadLogo(logoSvg); } catch { /* ignore */ }
 
-    // ==================== EN-TÊTE (logo + infos société) ====================
+    // ==================== EN-TÊTE ====================
     const logoWidth = 30;
     const logoHeight = 15;
     if (logoData) {
@@ -151,7 +148,7 @@ const InvoicePDF = async (invoice) => {
     doc.text(company.cc, textStartX, y + 16);
     doc.text(company.taxRegime, textStartX, y + 20);
     doc.text(company.taxCenter, textStartX, y + 24);
-    y = y + 34; // Ajustement pour la hauteur supplémentaire (24 + 10 de marge)
+    y = y + 34;
 
     // ==================== TITRE ====================
     doc.setFontSize(20);
@@ -163,7 +160,7 @@ const InvoicePDF = async (invoice) => {
     doc.text(` ${invoiceNumber}`, margins.left + factureWidth, y);
     y += 20;
 
-    // ==================== DATES ====================
+    // ==================== DATES (tout en rouge) ====================
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(200, 0, 0);
@@ -200,56 +197,64 @@ const InvoicePDF = async (invoice) => {
     y += 5;
 
     let currentY = y;
-    for (let idx = 0; idx < displayItems.length; idx++) {
-      const item = displayItems[idx];
-      const productName = item.product_name || '-';
-      const description = item.description || '';
-      const qty = item.quantity || 0;
-      const price = item.unit_price || 0;
-      const itemTotal = item.total || (qty * price);
-
-      if (currentY > pageHeight - 80) {
-        doc.addPage();
-        currentY = margins.top;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Description', colDescX, currentY);
-        doc.text('Qté', colQtyX, currentY, { align: 'right' });
-        doc.text('Prix unit.', colPriceX, currentY, { align: 'right' });
-        doc.text('Total', colTotalX, currentY, { align: 'right' });
-        currentY += 4;
-        doc.line(colDescX, currentY, pageWidth - margins.right, currentY);
-        currentY += 5;
-      }
-
-      doc.setFont('helvetica', 'normal');
+    if (displayItems.length === 0) {
       doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      doc.text(productName, colDescX, currentY);
-      doc.text(qty.toString(), colQtyX, currentY, { align: 'right' });
-      doc.text(formatCurrency(price), colPriceX, currentY, { align: 'right' });
-      doc.text(formatCurrency(itemTotal), colTotalX, currentY, { align: 'right' });
-      currentY += 5;
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(150, 150, 150);
+      doc.text('Aucun article', colDescX, currentY);
+      currentY += 10;
+    } else {
+      for (let idx = 0; idx < displayItems.length; idx++) {
+        const item = displayItems[idx];
+        const productName = item.product_name || '-';
+        const description = item.description || '';
+        const qty = item.quantity || 0;
+        const price = item.unit_price || 0;
+        const itemTotal = item.total || (qty * price);
 
-      if (description) {
-        const descLines = doc.splitTextToSize(description, contentWidth - 10);
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text(descLines, colDescX + 2, currentY);
-        currentY += descLines.length * 4 + 2;
+        if (currentY > pageHeight - 80) {
+          doc.addPage();
+          currentY = margins.top;
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Description', colDescX, currentY);
+          doc.text('Qté', colQtyX, currentY, { align: 'right' });
+          doc.text('Prix unit.', colPriceX, currentY, { align: 'right' });
+          doc.text('Total', colTotalX, currentY, { align: 'right' });
+          currentY += 4;
+          doc.line(colDescX, currentY, pageWidth - margins.right, currentY);
+          currentY += 5;
+        }
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(productName, colDescX, currentY);
+        doc.text(qty.toString(), colQtyX, currentY, { align: 'right' });
+        doc.text(formatCurrency(price), colPriceX, currentY, { align: 'right' });
+        doc.text(formatCurrency(itemTotal), colTotalX, currentY, { align: 'right' });
+        currentY += 5;
+
+        if (description) {
+          const descLines = doc.splitTextToSize(description, contentWidth - 10);
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(descLines, colDescX + 2, currentY);
+          currentY += descLines.length * 4 + 2;
+        }
+        currentY += 3;
       }
-      currentY += 3;
     }
     y = currentY + 5;
 
-    // ==================== COMMUNICATION DE PAIEMENT ET MONTANTS ====================
+    // ==================== COMMUNICATION DE PAIEMENT & MONTANTS ====================
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text('Communication de paiement :', margins.left + 3, y + 5);
     doc.setFont('helvetica', 'normal');
     doc.text(invoiceNumber, margins.left + 3, y + 11);
-    doc.text(`sur ce compte : ${company.bankAccount}`, margins.left + 3, y + 17); // compte NSIA
+    doc.text(`sur ce compte : ${company.bankAccount}`, margins.left + 3, y + 17);
     doc.text('Référence :', margins.left + 3, y + 23);
     doc.text(invoiceNumber, margins.left + 3 + 20, y + 23);
 
@@ -278,16 +283,17 @@ const InvoicePDF = async (invoice) => {
     const maxHeight = Math.max(leftHeight, rightHeight);
     y += maxHeight + 5;
 
-    // ==================== PIED DE PAGE (sans trait) ====================
-    const footerY = pageHeight - margins.bottom - 28; // un peu plus haut pour tout afficher
-    doc.setFontSize(7.5);
+    // ==================== PIED DE PAGE (3 lignes étalées) ====================
+    const footerY = pageHeight - margins.bottom - 20;
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(company.addressLine1, pageWidth / 2, footerY, { align: 'center' });
-    doc.text(company.addressLine2, pageWidth / 2, footerY + 4, { align: 'center' });
-    doc.text(`${company.phone} - ${company.cell}`, pageWidth / 2, footerY + 8, { align: 'center' });
-    doc.text(`${company.rc} - ${company.email}`, pageWidth / 2, footerY + 12, { align: 'center' });
-    doc.text(`${company.bda} - ${company.bankAccount}`, pageWidth / 2, footerY + 16, { align: 'center' });
+    // Ligne 1 : adresse complète + téléphone + cellulaire
+    doc.text(`${company.addressLine1} ${company.addressLine2} - ${company.phone} - ${company.cell}`, pageWidth / 2, footerY, { align: 'center' });
+    // Ligne 2 : RC + email
+    doc.text(`${company.rc} - ${company.email}`, pageWidth / 2, footerY + 5, { align: 'center' });
+    // Ligne 3 : BDA + compte bancaire
+    doc.text(`${company.bda} - ${company.bankAccount}`, pageWidth / 2, footerY + 10, { align: 'center' });
 
     doc.save(`Facture_${invoiceNumber}.pdf`);
     return true;
