@@ -123,7 +123,7 @@ const InvoicePDF = async (invoice) => {
     let logoData = null;
     try { logoData = await loadLogo(logoSvg); } catch { /* ignore */ }
 
-    // En-tête (logo + infos)
+    // ==================== EN-TÊTE ====================
     const logoWidth = 30;
     const logoHeight = 15;
     if (logoData) {
@@ -146,11 +146,11 @@ const InvoicePDF = async (invoice) => {
     doc.text(`Tél: ${company.phone}`, textStartX, y + 16);
     y += 22;
 
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margins.left, y, pageWidth - margins.right, y);
-    y += 5;
+    // Suppression du trait avant le titre : on ne met aucune ligne ici
+    // On ajoute simplement une marge verticale
+    y += 4; // petite marge supplémentaire
 
-    // Titre FACTURE en rouge à gauche
+    // ==================== TITRE ====================
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(200, 0, 0);
@@ -159,10 +159,12 @@ const InvoicePDF = async (invoice) => {
     doc.setTextColor(40, 40, 40);
     doc.text(` ${invoiceNumber}`, margins.left + factureWidth, y);
     y += 7;
+    // Trait sous le titre (on le conserve)
+    doc.setDrawColor(200, 200, 200);
     doc.line(margins.left, y, pageWidth - margins.right, y);
     y += 8;
 
-    // Dates (labels ET valeurs en rouge)
+    // ==================== DATES ====================
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(200, 0, 0);
@@ -181,7 +183,7 @@ const InvoicePDF = async (invoice) => {
 
     y += 10;
 
-    // Tableau des articles (sans bordures)
+    // ==================== TABLEAU DES ARTICLES ====================
     const colDescX = margins.left;
     const colQtyX = pageWidth - margins.right - 55;
     const colPriceX = pageWidth - margins.right - 35;
@@ -243,8 +245,8 @@ const InvoicePDF = async (invoice) => {
 
     y = currentY + 5;
 
-    // === SECTION COMMUNICATION DE PAIEMENT (à gauche) ET MONTANTS (à droite) ===
-    // Communication de paiement - sans bordure
+    // ==================== COMMUNICATION DE PAIEMENT ET MONTANTS ====================
+    // Bloc communication (gauche) sans bordure
     let leftY = y;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
@@ -255,9 +257,8 @@ const InvoicePDF = async (invoice) => {
     doc.text('sur ce compte : CI1630120200000026823082 - GTBANK', margins.left + 3, leftY + 17);
     doc.text('Référence :', margins.left + 3, leftY + 23);
     doc.text(invoiceNumber, margins.left + 3 + 20, leftY + 23);
-    // Hauteur approximative de ce bloc : 28 mm
 
-    // Bloc montants (à droite) - sans bordure, avec "Montant total en toutes lettres" intégré
+    // Bloc montants (droite) sans bordure, avec montant en toutes lettres intégré
     const amountBlockW = contentWidth * 0.4;
     const amountBlockX = pageWidth - margins.right - amountBlockW;
     let ay = y + 5;
@@ -273,20 +274,19 @@ const InvoicePDF = async (invoice) => {
     doc.text('Total', amountBlockX + 3, ay);
     doc.text(formatNumber(total), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
     ay += 6;
-    // Montant en toutes lettres, juste sous le total
+    // Montant en toutes lettres sous le total
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.text('Montant total en toutes lettres :', amountBlockX + 3, ay);
     doc.text(totalEnLettres, amountBlockX + amountBlockW - 5, ay, { align: 'right' });
-    ay += 5;
 
-    // Calcul de la hauteur maximale utilisée par les deux blocs
-    const leftHeight = 28; // hauteur fixe du bloc communication (4 lignes espacées)
-    const rightHeight = (ay + 2) - (y + 5); // hauteur réelle du bloc montants
+    // Ajustement de la hauteur
+    const leftHeight = 28;
+    const rightHeight = (ay + 2) - (y + 5);
     const maxHeight = Math.max(leftHeight, rightHeight);
     y += maxHeight + 5;
 
-    // Pied de page
+    // ==================== PIED DE PAGE ====================
     const footerY = pageHeight - margins.bottom - 25;
     doc.setDrawColor(200, 200, 200);
     doc.line(margins.left, footerY, pageWidth - margins.right, footerY);
