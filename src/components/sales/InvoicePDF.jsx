@@ -2,9 +2,6 @@
 import jsPDF from 'jspdf';
 import logoSvg from '../../assets/logo.svg';
 
-/**
- * Convertit un nombre en toutes lettres (jusqu'à 999 999)
- */
 const nombreEnLettres = (montant) => {
   const unite = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
   const dizaine = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
@@ -59,10 +56,6 @@ const nombreEnLettres = (montant) => {
   return result.charAt(0).toUpperCase() + result.slice(1) + ' Francs';
 };
 
-/**
- * Génère une facture professionnelle style Mindtech
- * @param {Object} invoice - La facture (avec sale, items, etc.)
- */
 const InvoicePDF = async (invoice) => {
   if (!invoice || typeof invoice !== 'object') {
     throw new Error('Données de la facture invalides');
@@ -76,7 +69,6 @@ const InvoicePDF = async (invoice) => {
     const contentWidth = pageWidth - margins.left - margins.right;
     let y = margins.top;
 
-    // === Informations société (à adapter) ===
     const company = {
       name: 'MINDTECH',
       addressLine1: 'Cocody, Angré 8e Tranche, Cité Abri 2000',
@@ -90,44 +82,27 @@ const InvoicePDF = async (invoice) => {
       slogan: 'EXPERTISE INFORMATIQUE - TELECOMMUNICATIONS - FORMATIONS'
     };
 
-    // === Formatage ===
     const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(parseFloat(n) || 0);
     const formatCurrency = (amt) => `${formatNumber(amt)} CFA`;
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '-';
 
-    // === Données de la facture ===
     const invoiceNumber = invoice.invoice_number || 'DBFAC-26-03-228';
     const invoiceDate = invoice.invoice_date || new Date().toISOString().split('T')[0];
     const dueDate = invoice.due_date || invoiceDate;
     const deliveryDate = invoice.delivery_date || invoiceDate;
     const subtotal = invoice.subtotal || 0;
-    const taxRate = 0; // TVA 0% dans l'exemple
+    const taxRate = 0;
     const taxTotal = invoice.tax_total || 0;
     const total = invoice.total || 0;
 
-    // Articles
     const items = invoice.sale?.items || invoice.items || [];
-    // Si aucun article, on prend des exemples (à enlever en production)
     const displayItems = items.length ? items : [
-      { 
-        product_name: 'MikroTik HAP ax lite', 
-        description: 'Routeur 256 Mo RAM, ARM 800 MHz, 4 ports Gigabit, gain antenne 4,3 dBi', 
-        quantity: 1, 
-        unit_price: 0, 
-        total: 0 
-      },
-      { 
-        product_name: 'MikroTik HAP AX3', 
-        description: 'Routeur WiFi 6, 4 ports 1 Gbps (1 PoE out), 1 port 2,5 Gbps, antennes externes', 
-        quantity: 1, 
-        unit_price: 0, 
-        total: 0 
-      }
+      { product_name: 'MikroTik HAP ax lite', description: 'Routeur 256 Mo RAM, ARM 800 MHz, 4 ports Gigabit, gain antenne 4,3 dBi', quantity: 1, unit_price: 0, total: 0 },
+      { product_name: 'MikroTik HAP AX3', description: 'Routeur WiFi 6, 4 ports 1 Gbps (1 PoE out), 1 port 2,5 Gbps, antennes externes', quantity: 1, unit_price: 0, total: 0 }
     ];
 
     const totalEnLettres = nombreEnLettres(total);
 
-    // === Chargement du logo ===
     const loadLogo = (src) => new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'Anonymous';
@@ -144,9 +119,7 @@ const InvoicePDF = async (invoice) => {
     let logoData = null;
     try { logoData = await loadLogo(logoSvg); } catch { /* ignore */ }
 
-    // ============================================================
-    // 1. EN-TÊTE : logo à gauche, infos entreprise juste à côté
-    // ============================================================
+    // En-tête (logo + infos)
     const logoWidth = 30;
     const logoHeight = 15;
     if (logoData) {
@@ -157,7 +130,6 @@ const InvoicePDF = async (invoice) => {
       doc.text(company.name, margins.left, y + 6);
     }
 
-    // Texte à côté du logo
     const textStartX = margins.left + logoWidth + 4;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
@@ -170,39 +142,52 @@ const InvoicePDF = async (invoice) => {
     doc.text(`Tél: ${company.phone}`, textStartX, y + 16);
     y += 22;
 
-    // Ligne de séparation
     doc.setDrawColor(200, 200, 200);
     doc.line(margins.left, y, pageWidth - margins.right, y);
     y += 5;
 
-    // Titre Facture
+    // Titre FACTURE en rouge à gauche
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(200, 0, 0);
+    doc.text('FACTURE', margins.left, y);
+    const factureWidth = doc.getTextWidth('FACTURE');
     doc.setTextColor(40, 40, 40);
-    doc.text(`FACTURE ${invoiceNumber}`, pageWidth / 2, y, { align: 'center' });
+    doc.text(` ${invoiceNumber}`, margins.left + factureWidth, y);
     y += 7;
     doc.line(margins.left, y, pageWidth - margins.right, y);
     y += 8;
 
-    // Dates
+    // === DATES (labels ET valeurs en rouge) ===
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Date de la facture : ${formatDate(invoiceDate)}`, margins.left, y);
-    doc.text(`Date d'échéance : ${formatDate(dueDate)}`, margins.left + 70, y);
-    doc.text(`Date de livraison : ${formatDate(deliveryDate)}`, margins.left + 140, y);
+
+    // Date de la facture
+    doc.setTextColor(200, 0, 0);
+    doc.text('Date de la facture : ', margins.left, y);
+    const date1LabelWidth = doc.getTextWidth('Date de la facture : ');
+    doc.text(formatDate(invoiceDate), margins.left + date1LabelWidth, y);
+
+    // Date d'échéance
+    doc.setTextColor(200, 0, 0);
+    doc.text('Date d\'échéance : ', margins.left + 70, y);
+    const date2LabelWidth = doc.getTextWidth('Date d\'échéance : ');
+    doc.text(formatDate(dueDate), margins.left + 70 + date2LabelWidth, y);
+
+    // Date de livraison
+    doc.setTextColor(200, 0, 0);
+    doc.text('Date de livraison : ', margins.left + 140, y);
+    const date3LabelWidth = doc.getTextWidth('Date de livraison : ');
+    doc.text(formatDate(deliveryDate), margins.left + 140 + date3LabelWidth, y);
+
     y += 10;
 
-    // ============================================================
-    // 2. TABLEAU DES ARTICLES (sans bordures, alignements à droite)
-    // ============================================================
-    // Coordonnées des colonnes
+    // Tableau des articles (sans bordures)
     const colDescX = margins.left;
-    const colQtyX = pageWidth - margins.right - 55;   // aligné à droite
-    const colPriceX = pageWidth - margins.right - 35; // aligné à droite
-    const colTotalX = pageWidth - margins.right;      // aligné à droite
+    const colQtyX = pageWidth - margins.right - 55;
+    const colPriceX = pageWidth - margins.right - 35;
+    const colTotalX = pageWidth - margins.right;
 
-    // En-tête du tableau (sans bordure)
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
@@ -215,9 +200,7 @@ const InvoicePDF = async (invoice) => {
     doc.line(colDescX, y, pageWidth - margins.right, y);
     y += 5;
 
-    let startY = y;
     let currentY = y;
-
     for (let idx = 0; idx < displayItems.length; idx++) {
       const item = displayItems[idx];
       const productName = item.product_name || '-';
@@ -226,11 +209,9 @@ const InvoicePDF = async (invoice) => {
       const price = item.unit_price || 0;
       const itemTotal = item.total || (qty * price);
 
-      // Vérifier la place (gestion de saut de page)
       if (currentY > pageHeight - 70) {
         doc.addPage();
         currentY = margins.top;
-        // Rétablir l'en-tête du tableau sur la nouvelle page
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.text('Description', colDescX, currentY);
@@ -242,7 +223,6 @@ const InvoicePDF = async (invoice) => {
         currentY += 5;
       }
 
-      // Ligne produit
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
@@ -252,29 +232,19 @@ const InvoicePDF = async (invoice) => {
       doc.text(formatCurrency(itemTotal), colTotalX, currentY, { align: 'right' });
       currentY += 5;
 
-      // Ligne description (si présente)
       if (description) {
         const descLines = doc.splitTextToSize(description, contentWidth - 10);
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
         doc.text(descLines, colDescX + 2, currentY);
-        currentY += descLines.length * 3.5;
-        currentY += 2;
-      }
-
-      // Petit trait de séparation entre les produits (optionnel, sans bordure lourde)
-      if (idx < displayItems.length - 1) {
-        doc.setDrawColor(230, 230, 230);
-        doc.line(colDescX, currentY - 1, pageWidth - margins.right, currentY - 1);
+        currentY += descLines.length * 3.5 + 2;
       }
       currentY += 3;
     }
 
     y = currentY + 5;
 
-    // ============================================================
-    // 3. COMMUNICATION DE PAIEMENT & MONTANTS
-    // ============================================================
+    // Bloc communication de paiement & montants
     const comBlockW = contentWidth * 0.55;
     const comBlockX = margins.left;
     const comBlockH = 30;
@@ -292,7 +262,6 @@ const InvoicePDF = async (invoice) => {
     doc.text('Référence :', comBlockX + 3, y + 23);
     doc.text(invoiceNumber, comBlockX + 3 + 20, y + 23);
 
-    // Bloc montants (à droite)
     const amountBlockW = contentWidth * 0.4;
     const amountBlockX = pageWidth - margins.right - amountBlockW;
     doc.rect(amountBlockX, y, amountBlockW, comBlockH, 'S');
@@ -310,16 +279,13 @@ const InvoicePDF = async (invoice) => {
     doc.text(formatCurrency(total), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
     y += comBlockH + 5;
 
-    // Montant en toutes lettres
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
     doc.text(`Montant total en toutes lettres : ${totalEnLettres}`, margins.left, y);
     y += 10;
 
-    // ============================================================
-    // 4. PIED DE PAGE (infos légales)
-    // ============================================================
+    // Pied de page
     const footerY = pageHeight - margins.bottom - 25;
     doc.setDrawColor(200, 200, 200);
     doc.line(margins.left, footerY, pageWidth - margins.right, footerY);
@@ -327,11 +293,10 @@ const InvoicePDF = async (invoice) => {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(company.slogan, pageWidth / 2, footerY + 5, { align: 'center' });
-    doc.text(`Consultance - Intégration de Solutions - Vente d’équipements informatiques`, pageWidth / 2, footerY + 9, { align: 'center' });
+    doc.text('Consultance - Intégration de Solutions - Vente d’équipements informatiques', pageWidth / 2, footerY + 9, { align: 'center' });
     doc.text(`18 BP 1057 ABIDJAN 18 - RCCM N°: ${company.rccm} - CC: ${company.cc}`, pageWidth / 2, footerY + 13, { align: 'center' });
     doc.text(`Email: ${company.email} - Tél: ${company.phone} / ${company.phone2} - Site : ${company.website}`, pageWidth / 2, footerY + 17, { align: 'center' });
 
-    // Sauvegarde du PDF
     doc.save(`Facture_${invoiceNumber}.pdf`);
     return true;
 
@@ -341,4 +306,4 @@ const InvoicePDF = async (invoice) => {
   }
 };
 
-export default InvoicePDF;
+export default InvoicePDF;s
