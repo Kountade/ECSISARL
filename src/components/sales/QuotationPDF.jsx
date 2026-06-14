@@ -1,523 +1,441 @@
 // src/components/sales/QuotationPDF.jsx
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
-import logoSvg from '../../assets/logo.svg'
+import jsPDF from 'jspdf';
+import logoSvg from '../../assets/logo.svg';
+
+const nombreEnLettres = (montant) => {
+  const unite = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+  const dizaine = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
+  const centaine = ['', 'cent', 'deux cents', 'trois cents', 'quatre cents', 'cinq cents', 'six cents', 'sept cents', 'huit cents', 'neuf cents'];
+
+  const sousBloc = (n) => {
+    if (n === 0) return '';
+    let lettres = '';
+    const cents = Math.floor(n / 100);
+    const reste = n % 100;
+    if (cents > 0) {
+      lettres += centaine[cents];
+      if (reste > 0) lettres += ' ';
+    }
+    if (reste > 0) {
+      if (reste < 10) lettres += unite[reste];
+      else if (reste < 20) {
+        const u = reste - 10;
+        if (u === 0) lettres += 'dix';
+        else if (u === 1) lettres += 'onze';
+        else if (u === 2) lettres += 'douze';
+        else if (u === 3) lettres += 'treize';
+        else if (u === 4) lettres += 'quatorze';
+        else if (u === 5) lettres += 'quinze';
+        else if (u === 6) lettres += 'seize';
+        else lettres += dizaine[1] + (u ? '-' + unite[u] : '');
+      } else {
+        const d = Math.floor(reste / 10);
+        const u = reste % 10;
+        if (d === 7 || d === 9) {
+          lettres += dizaine[d - 1] + '-' + (u === 0 ? '' : (u === 1 ? 'onze' : unite[u + 10]));
+        } else {
+          lettres += dizaine[d];
+          if (u === 1 && d !== 8) lettres += ' et un';
+          else if (u > 0) lettres += '-' + unite[u];
+        }
+      }
+    }
+    return lettres.trim();
+  };
+
+  const milliers = Math.floor(montant / 1000);
+  const resteMilliers = montant % 1000;
+  let result = '';
+  if (milliers > 0) {
+    if (milliers === 1) result += 'mille';
+    else result += sousBloc(milliers) + ' mille';
+    if (resteMilliers > 0) result += ' ';
+  }
+  if (resteMilliers > 0) result += sousBloc(resteMilliers);
+  if (result === '') result = 'zéro';
+  return result.charAt(0).toUpperCase() + result.slice(1) + ' Francs';
+};
 
 const QuotationPDF = async (quotation) => {
   if (!quotation || typeof quotation !== 'object') {
-    throw new Error('Données du devis invalides')
+    throw new Error('Données du devis invalides');
   }
 
   try {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-    // === MARGES IDENTIQUES À Ventes.jsx ===
-    const pageWidth = 210
-    const margins = { left: 10, right: 10, top: 15, bottom: 20 }
-    const contentWidth = pageWidth - margins.left - margins.right // = 190 mm
-    let yPosition = margins.top // 15 mm
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margins = { left: 15, right: 15, top: 18, bottom: 18 };
+    const contentWidth = pageWidth - margins.left - margins.right;
+    let y = margins.top;
 
-    // === FONCTIONS DE FORMAT (reprises de Ventes) ===
+    // ========== INFORMATIONS ECSI - Sarl ==========
+    const company = {
+      name: 'ECSI - Sarl',
+      activities: 'TRAVAUX BÂTIMENT - GÉNIE CIVIL - ENTRETIEN ROUTIER',
+      activities2: 'FOURNITURES DE BUREAU - VENTE DE MATÉRIELS INFORMATIQUES ET DIVERS',
+      cc: 'CC N° : 1648157 R',
+      taxRegime: "Régime d'Imposition : T.E.E",
+      taxCenter: 'Centre des Impôts : ABOBO 1',
+      addressLine1: 'Siège Social : ABOBO GARE',
+      addressLine2: '21 B.P. 2132 Abidjan 21',
+      phone: 'Tél : (225) 25 24 00 14 28',
+      cell: 'Cell : 07 57 24 01 10 - 05 06 41 83 00',
+      rc: 'RC N° CI-ABJ-2016-B-25017',
+      email: 'E-mail : ecsisarlinfo@gmail.com',
+      bda: 'BDA : 104010419101',
+      bankAccount: 'NSIA Compte N° 020394302001'
+    };
+
     const formatNumber = (n) => {
-      const num = parseFloat(n) || 0
-      // 2 décimales comme dans Ventes
-      return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num)
-    }
-    const formatCurrency = (amount) => `${formatNumber(amount)} FCFA`
-    const formatDate = (dateString) => {
-      if (!dateString) return '-'
-      try {
-        return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
-      } catch { return '-' }
-    }
+      const num = parseFloat(n) || 0;
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    };
+    const formatCurrency = (amt) => `${formatNumber(amt)} CFA`;
+    const formatDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '-';
 
-    // === CHARGEMENT DU LOGO (même logique que Ventes) ===
-    const loadLogoAsImage = (src) => {
-      return new Promise((resolve, reject) => {
-        const img = new Image()
-        img.crossOrigin = 'Anonymous'
-        img.onload = () => {
-          const canvas = document.createElement('canvas')
-          canvas.width = img.width
-          canvas.height = img.height
-          const ctx = canvas.getContext('2d')
-          ctx.drawImage(img, 0, 0, img.width, img.height)
-          const dataURL = canvas.toDataURL('image/png')
-          resolve(dataURL)
-        }
-        img.onerror = (err) => {
-          console.warn('Logo non chargé', err)
-          reject(err)
-        }
-        img.src = src
-      })
-    }
+    const quotationNumber = quotation.quotation_number || 'DEV-000001';
+    const quotationDate = quotation.quotation_date || new Date().toISOString().split('T')[0];
+    const subtotal = quotation.subtotal || 0;
+    const taxRate = 0;
+    const taxTotal = quotation.tax_total || 0;
+    const discount = quotation.discount || 0;
+    const total = quotation.total || 0;
+    const finalTotal = total - discount;
 
-    let logoDataURL = null
-    try {
-      logoDataURL = await loadLogoAsImage(logoSvg)
-    } catch (err) {
-      console.warn('Logo non chargé, poursuite sans logo')
-    }
+    const items = quotation.items || [];
+    const displayItems = items.length ? items : [];
 
-    // === EN-TÊTE (reprise des dimensions Ventes) ===
-    // Logo : largeur 50, hauteur 25 (comme Ventes)
-    const logoWidth = 50
-    const logoHeight = 25
-    const logoX = margins.left
-    const logoY = yPosition
+    const totalEnLettres = nombreEnLettres(finalTotal);
 
-    if (logoDataURL) {
-      doc.addImage(logoDataURL, 'PNG', logoX, logoY, logoWidth, logoHeight)
+    // Logo (optionnel, ne pas bloquer)
+    const loadLogo = (src) => new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+    let logoData = null;
+    try { logoData = await loadLogo(logoSvg); } catch { /* ignore */ }
+
+    // ==================== EN-TÊTE ====================
+    const logoWidth = 30;
+    const logoHeight = 15;
+    if (logoData) {
+      doc.addImage(logoData, 'PNG', margins.left, y, logoWidth, logoHeight);
     } else {
-      // Fallback texte comme dans Ventes
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 0, 0)
-      doc.text('GALSEN', logoX + (logoWidth / 2), logoY + 8, { align: 'center' })
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      doc.text('GALSEN SHOP', logoX + (logoWidth / 2), logoY + 14, { align: 'center' })
-      doc.text('Stock', logoX + (logoWidth / 2), logoY + 19, { align: 'center' })
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(company.name, margins.left, y + 6);
     }
 
-    // Cadre "INFORMATION DE LA SOCIÉTÉ" (identique à Ventes)
-    const infoSocieteY = yPosition + 2
-    const infoSocieteX = pageWidth - margins.right - 95 // largeur 97, donc x = 210-10-95 = 105
-    const infoBoxWidth = 97
-    const infoBoxHeight = 40
+    const textStartX = margins.left + logoWidth + 4;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(company.name, textStartX, y + 4);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(company.activities, textStartX, y + 8);
+    doc.text(company.activities2, textStartX, y + 12);
+    doc.text(company.cc, textStartX, y + 16);
+    doc.text(company.taxRegime, textStartX, y + 20);
+    doc.text(company.taxCenter, textStartX, y + 24);
+    y = y + 34;
 
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.5)
-    doc.rect(infoSocieteX, infoSocieteY - 2, infoBoxWidth, infoBoxHeight, 'S')
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    doc.text('INFORMATION DE LA SOCIÉTÉ', infoSocieteX + (infoBoxWidth / 2), infoSocieteY + 4, { align: 'center' })
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.line(infoSocieteX + 8, infoSocieteY + 6, infoSocieteX + infoBoxWidth - 8, infoSocieteY + 6)
+    // ==================== TITRE ====================
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(200, 0, 0);
+    doc.text('DEVIS', margins.left, y);
+    const devisWidth = doc.getTextWidth('DEVIS');
+    doc.setTextColor(40, 40, 40);
+    doc.text(` ${quotationNumber}`, margins.left + devisWidth, y);
+    y += 20;
 
-    let infoY = infoSocieteY + 10
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.setFont('helvetica', 'bold')
-    doc.text('Nom:', infoSocieteX + 6, infoY)
-    doc.setFont('helvetica', 'normal')
-    doc.text('ECSISARL', infoSocieteX + 18, infoY)
-    infoY += 5
-    doc.setFont('helvetica', 'bold')
-    doc.text('Adresse:', infoSocieteX + 6, infoY)
-    doc.setFont('helvetica', 'normal')
-    doc.text('Dakar, Sénégal', infoSocieteX + 25, infoY)
-    infoY += 5
-    doc.setFont('helvetica', 'bold')
-    doc.text('Tél:', infoSocieteX + 6, infoY)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9.5)
-    doc.text('+221 33 123 45 67', infoSocieteX + 14, infoY)
-    doc.setFontSize(10)
-    infoY += 7
-    doc.setFont('helvetica', 'bold')
-    doc.text('Email:', infoSocieteX + 6, infoY)
-    doc.setFont('helvetica', 'normal')
-    doc.text('contact@ecsisarl.com', infoSocieteX + 20, infoY)
+    // ==================== DATES & CLIENT ====================
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(200, 0, 0);
 
-    // Ajuster yPosition après l'en-tête (comme dans Ventes)
-    yPosition = Math.max(infoSocieteY + infoBoxHeight + 5, yPosition + 35)
+    // Ligne 1: Date du devis (gauche) + Client (avec 80px d'espace)
+    doc.text('Date du devis : ', margins.left, y);
+    const date1LabelWidth = doc.getTextWidth('Date du devis : ');
+    const dateValue = formatDate(quotationDate);
+    doc.text(dateValue, margins.left + date1LabelWidth, y);
 
-    // Ligne de séparation fine
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.line(margins.left, yPosition, pageWidth - margins.right, yPosition)
-    yPosition += 8
+    // Calculer la position X après la date
+    const dateEndX = margins.left + date1LabelWidth + doc.getTextWidth(dateValue);
+    const spaceAfterDate = 80; // 80px d'espace après la date
 
-    // Titre "DEVIS" (au lieu de FACTURE VENTE)
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.text('DEVIS', pageWidth / 2, yPosition, { align: 'center' })
-    yPosition += 6
+    const customer = quotation.customer || {};
+    doc.text('Client : ', dateEndX + spaceAfterDate, y);
+    const clientLabelWidth = doc.getTextWidth('Client : ');
+    doc.text(customer.full_name || customer.company_name || '-', dateEndX + spaceAfterDate + clientLabelWidth, y);
+    y += 10;
 
-    // === SECTION CLIENT / DÉTAILS DU DEVIS (identique à la section facture de Ventes) ===
-    const sectionTop = yPosition
-    const sectionHeight = 35
-    const sectionLeftWidth = contentWidth * 0.6  // 114 mm
-    const sectionRightWidth = contentWidth * 0.4 // 76 mm
+    // Ligne 2: Téléphone (juste sous Client)
+    doc.text('Tél : ', dateEndX + spaceAfterDate, y);
+    const telLabelWidth = doc.getTextWidth('Tél : ');
+    doc.text(customer.phone || '-', dateEndX + spaceAfterDate + telLabelWidth, y);
+    y += 8;
 
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.3)
-    doc.rect(margins.left, sectionTop, contentWidth, sectionHeight, 'S')
-    doc.line(margins.left + sectionLeftWidth, sectionTop, margins.left + sectionLeftWidth, sectionTop + sectionHeight)
+    // Ligne 3: Email (juste sous Téléphone)
+    doc.text('Email : ', dateEndX + spaceAfterDate, y);
+    const emailLabelWidth = doc.getTextWidth('Email : ');
+    doc.text(customer.email || '-', dateEndX + spaceAfterDate + emailLabelWidth, y);
+    y += 8;
 
-    // Partie gauche – Client
-    let clientY = sectionTop + 5
-    const clientLeftMargin = margins.left + 5
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    doc.text('INFORMATIONS CLIENT', clientLeftMargin, clientY)
-    clientY += 8
-
-    doc.setFontSize(10)
-    const customer = quotation.customer || {}
-    doc.setFont('helvetica', 'bold')
-    doc.text('Dénomination :', clientLeftMargin, clientY)
-    doc.setFont('helvetica', 'normal')
-    doc.text(customer.full_name || customer.company_name || '-', clientLeftMargin + 28, clientY)
-    clientY += 5
-
-    doc.setFont('helvetica', 'bold')
-    doc.text('Adresse :', clientLeftMargin, clientY)
-    doc.setFont('helvetica', 'normal')
-    doc.text(customer.address || '-', clientLeftMargin + 28, clientY)
-    clientY += 5
-
-    doc.setFont('helvetica', 'bold')
-    doc.text('Téléphone :', clientLeftMargin, clientY)
-    doc.setFont('helvetica', 'normal')
-    doc.text(customer.phone || '-', clientLeftMargin + 28, clientY)
-    clientY += 5
-
-    doc.setFont('helvetica', 'bold')
-    doc.text('Email :', clientLeftMargin, clientY)
-    doc.setFont('helvetica', 'normal')
-    doc.text(customer.email || '-', clientLeftMargin + 28, clientY)
-
-    // Partie droite – Détails du devis
-    let factureY = sectionTop + 8
-    const factureLeftMargin = margins.left + sectionLeftWidth + 10
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.text('DATE :', factureLeftMargin, factureY)
-    doc.setFont('helvetica', 'normal')
-    doc.text(formatDate(quotation.quotation_date), factureLeftMargin + 20, factureY)
-    factureY += 5
-
-    doc.setFont('helvetica', 'bold')
-    doc.text('N° DEVIS :', factureLeftMargin, factureY)
-    doc.setFont('helvetica', 'normal')
-    doc.text(quotation.quotation_number || 'N/A', factureLeftMargin + 30, factureY)
-    factureY += 5
-
-    doc.setFont('helvetica', 'bold')
-    doc.text('VALIDITÉ :', factureLeftMargin, factureY)
-    doc.setFont('helvetica', 'normal')
-    doc.text(formatDate(quotation.valid_until), factureLeftMargin + 30, factureY)
-
-    yPosition = sectionTop + sectionHeight + 15
-
-    // === TABLEAU DES ARTICLES (exactement les mêmes largeurs que Ventes) ===
-    const colWidths = {
-      designation: 70,   // élargi car pas de colonne "code"
-      reference: 35,
-      qte: 20,
-      pu: 30,
-      total: 35
+    // Ligne 4: Adresse (juste sous Email)
+    const addressLabel = 'Adresse : ';
+    doc.text(addressLabel, dateEndX + spaceAfterDate, y);
+    const addressLabelWidth = doc.getTextWidth(addressLabel);
+    const addressText = customer.address || '-';
+    const maxAddressWidth = 70;
+    if (doc.getTextWidth(addressText) > maxAddressWidth) {
+      const splitAddress = doc.splitTextToSize(addressText, maxAddressWidth);
+      doc.text(splitAddress, dateEndX + spaceAfterDate + addressLabelWidth, y);
+    } else {
+      doc.text(addressText, dateEndX + spaceAfterDate + addressLabelWidth, y);
     }
-    // Ajustement pour correspondre à 190 mm
-    const totalCols = colWidths.designation + colWidths.reference + colWidths.qte + colWidths.pu + colWidths.total // = 190
-    const colPositions = {
-      designation: margins.left,
-      reference: margins.left + colWidths.designation,
-      qte: margins.left + colWidths.designation + colWidths.reference,
-      pu: margins.left + colWidths.designation + colWidths.reference + colWidths.qte,
-      total: margins.left + colWidths.designation + colWidths.reference + colWidths.qte + colWidths.pu
-    }
+    y += 12;
 
-    const ligneHeight = 8
-    const tableTop = yPosition
+    // ==================== TABLEAU DES ARTICLES ====================
+    const colDescX = margins.left;
+    const colQtyX = pageWidth - margins.right - 55;
+    const colPriceX = pageWidth - margins.right - 35;
+    const colTotalX = pageWidth - margins.right;
 
-    // En-tête du tableau
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.5)
-    doc.rect(margins.left, tableTop, contentWidth, ligneHeight, 'S')
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    // Bordures verticales
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.line(colPositions.reference, tableTop, colPositions.reference, tableTop + ligneHeight)
-    doc.line(colPositions.qte, tableTop, colPositions.qte, tableTop + ligneHeight)
-    doc.line(colPositions.pu, tableTop, colPositions.pu, tableTop + ligneHeight)
-    doc.line(colPositions.total, tableTop, colPositions.total, tableTop + ligneHeight)
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Description', colDescX, y);
+    doc.text('Qté', colQtyX, y, { align: 'right' });
+    doc.text('Prix unit.', colPriceX, y, { align: 'right' });
+    doc.text('Total', colTotalX, y, { align: 'right' });
+    y += 4;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(colDescX, y, pageWidth - margins.right, y);
+    y += 5;
 
-    const headerTextY = tableTop + 5
-    doc.text('DÉSIGNATION', colPositions.designation + (colWidths.designation / 2), headerTextY, { align: 'center' })
-    doc.text('RÉFÉRENCE', colPositions.reference + (colWidths.reference / 2), headerTextY, { align: 'center' })
-    doc.text('QTÉ', colPositions.qte + (colWidths.qte / 2), headerTextY, { align: 'center' })
-    doc.text('PRIX U.', colPositions.pu + (colWidths.pu / 2), headerTextY, { align: 'center' })
-    doc.text('TOTAL HT', colPositions.total + (colWidths.total / 2), headerTextY, { align: 'center' })
+    let currentY = y;
+    if (displayItems.length === 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(150, 150, 150);
+      doc.text('Aucun article', colDescX, currentY);
+      currentY += 10;
+    } else {
+      for (let idx = 0; idx < displayItems.length; idx++) {
+        const item = displayItems[idx];
+        const productName = item.product?.name || item.product_name || '-';
+        const description = item.description || '';
+        const qty = item.quantity || 0;
+        const price = item.unit_price || 0;
+        const itemTotal = item.total || (qty * price);
 
-    yPosition = tableTop + ligneHeight
-
-    // Lignes de produits
-    const items = Array.isArray(quotation.items) ? quotation.items : []
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0)
-
-    if (items.length > 0) {
-      items.forEach((item, index) => {
-        if (yPosition + ligneHeight > 270) {
-          doc.addPage()
-          yPosition = margins.top + 15
-          // Redessiner l'en-tête
-          doc.setDrawColor(0, 0, 0)
-          doc.setLineWidth(0.5)
-          doc.rect(margins.left, yPosition, contentWidth, ligneHeight, 'S')
-          doc.setTextColor(0, 0, 0)
-          doc.setFont('helvetica', 'bold')
-          doc.text('DÉSIGNATION', colPositions.designation + (colWidths.designation / 2), yPosition + 5, { align: 'center' })
-          doc.text('RÉFÉRENCE', colPositions.reference + (colWidths.reference / 2), yPosition + 5, { align: 'center' })
-          doc.text('QTÉ', colPositions.qte + (colWidths.qte / 2), yPosition + 5, { align: 'center' })
-          doc.text('PRIX U.', colPositions.pu + (colWidths.pu / 2), yPosition + 5, { align: 'center' })
-          doc.text('TOTAL HT', colPositions.total + (colWidths.total / 2), yPosition + 5, { align: 'center' })
-          doc.setDrawColor(0, 0, 0)
-          doc.setLineWidth(0.2)
-          doc.line(colPositions.reference, yPosition, colPositions.reference, yPosition + ligneHeight)
-          doc.line(colPositions.qte, yPosition, colPositions.qte, yPosition + ligneHeight)
-          doc.line(colPositions.pu, yPosition, colPositions.pu, yPosition + ligneHeight)
-          doc.line(colPositions.total, yPosition, colPositions.total, yPosition + ligneHeight)
-          yPosition += ligneHeight
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(0, 0, 0)
+        if (currentY > pageHeight - 80) {
+          doc.addPage();
+          currentY = margins.top;
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Description', colDescX, currentY);
+          doc.text('Qté', colQtyX, currentY, { align: 'right' });
+          doc.text('Prix unit.', colPriceX, currentY, { align: 'right' });
+          doc.text('Total', colTotalX, currentY, { align: 'right' });
+          currentY += 4;
+          doc.line(colDescX, currentY, pageWidth - margins.right, currentY);
+          currentY += 5;
         }
 
-        const qty = parseFloat(item.quantity) || 0
-        const price = parseFloat(item.unit_price) || 0
-        const total = parseFloat(item.total) || (qty * price)
-        const subtotal = parseFloat(item.subtotal) || (total / 1.2)
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(productName, colDescX, currentY);
+        doc.text(qty.toString(), colQtyX, currentY, { align: 'right' });
+        doc.text(formatCurrency(price), colPriceX, currentY, { align: 'right' });
+        doc.text(formatCurrency(itemTotal), colTotalX, currentY, { align: 'right' });
+        currentY += 5;
 
-        const designation = (item.product?.name || item.product_name || '-').substring(0, 50)
-        const reference = (item.product?.reference || item.product_reference || '-').substring(0, 30)
-
-        doc.setDrawColor(0, 0, 0)
-        doc.setLineWidth(0.1)
-        doc.rect(margins.left, yPosition, contentWidth, ligneHeight, 'S')
-        doc.line(colPositions.reference, yPosition, colPositions.reference, yPosition + ligneHeight)
-        doc.line(colPositions.qte, yPosition, colPositions.qte, yPosition + ligneHeight)
-        doc.line(colPositions.pu, yPosition, colPositions.pu, yPosition + ligneHeight)
-        doc.line(colPositions.total, yPosition, colPositions.total, yPosition + ligneHeight)
-
-        const cellPaddingY = 5
-        doc.text(designation, colPositions.designation + 3, yPosition + cellPaddingY)
-        doc.text(reference, colPositions.reference + 3, yPosition + cellPaddingY)
-        doc.text(formatNumber(qty), colPositions.qte + (colWidths.qte / 2), yPosition + cellPaddingY, { align: 'center' })
-        doc.text(`${formatNumber(price)} FCFA`, colPositions.pu + colWidths.pu - 3, yPosition + cellPaddingY, { align: 'right' })
-        doc.setFont('helvetica', 'bold')
-        doc.text(`${formatNumber(subtotal)} FCFA`, colPositions.total + colWidths.total - 5, yPosition + cellPaddingY, { align: 'right' })
-        doc.setFont('helvetica', 'normal')
-
-        yPosition += ligneHeight
-      })
-    } else {
-      doc.setDrawColor(0, 0, 0)
-      doc.setLineWidth(0.1)
-      doc.rect(margins.left, yPosition, contentWidth, ligneHeight, 'S')
-      doc.setTextColor(150, 150, 150)
-      doc.text('Aucun article dans ce devis', margins.left + contentWidth / 2, yPosition + 5, { align: 'center' })
-      yPosition += ligneHeight
+        if (description) {
+          const descLines = doc.splitTextToSize(description, contentWidth - 10);
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(descLines, colDescX + 2, currentY);
+          currentY += descLines.length * 4 + 2;
+        }
+        currentY += 3;
+      }
     }
+    y = currentY + 5;
 
-    yPosition += 5
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.line(margins.left, yPosition, pageWidth - margins.right, yPosition)
-    yPosition += 10
+    // ==================== COMMUNICATION & MONTANTS ====================
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Communication :', margins.left + 3, y + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(quotationNumber, margins.left + 3, y + 11);
+    doc.text(`sur ce compte : ${company.bankAccount}`, margins.left + 3, y + 17);
+    doc.text('Référence :', margins.left + 3, y + 23);
+    doc.text(quotationNumber, margins.left + 3 + 20, y + 23);
 
-    // === TOTAUX (identique à Ventes) ===
-    let subtotal = 0, taxTotal = 0, total = 0
-    if (items.length) {
-      items.forEach(item => {
-        const qty = parseFloat(item.quantity) || 0
-        const price = parseFloat(item.unit_price) || 0
-        const itemTotal = parseFloat(item.total) || (qty * price)
-        const itemSubtotal = parseFloat(item.subtotal) || (itemTotal / 1.2)
-        const itemTax = parseFloat(item.tax_amount) || (itemTotal - itemSubtotal)
-        subtotal += itemSubtotal
-        taxTotal += itemTax
-        total += itemTotal
-      })
-    } else {
-      subtotal = parseFloat(quotation.subtotal) || 0
-      taxTotal = parseFloat(quotation.tax_total) || 0
-      total = parseFloat(quotation.total) || 0
+    const amountBlockW = contentWidth * 0.4;
+    const amountBlockX = pageWidth - margins.right - amountBlockW;
+    let ay = y + 5;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Montant hors taxes', amountBlockX + 3, ay);
+    doc.text(formatNumber(subtotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
+    ay += 5;
+    
+    // Afficher la TVA seulement si elle est > 0
+    if (taxRate > 0) {
+      doc.text(`T.V.A. ${taxRate}%`, amountBlockX + 3, ay);
+      doc.text(formatNumber(taxTotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
+      ay += 5;
     }
-    const discount = parseFloat(quotation.discount) || 0
-    const finalTotal = total - discount
-
-    const totalSectionTop = yPosition
-    const totalColX = pageWidth - margins.right - 95
-    const totalColWidth = 95
-    doc.setFontSize(11)
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.5)
-    const totalBoxHeight = discount > 0 ? 52 : 42
-    doc.rect(totalColX, totalSectionTop, totalColWidth, totalBoxHeight, 'S')
-
-    let currentY = totalSectionTop + 12
-    for (let i = 0; i < 3; i++) {
-      doc.line(totalColX + 2, currentY, totalColX + totalColWidth - 2, currentY)
-      currentY += 10.5
-    }
-    yPosition = totalSectionTop + 9
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(11)
-    doc.text('SOUS-TOTAL HT:', totalColX + 8, yPosition)
-    doc.setFontSize(12)
-    doc.text(`${formatCurrency(subtotal)}`, totalColX + totalColWidth - 8, yPosition, { align: 'right' })
-    yPosition += 10.5
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(12)
-    const montantTotalLabel = 'MONTANT TOTAL:'
-    doc.text(montantTotalLabel, totalColX + 8, yPosition)
-    doc.setFontSize(12)
-    doc.setTextColor(0, 0, 0)
-    doc.text(`${formatCurrency(finalTotal)}`, totalColX + totalColWidth - 20, yPosition, { align: 'right' })
-    yPosition += 8.5
-
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0)
-    doc.text('TVA (20%) :', totalColX + 8, yPosition)
-    doc.setFontSize(11)
-    doc.text(`${formatCurrency(taxTotal)}`, totalColX + totalColWidth - 20, yPosition, { align: 'right' })
-    yPosition += 10.5
-
+    
     if (discount > 0) {
-      doc.text('REMISE :', totalColX + 8, yPosition)
-      doc.text(`- ${formatCurrency(discount)}`, totalColX + totalColWidth - 20, yPosition, { align: 'right' })
-      yPosition += 10.5
+      doc.text('Remise', amountBlockX + 3, ay);
+      doc.text(`- ${formatNumber(discount)}`, amountBlockX + amountBlockW - 5, ay, { align: 'right' });
+      ay += 5;
     }
+    ay += 1;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total', amountBlockX + 3, ay);
+    doc.text(formatNumber(finalTotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
+    ay += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('Montant total en toutes lettres :', amountBlockX + 3, ay);
+    doc.text(totalEnLettres, amountBlockX + amountBlockW - 5, ay, { align: 'right' });
 
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(14)
-    doc.setTextColor(0, 0, 0)
-    doc.text('TOTAL TTC :', totalColX + 8, yPosition)
-    doc.text(`${formatCurrency(finalTotal)}`, totalColX + totalColWidth - 20, yPosition, { align: 'right' })
+    const leftHeight = 28;
+    const rightHeight = (ay + 2) - (y + 5);
+    const maxHeight = Math.max(leftHeight, rightHeight);
+    y += maxHeight + 5;
 
-    yPosition = totalSectionTop + totalBoxHeight + 20
-
-    // === NOTES ET CONDITIONS (optionnelles, comme dans Ventes) ===
-    if (quotation.notes && typeof quotation.notes === 'string') {
-      doc.setDrawColor(200, 200, 200)
-      doc.setLineWidth(0.2)
-      doc.rect(margins.left, yPosition, contentWidth, 18, 'S')
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 0, 0)
-      doc.text('NOTES', margins.left + 4, yPosition + 5)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(80, 80, 80)
-      const splitNotes = doc.splitTextToSize(quotation.notes, contentWidth - 8)
-      doc.text(splitNotes, margins.left + 4, yPosition + 10)
-      yPosition += 24
-    }
-    if (quotation.terms_conditions && typeof quotation.terms_conditions === 'string') {
-      doc.setDrawColor(200, 200, 200)
-      doc.setLineWidth(0.2)
-      doc.rect(margins.left, yPosition, contentWidth, 22, 'S')
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 0, 0)
-      doc.text('CONDITIONS GÉNÉRALES', margins.left + 4, yPosition + 5)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(80, 80, 80)
-      const splitTerms = doc.splitTextToSize(quotation.terms_conditions, contentWidth - 8)
-      doc.text(splitTerms, margins.left + 4, yPosition + 10)
-      yPosition += 28
-    }
-
-    // === SIGNATURES (comme dans Ventes) ===
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.line(margins.left, yPosition - 5, pageWidth - margins.right, yPosition - 5)
-    yPosition += 5
-
-    const signatureWidth = (contentWidth / 2) - 10 // = 85 mm
-    const signatureHeight = 40
+    // ==================== SIGNATURES ====================
+    const signatureY = y + 10;
+    const signatureWidth = (contentWidth / 2) - 10;
+    const signatureHeight = 35;
 
     // Signature client
-    const signatureClientX = margins.left
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.5)
-    doc.rect(signatureClientX, yPosition, signatureWidth, signatureHeight, 'S')
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Le Client', signatureClientX + (signatureWidth / 2), yPosition + 8, { align: 'center' })
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.line(signatureClientX + 15, yPosition + 10, signatureClientX + signatureWidth - 15, yPosition + 10)
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'normal')
-    const clientName = customer.full_name || customer.company_name || 'Nom du client'
-    doc.text(clientName, signatureClientX + (signatureWidth / 2), yPosition + 22, { align: 'center' })
-    const signatureLineY = yPosition + 30
-    const signatureLineLength = signatureWidth - 30
+    const signatureClientX = margins.left;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(signatureClientX, signatureY, signatureWidth, signatureHeight, 'S');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Le Client', signatureClientX + (signatureWidth / 2), signatureY + 8, { align: 'center' });
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.2);
+    doc.line(signatureClientX + 10, signatureY + 12, signatureClientX + signatureWidth - 10, signatureY + 12);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const clientName = customer.full_name || customer.company_name || 'Nom du client';
+    doc.text(clientName, signatureClientX + (signatureWidth / 2), signatureY + 22, { align: 'center' });
+    const signatureLineY = signatureY + 28;
+    const signatureLineLength = signatureWidth - 20;
     doc.line(
       signatureClientX + (signatureWidth / 2) - (signatureLineLength / 2),
       signatureLineY,
       signatureClientX + (signatureWidth / 2) + (signatureLineLength / 2),
       signatureLineY
-    )
-    doc.setFontSize(9)
-    doc.setTextColor(100, 100, 100)
-    doc.text('Signature et cachet', signatureClientX + (signatureWidth / 2), signatureLineY + 6, { align: 'center' })
+    );
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Signature et cachet', signatureClientX + (signatureWidth / 2), signatureLineY + 5, { align: 'center' });
 
     // Signature entreprise
-    const signatureEntrepriseX = margins.left + signatureWidth + 20
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.5)
-    doc.rect(signatureEntrepriseX, yPosition, signatureWidth, signatureHeight, 'S')
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    doc.text('L\'Entreprise', signatureEntrepriseX + (signatureWidth / 2), yPosition + 8, { align: 'center' })
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.line(signatureEntrepriseX + 15, yPosition + 10, signatureEntrepriseX + signatureWidth - 15, yPosition + 10)
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'normal')
-    doc.text('ECSISARL', signatureEntrepriseX + (signatureWidth / 2), yPosition + 22, { align: 'center' })
+    const signatureEntrepriseX = margins.left + signatureWidth + 20;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(signatureEntrepriseX, signatureY, signatureWidth, signatureHeight, 'S');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('L\'Entreprise', signatureEntrepriseX + (signatureWidth / 2), signatureY + 8, { align: 'center' });
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.2);
+    doc.line(signatureEntrepriseX + 10, signatureY + 12, signatureEntrepriseX + signatureWidth - 10, signatureY + 12);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(company.name, signatureEntrepriseX + (signatureWidth / 2), signatureY + 22, { align: 'center' });
     doc.line(
       signatureEntrepriseX + (signatureWidth / 2) - (signatureLineLength / 2),
       signatureLineY,
       signatureEntrepriseX + (signatureWidth / 2) + (signatureLineLength / 2),
       signatureLineY
-    )
-    doc.text('Signature et cachet', signatureEntrepriseX + (signatureWidth / 2), signatureLineY + 6, { align: 'center' })
+    );
+    doc.text('Signature et cachet', signatureEntrepriseX + (signatureWidth / 2), signatureLineY + 5, { align: 'center' });
 
-    yPosition += signatureHeight + 15
+    y = signatureY + signatureHeight + 10;
 
-    // === PIED DE PAGE (identique Ventes) ===
-    const footerY = Math.max(yPosition, 270)
-    doc.setFontSize(9)
-    doc.setTextColor(100, 100, 100)
-    doc.setFont('helvetica', 'normal')
-    doc.setDrawColor(200, 200, 200)
-    doc.setLineWidth(0.2)
-    doc.line(margins.left, footerY - 5, pageWidth - margins.right, footerY - 5)
-    doc.text('ECSISARL ERP - Solution ERP intégrée', pageWidth / 2, footerY, { align: 'center' })
-    doc.text('Devis valable 30 jours', pageWidth / 2, footerY + 4, { align: 'center' })
-    doc.text(`Document généré le ${formatDate(new Date().toISOString())}`, pageWidth / 2, footerY + 8, { align: 'center' })
-
-    const pageCount = doc.internal.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i)
-      doc.setFontSize(9)
-      doc.setTextColor(150, 150, 150)
-      doc.text(`Page ${i}/${pageCount}`, pageWidth - margins.right, 290, { align: 'right' })
+    // ==================== NOTES ET CONDITIONS ====================
+    if (quotation.notes && typeof quotation.notes === 'string' && quotation.notes.trim()) {
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.2);
+      doc.rect(margins.left, y, contentWidth, 18, 'S');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('NOTES', margins.left + 4, y + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      const splitNotes = doc.splitTextToSize(quotation.notes, contentWidth - 8);
+      doc.text(splitNotes, margins.left + 4, y + 10);
+      y += 24;
     }
 
-    doc.save(`Devis_${quotation.quotation_number || 'document'}.pdf`)
-    return true
+    if (quotation.terms_conditions && typeof quotation.terms_conditions === 'string' && quotation.terms_conditions.trim()) {
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.2);
+      doc.rect(margins.left, y, contentWidth, 18, 'S');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('CONDITIONS', margins.left + 4, y + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      const splitTerms = doc.splitTextToSize(quotation.terms_conditions, contentWidth - 8);
+      doc.text(splitTerms, margins.left + 4, y + 10);
+      y += 24;
+    }
+
+    // ==================== PIED DE PAGE ====================
+    const footerY = pageHeight - margins.bottom - 20;
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(`${company.addressLine1} ${company.addressLine2} - ${company.phone} - ${company.cell}`, pageWidth / 2, footerY, { align: 'center' });
+    doc.text(`${company.rc} - ${company.email}`, pageWidth / 2, footerY + 5, { align: 'center' });
+    doc.text(`${company.bda} - ${company.bankAccount}`, pageWidth / 2, footerY + 10, { align: 'center' });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Page ${i}/${pageCount}`, pageWidth - margins.right, pageHeight - margins.bottom - 2, { align: 'right' });
+    }
+
+    doc.save(`Devis_${quotationNumber}.pdf`);
+    return true;
 
   } catch (error) {
-    console.error('Erreur dans QuotationPDF:', error)
-    throw error
+    console.error('Erreur QuotationPDF:', error);
+    throw error;
   }
-}
+};
 
-export default QuotationPDF
+export default QuotationPDF;
