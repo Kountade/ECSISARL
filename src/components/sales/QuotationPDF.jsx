@@ -165,7 +165,7 @@ const QuotationPDF = async (quotation) => {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(200, 0, 0);
 
-    // Ligne 1: Date du devis (gauche) + Client (avec 80px d'espace)
+    // Ligne 1: Date du devis (gauche) + Client (avec 70px d'espace)
     doc.text('Date du devis : ', margins.left, y);
     const date1LabelWidth = doc.getTextWidth('Date du devis : ');
     const dateValue = formatDate(quotationDate);
@@ -173,7 +173,7 @@ const QuotationPDF = async (quotation) => {
 
     // Calculer la position X après la date
     const dateEndX = margins.left + date1LabelWidth + doc.getTextWidth(dateValue);
-    const spaceAfterDate = 80;
+    const spaceAfterDate = 70;
 
     const customer = quotation.customer || {};
     doc.text('Client : ', dateEndX + spaceAfterDate, y);
@@ -276,20 +276,11 @@ const QuotationPDF = async (quotation) => {
     }
     y = currentY + 5;
 
-    // ==================== COMMUNICATION & MONTANTS ====================
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('Communication :', margins.left + 3, y + 5);
-    doc.setFont('helvetica', 'normal');
-    doc.text(quotationNumber, margins.left + 3, y + 11);
-    doc.text(`sur ce compte : ${company.bankAccount}`, margins.left + 3, y + 17);
-    doc.text('Référence :', margins.left + 3, y + 23);
-    doc.text(quotationNumber, margins.left + 3 + 20, y + 23);
-
+    // ==================== MONTANTS ====================
     const amountBlockW = contentWidth * 0.4;
     const amountBlockX = pageWidth - margins.right - amountBlockW;
-    let ay = y + 5;
+    let ay = y;
+    
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text('Montant hors taxes', amountBlockX + 3, ay);
@@ -319,11 +310,11 @@ const QuotationPDF = async (quotation) => {
     doc.text(totalEnLettres, amountBlockX + amountBlockW - 5, ay, { align: 'right' });
 
     const leftHeight = 28;
-    const rightHeight = (ay + 2) - (y + 5);
+    const rightHeight = (ay + 2) - y;
     const maxHeight = Math.max(leftHeight, rightHeight);
     y += maxHeight + 5;
 
-    // ==================== SIGNATURE ENTREPRISE (sans rectangle) ====================
+    // ==================== SIGNATURE ENTREPRISE ====================
     const signatureY = y + 15;
     const signatureWidth = 80;
     const signatureX = pageWidth - margins.right - signatureWidth;
@@ -337,20 +328,9 @@ const QuotationPDF = async (quotation) => {
     doc.setFont('helvetica', 'normal');
     doc.text(company.name, signatureX + (signatureWidth / 2), signatureY + 8, { align: 'center' });
     
-    const signatureLineY = signatureY + 15;
-    const signatureLineLength = signatureWidth - 10;
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.2);
-    doc.line(
-      signatureX + (signatureWidth / 2) - (signatureLineLength / 2),
-      signatureLineY,
-      signatureX + (signatureWidth / 2) + (signatureLineLength / 2),
-      signatureLineY
-    );
-    
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
-    doc.text('Signature et cachet', signatureX + (signatureWidth / 2), signatureLineY + 5, { align: 'center' });
+    doc.text('Signature et cachet', signatureX + (signatureWidth / 2), signatureY + 16, { align: 'center' });
 
     y = signatureY + 30;
 
