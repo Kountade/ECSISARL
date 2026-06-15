@@ -173,7 +173,7 @@ const QuotationPDF = async (quotation) => {
 
     // Calculer la position X après la date
     const dateEndX = margins.left + date1LabelWidth + doc.getTextWidth(dateValue);
-    const spaceAfterDate = 80; // 80px d'espace après la date
+    const spaceAfterDate = 80;
 
     const customer = quotation.customer || {};
     doc.text('Client : ', dateEndX + spaceAfterDate, y);
@@ -323,63 +323,36 @@ const QuotationPDF = async (quotation) => {
     const maxHeight = Math.max(leftHeight, rightHeight);
     y += maxHeight + 5;
 
-    // ==================== SIGNATURES ====================
-    const signatureY = y + 10;
-    const signatureWidth = (contentWidth / 2) - 10;
-    const signatureHeight = 35;
+    // ==================== SIGNATURE ENTREPRISE (sans rectangle) ====================
+    const signatureY = y + 15;
+    const signatureWidth = 80;
+    const signatureX = pageWidth - margins.right - signatureWidth;
 
-    // Signature client
-    const signatureClientX = margins.left;
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.3);
-    doc.rect(signatureClientX, signatureY, signatureWidth, signatureHeight, 'S');
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text('Le Client', signatureClientX + (signatureWidth / 2), signatureY + 8, { align: 'center' });
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.2);
-    doc.line(signatureClientX + 10, signatureY + 12, signatureClientX + signatureWidth - 10, signatureY + 12);
+    doc.text('L\'Entreprise', signatureX + (signatureWidth / 2), signatureY, { align: 'center' });
+    
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    const clientName = customer.full_name || customer.company_name || 'Nom du client';
-    doc.text(clientName, signatureClientX + (signatureWidth / 2), signatureY + 22, { align: 'center' });
-    const signatureLineY = signatureY + 28;
-    const signatureLineLength = signatureWidth - 20;
+    doc.text(company.name, signatureX + (signatureWidth / 2), signatureY + 8, { align: 'center' });
+    
+    const signatureLineY = signatureY + 15;
+    const signatureLineLength = signatureWidth - 10;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.2);
     doc.line(
-      signatureClientX + (signatureWidth / 2) - (signatureLineLength / 2),
+      signatureX + (signatureWidth / 2) - (signatureLineLength / 2),
       signatureLineY,
-      signatureClientX + (signatureWidth / 2) + (signatureLineLength / 2),
+      signatureX + (signatureWidth / 2) + (signatureLineLength / 2),
       signatureLineY
     );
+    
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
-    doc.text('Signature et cachet', signatureClientX + (signatureWidth / 2), signatureLineY + 5, { align: 'center' });
+    doc.text('Signature et cachet', signatureX + (signatureWidth / 2), signatureLineY + 5, { align: 'center' });
 
-    // Signature entreprise
-    const signatureEntrepriseX = margins.left + signatureWidth + 20;
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.3);
-    doc.rect(signatureEntrepriseX, signatureY, signatureWidth, signatureHeight, 'S');
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('L\'Entreprise', signatureEntrepriseX + (signatureWidth / 2), signatureY + 8, { align: 'center' });
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.2);
-    doc.line(signatureEntrepriseX + 10, signatureY + 12, signatureEntrepriseX + signatureWidth - 10, signatureY + 12);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(company.name, signatureEntrepriseX + (signatureWidth / 2), signatureY + 22, { align: 'center' });
-    doc.line(
-      signatureEntrepriseX + (signatureWidth / 2) - (signatureLineLength / 2),
-      signatureLineY,
-      signatureEntrepriseX + (signatureWidth / 2) + (signatureLineLength / 2),
-      signatureLineY
-    );
-    doc.text('Signature et cachet', signatureEntrepriseX + (signatureWidth / 2), signatureLineY + 5, { align: 'center' });
-
-    y = signatureY + signatureHeight + 10;
+    y = signatureY + 30;
 
     // ==================== NOTES ET CONDITIONS ====================
     if (quotation.notes && typeof quotation.notes === 'string' && quotation.notes.trim()) {
