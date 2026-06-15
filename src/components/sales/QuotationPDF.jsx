@@ -150,22 +150,21 @@ const QuotationPDF = async (quotation) => {
     doc.text(company.taxCenter, textStartX, y + 24);
     y = y + 34;
 
-    // ==================== TITRE ====================
+    // ==================== TITRE (tout en rouge) ====================
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(200, 0, 0);
+    doc.setTextColor(200, 0, 0); // Rouge pour tout le titre
     doc.text('DEVIS', margins.left, y);
     const devisWidth = doc.getTextWidth('DEVIS');
-    doc.setTextColor(40, 40, 40);
     doc.text(` ${quotationNumber}`, margins.left + devisWidth, y);
     y += 20;
 
     // ==================== DATES & CLIENT ====================
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(200, 0, 0);
-
-    // Ligne 1: Date du devis (gauche) + Client (avec 70px d'espace)
+    
+    // Ligne 1: Date du devis (gauche) en rouge + Client (droite) en noir
+    doc.setTextColor(200, 0, 0); // Rouge pour la date
     doc.text('Date du devis : ', margins.left, y);
     const date1LabelWidth = doc.getTextWidth('Date du devis : ');
     const dateValue = formatDate(quotationDate);
@@ -176,24 +175,25 @@ const QuotationPDF = async (quotation) => {
     const spaceAfterDate = 70;
 
     const customer = quotation.customer || {};
+    doc.setTextColor(0, 0, 0); // Noir pour les infos client
     doc.text('Client : ', dateEndX + spaceAfterDate, y);
     const clientLabelWidth = doc.getTextWidth('Client : ');
     doc.text(customer.full_name || customer.company_name || '-', dateEndX + spaceAfterDate + clientLabelWidth, y);
     y += 10;
 
-    // Ligne 2: Téléphone (juste sous Client)
+    // Ligne 2: Téléphone (droite) en noir
     doc.text('Tél : ', dateEndX + spaceAfterDate, y);
     const telLabelWidth = doc.getTextWidth('Tél : ');
     doc.text(customer.phone || '-', dateEndX + spaceAfterDate + telLabelWidth, y);
     y += 8;
 
-    // Ligne 3: Email (juste sous Téléphone)
+    // Ligne 3: Email (droite) en noir
     doc.text('Email : ', dateEndX + spaceAfterDate, y);
     const emailLabelWidth = doc.getTextWidth('Email : ');
     doc.text(customer.email || '-', dateEndX + spaceAfterDate + emailLabelWidth, y);
     y += 8;
 
-    // Ligne 4: Adresse (juste sous Email)
+    // Ligne 4: Adresse (droite) en noir
     const addressLabel = 'Adresse : ';
     doc.text(addressLabel, dateEndX + spaceAfterDate, y);
     const addressLabelWidth = doc.getTextWidth(addressLabel);
@@ -283,6 +283,7 @@ const QuotationPDF = async (quotation) => {
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
     doc.text('Montant hors taxes', amountBlockX + 3, ay);
     doc.text(formatNumber(subtotal), amountBlockX + amountBlockW - 5, ay, { align: 'right' });
     ay += 5;
@@ -322,15 +323,11 @@ const QuotationPDF = async (quotation) => {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text('L\'Entreprise', signatureX + (signatureWidth / 2), signatureY, { align: 'center' });
-    
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(company.name, signatureX + (signatureWidth / 2), signatureY + 8, { align: 'center' });
+    doc.text('ECSI - Sarl', signatureX + (signatureWidth / 2), signatureY, { align: 'center' });
     
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
-    doc.text('Signature et cachet', signatureX + (signatureWidth / 2), signatureY + 16, { align: 'center' });
+    doc.text('Signature et cachet', signatureX + (signatureWidth / 2), signatureY + 8, { align: 'center' });
 
     y = signatureY + 30;
 
