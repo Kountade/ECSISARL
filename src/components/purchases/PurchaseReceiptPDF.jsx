@@ -35,9 +35,9 @@ const formatDateTime = (d) => {
   return new Date(d).toLocaleString('fr-FR');
 };
 
-// ✅ Configuration des statuts - BROUILLON supprimé
+// Configuration des statuts
 const statusConfig = {
-  draft: { label: 'EN ATTENTE', color: [217, 119, 6] }, // Jaune/orange
+  draft: { label: 'EN ATTENTE', color: [217, 119, 6] },
   sent: { label: 'ENVOYÉE', color: [37, 99, 235] },
   confirmed: { label: 'CONFIRMÉE', color: [5, 150, 105] },
   in_transit: { label: 'EN TRANSIT', color: [217, 119, 6] },
@@ -152,9 +152,7 @@ export const generateReceiptPDF = async (receipt) => {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text(`N° ${receiptNumber}`, pageWidth - margins.right, y, { align: 'right' });
-    y += 8;
-
-    // ✅ Suppression du badge statut - plus affiché sur le PDF
+    y += 12;
 
     // ==================== INFORMATIONS GÉNÉRALES ====================
     doc.setFontSize(10);
@@ -266,53 +264,72 @@ export const generateReceiptPDF = async (receipt) => {
         currentY += 3;
       }
     }
-    y = currentY + 5;
+    y = currentY + 8;
 
-    // ==================== RÉSUMÉ ====================
+    // ==================== RÉSUMÉ DE LA RÉCEPTION (Mieux organisé) ====================
     const summaryBoxX = margins.left;
     const summaryBoxY = y;
     const summaryBoxWidth = pageWidth - margins.left - margins.right;
-    const summaryBoxHeight = 55;
+    const summaryBoxHeight = 65;
 
+    // Cadre du résumé
     doc.setDrawColor(200, 200, 200);
     doc.setFillColor(249, 250, 251);
     doc.rect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight, 'FD');
-    y += 4;
-
-    doc.setFontSize(8);
+    
+    // Titre du résumé
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(50, 50, 50);
-    doc.text('RÉSUMÉ DE LA RÉCEPTION', margins.left + 5, y);
-    y += 6;
-
+    doc.setTextColor(0, 60, 63);
+    doc.text('RÉSUMÉ DE LA RÉCEPTION', margins.left + 5, summaryBoxY + 6);
+    
+    // Ligne séparatrice sous le titre
+    doc.setDrawColor(218, 74, 14);
+    doc.setLineWidth(0.3);
+    doc.line(margins.left + 5, summaryBoxY + 9, margins.left + 70, summaryBoxY + 9);
+    
+    let sumY = summaryBoxY + 14;
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    const summaryRows = [
-      ['Nombre d\'articles différents :', `${items.length}`],
-      ['Quantité totale reçue :', `${formatNumber(totalQuantity)} unités`],
-      ['Taux de conformité :', `${conformityRate}%`],
-      ['✓ Articles conformes :', `${conformingCount}`],
-    ];
+    doc.setTextColor(50, 50, 50);
 
+    // Grille 2 colonnes pour le résumé
+    const col1X = margins.left + 8;
+    const col2X = margins.left + 75;
+    const col3X = margins.left + 120;
+    const col4X = margins.left + 160;
+
+    // Ligne 1: Nombre d'articles
+    doc.text('Nombre d\'articles différents :', col1X, sumY);
+    doc.text(`${items.length}`, col2X, sumY);
+    sumY += 7;
+
+    // Ligne 2: Quantité totale
+    doc.text('Quantité totale reçue :', col1X, sumY);
+    doc.text(`${formatNumber(totalQuantity)} unités`, col2X, sumY);
+    sumY += 7;
+
+    // Ligne 3: Taux de conformité
+    doc.text('Taux de conformité :', col1X, sumY);
+    const conformityColor = conformityRate >= 80 ? [5, 150, 105] : [220, 38, 38];
+    doc.setTextColor(conformityColor[0], conformityColor[1], conformityColor[2]);
+    doc.text(`${conformityRate}%`, col2X, sumY);
+    doc.setTextColor(50, 50, 50);
+    sumY += 7;
+
+    // Ligne 4: Articles conformes (à droite)
+    doc.setTextColor(5, 150, 105);
+    doc.text('✓ Articles conformes :', col3X, sumY - 14);
+    doc.text(`${conformingCount}`, col4X, sumY - 14);
+    doc.setTextColor(50, 50, 50);
+
+    // Ligne 5: Articles non conformes (à droite)
     if (nonConformingCount > 0) {
-      summaryRows.push(['✗ Articles non conformes :', `${nonConformingCount}`]);
-    }
-
-    const col1WidthSum = 70;
-    summaryRows.forEach(([label, value]) => {
-      doc.text(label, margins.left + 5, y);
-      const isSuccess = label.includes('✓');
-      const isDanger = label.includes('✗');
-      if (isSuccess) {
-        doc.setTextColor(5, 150, 105);
-      } else if (isDanger) {
-        doc.setTextColor(220, 38, 38);
-      } else {
-        doc.setTextColor(50, 50, 50);
-      }
-      doc.text(value, margins.left + col1WidthSum, y);
+      doc.setTextColor(220, 38, 38);
+      doc.text('✗ Articles non conformes :', col3X, sumY - 7);
+      doc.text(`${nonConformingCount}`, col4X, sumY - 7);
       doc.setTextColor(50, 50, 50);
-      y += 5;
-    });
+    }
 
     y = summaryBoxY + summaryBoxHeight + 8;
 
@@ -349,6 +366,7 @@ export const generateReceiptPDF = async (receipt) => {
     doc.setDrawColor(150, 150, 150);
     doc.setLineWidth(0.3);
     
+    // Signature réceptionnaire
     doc.line(margins.left + 10, signatureY, margins.left + 60, signatureY);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -357,6 +375,7 @@ export const generateReceiptPDF = async (receipt) => {
     doc.setFontSize(6);
     doc.text('Nom et signature', margins.left + 25, signatureY + 8);
 
+    // Signature responsable qualité
     const sig2X = pageWidth / 2 - 25;
     doc.line(sig2X, signatureY, sig2X + 50, signatureY);
     doc.setFontSize(8);
@@ -364,6 +383,7 @@ export const generateReceiptPDF = async (receipt) => {
     doc.setFontSize(6);
     doc.text('Nom et signature', sig2X + 5, signatureY + 8);
 
+    // Signature cachet entreprise
     const sig3X = pageWidth - margins.right - 60;
     doc.line(sig3X, signatureY, sig3X + 50, signatureY);
     doc.setFontSize(8);
