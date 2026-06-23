@@ -24,6 +24,7 @@ import StockMovements from './components/inventory/StockMovements'
 import Fournisseurs from './components/purchases/Fournisseurs'
 import PurchaseOrders from './components/purchases/PurchaseOrders'
 import PurchaseOrderForm from './components/purchases/PurchaseOrderForm'
+import PurchaseOrderDetail from './components/purchases/PurchaseOrderDetail'
 import FournisseurForm from './components/purchases/FournisseurForm'
 import PurchaseReceipts from './components/purchases/PurchaseReceipts'
 import PurchaseReceiptForm from './components/purchases/PurchaseReceiptForm'
@@ -137,6 +138,7 @@ function App() {
                          <Route path="/commandes-fournisseurs" element={<PurchaseOrders />} />
                          <Route path="/commandes/nouveau" element={<PurchaseOrderForm />} />
                          <Route path="/commandes/:id/modifier" element={<PurchaseOrderForm />} />
+                          <Route path="/commandes/:id" element={<PurchaseOrderDetail />} />
 
                          {/* recaptio (si page dédiée)  */}
                          <Route path="/receptions" element={<PurchaseReceipts />} />
