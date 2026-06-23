@@ -1,8 +1,9 @@
 // src/components/purchases/PurchaseReceiptPDF.jsx
-import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import AxiosInstance from '../AxiosInstance'
-import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import AxiosInstance from '../AxiosInstance';
+import jsPDF from 'jspdf';
+import logoSvg from '../../assets/logo.svg';
 import {
   ArrowLeft,
   Receipt,
@@ -11,555 +12,445 @@ import {
   Loader2,
   FileText,
   LayoutGrid
-} from 'lucide-react'
+} from 'lucide-react';
 
-// Hook personnalisé pour charger le logo en base64
-const useLogo = () => {
-  const [logoSrc, setLogoSrc] = useState(null)
+// Fonction pour formater les nombres
+const formatNumber = (n) => {
+  const num = parseFloat(n) || 0;
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+};
 
-  useEffect(() => {
-    const loadLogo = async () => {
-      // Essayer plusieurs chemins possibles
-      const paths = [
-        '/logo.svg',
-        '/src/assets/logo.svg',
-        '/assets/logo.svg',
-        '/public/logo.svg',
-        '/ecsi-logo.svg'
-      ]
+// Fonction pour formater les dates
+const formatDate = (d) => {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+};
 
-      for (const path of paths) {
-        try {
-          const response = await fetch(path)
-          if (response.ok) {
-            const blob = await response.blob()
-            const reader = new FileReader()
-            reader.onloadend = () => {
-              setLogoSrc(reader.result)
-            }
-            reader.readAsDataURL(blob)
-            console.log(`Logo chargé depuis: ${path}`)
-            return
-          }
-        } catch (error) {
-          console.log(`Logo non trouvé au chemin: ${path}`)
-        }
-      }
-      
-      // Si aucun logo n'est trouvé, on utilise un texte à la place
-      console.warn('Aucun logo trouvé, utilisation du texte par défaut')
+const formatDateTime = (d) => {
+  if (!d) return '-';
+  return new Date(d).toLocaleString('fr-FR');
+};
+
+// ✅ Configuration des statuts - BROUILLON supprimé
+const statusConfig = {
+  draft: { label: 'EN ATTENTE', color: [217, 119, 6] }, // Jaune/orange
+  sent: { label: 'ENVOYÉE', color: [37, 99, 235] },
+  confirmed: { label: 'CONFIRMÉE', color: [5, 150, 105] },
+  in_transit: { label: 'EN TRANSIT', color: [217, 119, 6] },
+  partially_received: { label: 'RÉCEPTION PARTIELLE', color: [217, 119, 6] },
+  received: { label: 'REÇUE', color: [5, 150, 105] },
+  cancelled: { label: 'ANNULÉE', color: [220, 38, 38] },
+  rejected: { label: 'REJETÉE', color: [220, 38, 38] }
+};
+
+// Fonction pour générer le PDF (EXPORTÉE)
+export const generateReceiptPDF = async (receipt) => {
+  if (!receipt || typeof receipt !== 'object') {
+    throw new Error('Données de la réception invalides');
+  }
+
+  try {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margins = { left: 15, right: 15, top: 18, bottom: 18 };
+    let y = margins.top;
+
+    // ========== INFORMATIONS DE L'ENTREPRISE ==========
+    const company = {
+      name: 'ECSI SARL',
+      activities: 'TRAVAUX BÂTIMENT - GÉNIE CIVIL - ENTRETIEN ROUTIER',
+      activities2: 'FOURNITURES DE BUREAU - VENTE DE MATÉRIELS INFORMATIQUES ET DIVERS',
+      cc: 'CC N° : 1648157 R',
+      taxRegime: "Régime d'Imposition : T.E.E",
+      taxCenter: 'Centre des Impôts : ABOBO 1',
+      addressLine1: 'Siège Social : ABOBO GARE',
+      addressLine2: '21 B.P. 2132 Abidjan 21',
+      phone: 'Tél : (225) 25 24 00 14 28',
+      cell: 'Cell : 07 57 24 01 10 - 05 06 41 83 00',
+      rc: 'RC N° CI-ABJ-2016-B-25017',
+      email: 'E-mail : ecsisarlinfo@gmail.com',
+      bda: 'BDA : 104010419101',
+      bankAccount: 'NSIA Compte N° 020394302001'
+    };
+
+    // Récupération des données
+    const receiptNumber = receipt.receipt_number || 'REC-000001';
+    const receiptDate = receipt.receipt_date || new Date().toISOString().split('T')[0];
+    const supplierName = receipt.purchase_order?.supplier_name || 'Fournisseur';
+    const orderNumber = receipt.purchase_order?.order_number || '-';
+    const receivedBy = receipt.received_by_name || receipt.received_by?.email || '-';
+    const notes = receipt.notes || '';
+    const status = receipt.purchase_order?.status || 'draft';
+    const orderStatus = statusConfig[status] || statusConfig.draft;
+
+    const items = receipt.items || [];
+    const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const conformingCount = items.filter(item => item.quality_ok).length || 0;
+    const nonConformingCount = items.filter(item => item.quality_checked && !item.quality_ok).length || 0;
+    const conformityRate = (conformingCount + nonConformingCount) > 0 
+      ? Math.round((conformingCount / (conformingCount + nonConformingCount)) * 100) 
+      : 0;
+
+    // Chargement du logo
+    const loadLogo = (src) => new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+    let logoData = null;
+    try { logoData = await loadLogo(logoSvg); } catch { /* ignore */ }
+
+    // ==================== EN-TÊTE ====================
+    const logoWidth = 30;
+    const logoHeight = 15;
+    if (logoData) {
+      doc.addImage(logoData, 'PNG', margins.left, y, logoWidth, logoHeight);
+    } else {
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(company.name, margins.left, y + 6);
     }
 
-    loadLogo()
-  }, [])
+    const textStartX = margins.left + logoWidth + 4;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(company.name, textStartX, y + 4);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(company.activities, textStartX, y + 8);
+    doc.text(company.activities2, textStartX, y + 12);
+    doc.text(company.cc, textStartX, y + 16);
+    doc.text(company.taxRegime, textStartX, y + 20);
+    doc.text(company.taxCenter, textStartX, y + 24);
+    y = y + 34;
 
-  return logoSrc
-}
+    // ==================== TITRE ====================
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(200, 0, 0);
+    const title = 'BON DE RÉCEPTION';
+    const titleWidth = doc.getTextWidth(title);
+    doc.text(title, (pageWidth - titleWidth) / 2, y);
+    y += 8;
 
-// Styles pour le PDF
-const styles = StyleSheet.create({
-  page: {
-    padding: 30,
-    backgroundColor: '#ffffff',
-    fontSize: 10,
-    fontFamily: 'Helvetica'
-  },
-  // En-tête
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 25,
-    paddingBottom: 15,
-    borderBottomWidth: 3,
-    borderBottomColor: '#1E3A5F'
-  },
-  logoArea: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10
-  },
-  logoImage: {
-    width: 60,
-    height: 60
-  },
-  logoPlaceholder: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#1E3A5F',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  logoPlaceholderText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#C9A03D'
-  },
-  companyInfo: {
-    marginLeft: 8
-  },
-  companyName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E3A5F',
-    marginBottom: 4
-  },
-  companySub: {
-    fontSize: 8,
-    color: '#4B5563',
-    marginBottom: 2
-  },
-  companyDetails: {
-    fontSize: 7,
-    color: '#6B7280',
-    marginBottom: 1
-  },
-  docHeader: {
-    alignItems: 'flex-end'
-  },
-  docTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#C9A03D',
-    marginBottom: 5,
-    letterSpacing: 1
-  },
-  receiptNumber: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#1E3A5F',
-    marginBottom: 8,
-    textAlign: 'right'
-  },
-  statusBadge: (bgColor) => ({
-    backgroundColor: bgColor,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    alignSelf: 'flex-end'
-  }),
-  statusText: (textColor) => ({
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: textColor,
-    letterSpacing: 0.5
-  }),
-  // Sections
-  section: {
-    marginBottom: 18
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#1E3A5F',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
-    paddingBottom: 4,
-    borderBottomWidth: 2,
-    borderBottomColor: '#C9A03D',
-    alignSelf: 'flex-start'
-  },
-  // Grille d'informations
-  infoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
-    gap: 10
-  },
-  infoCard: {
-    width: '48%',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 6,
-    padding: 8
-  },
-  infoLabel: {
-    fontSize: 7,
-    textTransform: 'uppercase',
-    color: '#6B7280',
-    letterSpacing: 0.5,
-    marginBottom: 3,
-    fontWeight: 'bold'
-  },
-  infoValue: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#111827'
-  },
-  supplierValue: {
-    color: '#C9A03D'
-  },
-  // Tableau
-  table: {
-    marginTop: 8,
-    marginBottom: 8
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#1E3A5F',
-    paddingVertical: 6,
-    paddingHorizontal: 6
-  },
-  tableHeaderText: {
-    color: '#ffffff',
-    fontSize: 8,
-    fontWeight: 'bold'
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingVertical: 6,
-    paddingHorizontal: 6
-  },
-  productCol: { width: '55%' },
-  quantityCol: { width: '20%' },
-  qualityCol: { width: '25%' },
-  textCenter: { textAlign: 'center' },
-  productName: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 2
-  },
-  productRef: {
-    fontSize: 6,
-    color: '#6B7280'
-  },
-  qualityBadge: (bgColor) => ({
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 20,
-    backgroundColor: bgColor,
-    alignSelf: 'center'
-  }),
-  qualityText: (textColor) => ({
-    fontSize: 7,
-    fontWeight: 'bold',
-    color: textColor
-  }),
-  // Résumé
-  summaryBox: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 6,
-    padding: 10,
-    marginTop: 10
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 4
-  },
-  summaryBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    marginBottom: 4,
-    paddingBottom: 4
-  },
-  summaryLabel: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: '#4B5563'
-  },
-  summaryValue: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: '#111827'
-  },
-  textSuccess: { color: '#065F46' },
-  textDanger: { color: '#991B1B' },
-  // Notes
-  notesBox: {
-    backgroundColor: '#FFFBEB',
-    borderLeftWidth: 3,
-    borderLeftColor: '#C9A03D',
-    padding: 8,
-    marginTop: 8
-  },
-  notesText: {
-    fontSize: 8,
-    color: '#111827',
-    lineHeight: 1.3
-  },
-  // Signatures
-  signatures: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 30,
-    paddingTop: 15
-  },
-  signatureItem: {
-    alignItems: 'center',
-    width: '30%'
-  },
-  signatureLine: {
-    borderTopWidth: 1,
-    borderTopColor: '#9CA3AF',
-    width: '100%',
-    paddingTop: 6,
-    marginTop: 20
-  },
-  signatureLabel: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: '#1E3A5F',
-    marginTop: 4
-  },
-  signatureSub: {
-    fontSize: 6,
-    color: '#6B7280',
-    marginTop: 2
-  },
-  // Footer
-  footer: {
-    marginTop: 25,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    alignItems: 'center'
-  },
-  footerText: {
-    fontSize: 6,
-    color: '#6B7280',
-    marginBottom: 2
-  }
-})
+    // Numéro
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text(`N° ${receiptNumber}`, pageWidth - margins.right, y, { align: 'right' });
+    y += 8;
 
-// Composant PDF du bon de réception
-const PurchaseReceiptPDFDocument = ({ receipt, logoSrc }) => {
-  const statusConfig = {
-    draft: { label: 'BROUILLON', color: '#6B7280', bg: '#F3F4F6' },
-    sent: { label: 'ENVOYÉE', color: '#2563EB', bg: '#EFF6FF' },
-    confirmed: { label: 'CONFIRMÉE', color: '#059669', bg: '#ECFDF5' },
-    in_transit: { label: 'EN TRANSIT', color: '#D97706', bg: '#FFFBEB' },
-    partially_received: { label: 'RÉCEPTION PARTIELLE', color: '#D97706', bg: '#FFFBEB' },
-    received: { label: 'REÇUE', color: '#059669', bg: '#ECFDF5' },
-    cancelled: { label: 'ANNULÉE', color: '#DC2626', bg: '#FEF2F2' },
-    rejected: { label: 'REJETÉE', color: '#DC2626', bg: '#FEF2F2' }
-  }
+    // ✅ Suppression du badge statut - plus affiché sur le PDF
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
+    // ==================== INFORMATIONS GÉNÉRALES ====================
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 60, 63);
+    doc.text('INFORMATIONS GÉNÉRALES', margins.left, y);
+    y += 2;
+    doc.setDrawColor(218, 74, 14);
+    doc.setLineWidth(0.5);
+    doc.line(margins.left, y, margins.left + 80, y);
+    y += 6;
 
-  const formatNumber = (number) => {
-    return new Intl.NumberFormat('fr-FR').format(number || 0)
-  }
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(50, 50, 50);
 
-  const getQualityText = (item) => {
-    if (!item.quality_checked) return 'Non contrôlé'
-    if (item.quality_ok) return 'Conforme'
-    return 'Non conforme'
-  }
+    const infoRows = [
+      ['Commande N° :', orderNumber],
+      ['Fournisseur :', supplierName],
+      ['Date de réception :', formatDate(receiptDate)],
+      ['Reçu par :', receivedBy],
+    ];
 
-  const getQualityColor = (item) => {
-    if (!item.quality_checked) return '#6B7280'
-    if (item.quality_ok) return '#065F46'
-    return '#991B1B'
-  }
+    const col1Width = 50;
+    const col2Width = 90;
+    let tempY = y;
 
-  const getQualityBg = (item) => {
-    if (!item.quality_checked) return '#F3F4F6'
-    if (item.quality_ok) return '#D1FAE5'
-    return '#FEE2E2'
-  }
+    infoRows.forEach(([label, value]) => {
+      doc.text(label, margins.left, tempY);
+      doc.text(value, margins.left + col1Width, tempY);
+      tempY += 7;
+    });
+    y = tempY + 10;
 
-  const orderStatus = statusConfig[receipt.purchase_order?.status] || statusConfig.draft
-  const totalQuantity = receipt.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0
-  const conformingCount = receipt.items?.filter(item => item.quality_ok).length || 0
-  const nonConformingCount = receipt.items?.filter(item => item.quality_checked && !item.quality_ok).length || 0
-  const conformityRate = (conformingCount + nonConformingCount) > 0 
-    ? Math.round((conformingCount / (conformingCount + nonConformingCount)) * 100) 
-    : 0
+    // ==================== TABLEAU DES ARTICLES ====================
+    const colDescX = margins.left;
+    const colQtyX = pageWidth - margins.right - 55;
+    const colQualityX = pageWidth - margins.right;
 
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('DÉSIGNATION', colDescX, y);
+    doc.text('QTÉ', colQtyX + 20, y, { align: 'right' });
+    doc.text('CONTRÔLE', colQualityX, y, { align: 'right' });
+    y += 4;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(colDescX, y, pageWidth - margins.right, y);
+    y += 5;
+
+    let currentY = y;
+    if (items.length === 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(150, 150, 150);
+      doc.text('Aucun article', colDescX, currentY);
+      currentY += 10;
+    } else {
+      for (let idx = 0; idx < items.length; idx++) {
+        const item = items[idx];
+        const productName = item.order_item?.product_name || item.product_name || '-';
+        const productRef = item.order_item?.product_reference || '';
+        const qty = item.quantity || 0;
+        const qualityChecked = item.quality_checked || false;
+        const qualityOk = item.quality_ok || false;
+
+        if (currentY > pageHeight - 80) {
+          doc.addPage();
+          currentY = margins.top;
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('DÉSIGNATION', colDescX, currentY);
+          doc.text('QTÉ', colQtyX + 20, currentY, { align: 'right' });
+          doc.text('CONTRÔLE', colQualityX, currentY, { align: 'right' });
+          currentY += 4;
+          doc.line(colDescX, currentY, pageWidth - margins.right, currentY);
+          currentY += 5;
+        }
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(productName, colDescX, currentY);
         
-        {/* En-tête avec logo */}
-        <View style={styles.header}>
-          <View style={styles.logoArea}>
-            {logoSrc ? (
-              <Image src={logoSrc} style={styles.logoImage} />
-            ) : (
-              <View style={styles.logoPlaceholder}>
-                <Text style={styles.logoPlaceholderText}>ECSI</Text>
-              </View>
-            )}
-            <View style={styles.companyInfo}>
-              <Text style={styles.companyName}>ECSI SARL</Text>
-              <Text style={styles.companySub}>Système de Gestion Intégré</Text>
-              <Text style={styles.companyDetails}>RC: 123456 | IF: 1234567 | NIF: 123456789</Text>
-              <Text style={styles.companyDetails}>Tél: +225 27 22 51 51 51 | Email: contact@ecsi.ci</Text>
-            </View>
-          </View>
-          <View style={styles.docHeader}>
-            <Text style={styles.docTitle}>BON DE RÉCEPTION</Text>
-            <Text style={styles.receiptNumber}>N° {receipt.receipt_number}</Text>
-            <View style={styles.statusBadge(orderStatus.bg)}>
-              <Text style={styles.statusText(orderStatus.color)}>{orderStatus.label}</Text>
-            </View>
-          </View>
-        </View>
+        doc.text(qty.toString(), colQtyX + 20, currentY, { align: 'right' });
+        
+        let qualityText = 'Non contrôlé';
+        let qualityColor = [150, 150, 150];
+        if (qualityChecked) {
+          if (qualityOk) {
+            qualityText = '✓ Conforme';
+            qualityColor = [5, 150, 105];
+          } else {
+            qualityText = '✗ Non conforme';
+            qualityColor = [220, 38, 38];
+          }
+        }
+        doc.setTextColor(qualityColor[0], qualityColor[1], qualityColor[2]);
+        doc.text(qualityText, colQualityX, currentY, { align: 'right' });
+        
+        currentY += 5;
 
-        {/* Informations générales */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>INFORMATIONS GÉNÉRALES</Text>
-          <View style={styles.infoGrid}>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>COMMANDE N°</Text>
-              <Text style={styles.infoValue}>{receipt.purchase_order?.order_number || '-'}</Text>
-            </View>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>FOURNISSEUR</Text>
-              <Text style={[styles.infoValue, styles.supplierValue]}>{receipt.purchase_order?.supplier_name || '-'}</Text>
-            </View>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>DATE DE RÉCEPTION</Text>
-              <Text style={styles.infoValue}>{formatDate(receipt.receipt_date)}</Text>
-            </View>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>REÇU PAR</Text>
-              <Text style={styles.infoValue}>{receipt.received_by_name || receipt.received_by?.email || '-'}</Text>
-            </View>
-          </View>
-        </View>
+        if (productRef) {
+          doc.setFontSize(7);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`Réf: ${productRef}`, colDescX + 2, currentY);
+          currentY += 4;
+        }
+        currentY += 3;
+      }
+    }
+    y = currentY + 5;
 
-        {/* Articles reçus */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ARTICLES REÇUS</Text>
-          
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableHeaderText, styles.productCol]}>DÉSIGNATION</Text>
-              <Text style={[styles.tableHeaderText, styles.quantityCol, styles.textCenter]}>QTÉ</Text>
-              <Text style={[styles.tableHeaderText, styles.qualityCol, styles.textCenter]}>CONTRÔLE QUALITÉ</Text>
-            </View>
-            
-            {receipt.items?.map((item, idx) => (
-              <View key={idx} style={styles.tableRow}>
-                <View style={styles.productCol}>
-                  <Text style={styles.productName}>{item.order_item?.product_name || item.product_name || '-'}</Text>
-                  {item.order_item?.product_reference && (
-                    <Text style={styles.productRef}>Réf: {item.order_item.product_reference}</Text>
-                  )}
-                </View>
-                <Text style={[styles.quantityCol, styles.textCenter]}>{item.quantity}</Text>
-                <View style={[styles.qualityCol, styles.textCenter]}>
-                  <View style={styles.qualityBadge(getQualityBg(item))}>
-                    <Text style={styles.qualityText(getQualityColor(item))}>{getQualityText(item)}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
+    // ==================== RÉSUMÉ ====================
+    const summaryBoxX = margins.left;
+    const summaryBoxY = y;
+    const summaryBoxWidth = pageWidth - margins.left - margins.right;
+    const summaryBoxHeight = 55;
 
-          {/* Résumé */}
-          <View style={styles.summaryBox}>
-            <View style={[styles.summaryRow, styles.summaryBorder]}>
-              <Text style={styles.summaryLabel}>Nombre d'articles différents</Text>
-              <Text style={styles.summaryValue}>{receipt.items?.length || 0}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Quantité totale reçue</Text>
-              <Text style={styles.summaryValue}>{formatNumber(totalQuantity)} unités</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Taux de conformité</Text>
-              <Text style={[styles.summaryValue, conformityRate >= 80 ? styles.textSuccess : styles.textDanger]}>
-                {conformityRate}%
-              </Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>✓ Articles conformes</Text>
-              <Text style={[styles.summaryValue, styles.textSuccess]}>{conformingCount}</Text>
-            </View>
-            {nonConformingCount > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>✗ Articles non conformes</Text>
-                <Text style={[styles.summaryValue, styles.textDanger]}>{nonConformingCount}</Text>
-              </View>
-            )}
-          </View>
-        </View>
+    doc.setDrawColor(200, 200, 200);
+    doc.setFillColor(249, 250, 251);
+    doc.rect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight, 'FD');
+    y += 4;
 
-        {/* Observations */}
-        {receipt.notes && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>OBSERVATIONS</Text>
-            <View style={styles.notesBox}>
-              <Text style={styles.notesText}>{receipt.notes}</Text>
-            </View>
-          </View>
-        )}
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(50, 50, 50);
+    doc.text('RÉSUMÉ DE LA RÉCEPTION', margins.left + 5, y);
+    y += 6;
 
-        {/* Signatures */}
-        <View style={styles.signatures}>
-          <View style={styles.signatureItem}>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>RÉCEPTIONNAIRE</Text>
-            <Text style={styles.signatureSub}>Nom et signature</Text>
-          </View>
-          <View style={styles.signatureItem}>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>RESPONSABLE QUALITÉ</Text>
-            <Text style={styles.signatureSub}>Nom et signature</Text>
-          </View>
-          <View style={styles.signatureItem}>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>CACHET ENTREPRISE</Text>
-            <Text style={styles.signatureSub}>Cachet obligatoire</Text>
-          </View>
-        </View>
+    doc.setFont('helvetica', 'normal');
+    const summaryRows = [
+      ['Nombre d\'articles différents :', `${items.length}`],
+      ['Quantité totale reçue :', `${formatNumber(totalQuantity)} unités`],
+      ['Taux de conformité :', `${conformityRate}%`],
+      ['✓ Articles conformes :', `${conformingCount}`],
+    ];
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>ECSI SARL - Document contractuel - Toute reproduction est interdite</Text>
-          <Text style={styles.footerText}>Siège social: Abidjan, Côte d'Ivoire | www.ecsi.ci</Text>
-          <Text style={styles.footerText}>
-            Généré le {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}
-          </Text>
-        </View>
-      </Page>
-    </Document>
-  )
-}
+    if (nonConformingCount > 0) {
+      summaryRows.push(['✗ Articles non conformes :', `${nonConformingCount}`]);
+    }
 
-// Composant principal
+    const col1WidthSum = 70;
+    summaryRows.forEach(([label, value]) => {
+      doc.text(label, margins.left + 5, y);
+      const isSuccess = label.includes('✓');
+      const isDanger = label.includes('✗');
+      if (isSuccess) {
+        doc.setTextColor(5, 150, 105);
+      } else if (isDanger) {
+        doc.setTextColor(220, 38, 38);
+      } else {
+        doc.setTextColor(50, 50, 50);
+      }
+      doc.text(value, margins.left + col1WidthSum, y);
+      doc.setTextColor(50, 50, 50);
+      y += 5;
+    });
+
+    y = summaryBoxY + summaryBoxHeight + 8;
+
+    // ==================== OBSERVATIONS ====================
+    if (notes) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 60, 63);
+      doc.text('OBSERVATIONS', margins.left, y);
+      y += 2;
+      doc.setDrawColor(218, 74, 14);
+      doc.line(margins.left, y, margins.left + 60, y);
+      y += 6;
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(50, 50, 50);
+      
+      const noteBoxX = margins.left;
+      const noteBoxY = y;
+      doc.setFillColor(255, 251, 235);
+      doc.setDrawColor(201, 160, 61);
+      doc.setLineWidth(0.5);
+      doc.rect(noteBoxX, noteBoxY, pageWidth - margins.left - margins.right, 10, 'FD');
+      doc.setDrawColor(0);
+      
+      const noteLines = doc.splitTextToSize(notes, pageWidth - margins.left - margins.right - 10);
+      doc.text(noteLines, margins.left + 3, y + 4);
+      y += noteLines.length * 5 + 12;
+    }
+
+    // ==================== SIGNATURES ====================
+    const signatureY = Math.max(y + 20, pageHeight - margins.bottom - 40);
+    doc.setDrawColor(150, 150, 150);
+    doc.setLineWidth(0.3);
+    
+    doc.line(margins.left + 10, signatureY, margins.left + 60, signatureY);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('RÉCEPTIONNAIRE', margins.left + 25, signatureY + 4);
+    doc.setFontSize(6);
+    doc.text('Nom et signature', margins.left + 25, signatureY + 8);
+
+    const sig2X = pageWidth / 2 - 25;
+    doc.line(sig2X, signatureY, sig2X + 50, signatureY);
+    doc.setFontSize(8);
+    doc.text('RESPONSABLE QUALITÉ', sig2X + 5, signatureY + 4);
+    doc.setFontSize(6);
+    doc.text('Nom et signature', sig2X + 5, signatureY + 8);
+
+    const sig3X = pageWidth - margins.right - 60;
+    doc.line(sig3X, signatureY, sig3X + 50, signatureY);
+    doc.setFontSize(8);
+    doc.text('CACHET ENTREPRISE', sig3X + 5, signatureY + 4);
+    doc.setFontSize(6);
+    doc.text('Cachet obligatoire', sig3X + 5, signatureY + 8);
+
+    // ==================== PIED DE PAGE ====================
+    const footerY = pageHeight - margins.bottom - 15;
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+
+    doc.text(
+      `${company.addressLine1} ${company.addressLine2} - ${company.phone} - ${company.cell}`,
+      pageWidth / 2,
+      footerY,
+      { align: 'center' }
+    );
+
+    doc.text(
+      `${company.rc} - ${company.email}`,
+      pageWidth / 2,
+      footerY + 5,
+      { align: 'center' }
+    );
+
+    doc.text(
+      `${company.bda} - ${company.bankAccount}`,
+      pageWidth / 2,
+      footerY + 10,
+      { align: 'center' }
+    );
+
+    doc.setFontSize(6);
+    doc.text(
+      `Généré le ${formatDateTime(new Date())}`,
+      pageWidth / 2,
+      footerY + 16,
+      { align: 'center' }
+    );
+
+    doc.save(`Bon_reception_${receiptNumber}.pdf`);
+    return true;
+
+  } catch (error) {
+    console.error('Erreur generateReceiptPDF:', error);
+    throw error;
+  }
+};
+
+// Composant principal (exporté par défaut)
 const PurchaseReceiptPDF = () => {
-  const navigate = useNavigate()
-  const { id } = useParams()
-  const logoSrc = useLogo()
-
-  const [receipt, setReceipt] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [showPreview, setShowPreview] = useState(true)
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [receipt, setReceipt] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showPreview, setShowPreview] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   const fetchData = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await AxiosInstance.get(`/purchase-receipts/${id}/`)
-      setReceipt(response.data)
+      const response = await AxiosInstance.get(`/purchase-receipts/${id}/`);
+      setReceipt(response.data);
     } catch (error) {
-      console.error('Erreur:', error)
+      console.error('Erreur:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    if (id) fetchData()
-  }, [id])
+    if (id) fetchData();
+  }, [id]);
+
+  const handleGeneratePDF = async () => {
+    if (!receipt) return;
+    setGenerating(true);
+    try {
+      await generateReceiptPDF(receipt);
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -569,7 +460,7 @@ const PurchaseReceiptPDF = () => {
           <p className="mt-4 text-gray-500">Chargement du document...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!receipt) {
@@ -584,7 +475,7 @@ const PurchaseReceiptPDF = () => {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -614,27 +505,23 @@ const PurchaseReceiptPDF = () => {
               {showPreview ? 'Masquer' : 'Afficher'} aperçu
             </button>
             
-            <PDFDownloadLink
-              document={<PurchaseReceiptPDFDocument receipt={receipt} logoSrc={logoSrc} />}
-              fileName={`bon_reception_${receipt.receipt_number}.pdf`}
-              className="px-4 py-1.5 bg-blue-700 text-white rounded-lg hover:bg-blue-800 flex items-center gap-2 text-sm font-medium transition shadow-sm"
+            <button
+              onClick={handleGeneratePDF}
+              disabled={generating}
+              className="px-4 py-1.5 bg-blue-700 text-white rounded-lg hover:bg-blue-800 flex items-center gap-2 text-sm font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {({ loading: pdfLoading }) => (
+              {generating ? (
                 <>
-                  {pdfLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Préparation...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4" />
-                      Télécharger PDF
-                    </>
-                  )}
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Génération...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Télécharger PDF
                 </>
               )}
-            </PDFDownloadLink>
+            </button>
           </div>
         </div>
       </div>
@@ -653,41 +540,30 @@ const PurchaseReceiptPDF = () => {
               overflow: 'hidden'
             }}
           >
-            <PDFDownloadLink
-              document={<PurchaseReceiptPDFDocument receipt={receipt} logoSrc={logoSrc} />}
-              fileName={`bon_reception_${receipt.receipt_number}.pdf`}
+            <div 
+              style={{
+                width: '100%',
+                minHeight: '297mm',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f9fafb',
+                padding: '20px'
+              }}
             >
-              {({ loading: pdfLoading }) => (
-                <div 
-                  style={{
-                    width: '100%',
-                    minHeight: '297mm',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#f9fafb'
-                  }}
-                >
-                  {pdfLoading ? (
-                    <div className="text-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-blue-700 mx-auto mb-3" />
-                      <p className="text-gray-500">Génération de l'aperçu...</p>
-                    </div>
-                  ) : (
-                    <div className="text-center p-8">
-                      <FileText className="w-16 h-16 text-blue-700 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-2">Aperçu disponible</p>
-                      <p className="text-sm text-gray-400">Cliquez sur "Télécharger PDF" pour voir le document</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </PDFDownloadLink>
+              <FileText className="w-16 h-16 text-blue-700 mx-auto mb-4" />
+              <p className="text-gray-600 mb-2 text-center">Aperçu du bon de réception</p>
+              <p className="text-sm text-gray-400 text-center">Cliquez sur "Télécharger PDF" pour générer le document</p>
+              <div className="mt-4 text-xs text-gray-300">
+                {receipt.receipt_number} - {receipt.purchase_order?.supplier_name || 'Fournisseur'}
+              </div>
+            </div>
           </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default PurchaseReceiptPDF
+export default PurchaseReceiptPDF;

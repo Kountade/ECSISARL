@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AxiosInstance from '../AxiosInstance'
+import { generateReceiptPDF } from './PurchaseReceiptPDF'
 import {
   Plus,
   Search,
@@ -24,7 +25,9 @@ import {
   Truck,
   FileText,
   Clock,
-  Award
+  Award,
+  Download,
+  Loader2
 } from 'lucide-react'
 
 const PurchaseReceipts = () => {
@@ -34,6 +37,7 @@ const PurchaseReceipts = () => {
   const [suppliers, setSuppliers] = useState([])
   const [loading, setLoading] = useState(true)
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+  const [downloadingPDF, setDownloadingPDF] = useState(null)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSupplier, setFilterSupplier] = useState('')
@@ -117,6 +121,21 @@ const PurchaseReceipts = () => {
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Fonction pour télécharger le PDF
+  const handleDownloadPDF = async (receipt) => {
+    if (!receipt) return
+    setDownloadingPDF(receipt.id)
+    try {
+      await generateReceiptPDF(receipt)
+      showNotification(`PDF téléchargé avec succès`, 'success')
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error)
+      showNotification('Erreur lors de la génération du PDF', 'error')
+    } finally {
+      setDownloadingPDF(null)
+    }
+  }
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -310,7 +329,7 @@ const PurchaseReceipts = () => {
                 <th><button className="flex items-center gap-1 font-semibold" onClick={() => handleSort('receipt_date')}>Date <SortIcon field="receipt_date" /></button></th>
                 <th className="text-center">Articles</th>
                 <th className="text-center">Statut</th>
-                <th className="text-right">Actions</th>
+                <th className="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -355,12 +374,25 @@ const PurchaseReceipts = () => {
                         <span className={`badge ${status.color}`}>{status.label}</span>
                       </td>
                       <td>
-                        <div className="flex justify-end gap-1">
-                          <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/receptions/${receipt.id}`)}>
+                        <div className="flex justify-center gap-1">
+                          <button 
+                            className="btn btn-ghost btn-sm" 
+                            onClick={() => navigate(`/receptions/${receipt.id}`)}
+                            title="Voir les détails"
+                          >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/receptions/${receipt.id}/pdf`)}>
-                            <FileText className="w-4 h-4" />
+                          <button 
+                            className="btn btn-ghost btn-sm text-primary" 
+                            onClick={() => handleDownloadPDF(receipt)}
+                            disabled={downloadingPDF === receipt.id}
+                            title="Télécharger PDF"
+                          >
+                            {downloadingPDF === receipt.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
                           </button>
                         </div>
                       </td>
@@ -404,6 +436,17 @@ const PurchaseReceipts = () => {
                 <div className="flex justify-end gap-1 mt-3 pt-2 border-t border-base-200">
                   <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/receptions/${receipt.id}`)}>
                     <Eye className="w-4 h-4" /> Voir
+                  </button>
+                  <button 
+                    className="btn btn-ghost btn-sm text-primary" 
+                    onClick={() => handleDownloadPDF(receipt)}
+                    disabled={downloadingPDF === receipt.id}
+                  >
+                    {downloadingPDF === receipt.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>

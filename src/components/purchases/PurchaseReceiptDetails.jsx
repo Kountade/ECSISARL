@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AxiosInstance from '../AxiosInstance'
+import { generateReceiptPDF } from './PurchaseReceiptPDF'
 import {
   ArrowLeft,
   Building2,
@@ -16,14 +17,15 @@ import {
   Hash,
   User,
   Edit,
-  Printer,
+  Download,
   RefreshCw,
   Truck,
   Mail,
   Phone,
   MapPin,
   Award,
-  X
+  X,
+  Loader2
 } from 'lucide-react'
 
 const PurchaseReceiptDetails = () => {
@@ -32,6 +34,7 @@ const PurchaseReceiptDetails = () => {
 
   const [receipt, setReceipt] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [generatingPDF, setGeneratingPDF] = useState(false)
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   const statusConfig = {
@@ -96,8 +99,19 @@ const PurchaseReceiptDetails = () => {
     fetchData()
   }, [id])
 
-  const handlePrint = () => {
-    window.print()
+  // Fonction pour télécharger le PDF
+  const handleDownloadPDF = async () => {
+    if (!receipt) return
+    setGeneratingPDF(true)
+    try {
+      await generateReceiptPDF(receipt)
+      showNotification('PDF téléchargé avec succès', 'success')
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error)
+      showNotification('Erreur lors de la génération du PDF', 'error')
+    } finally {
+      setGeneratingPDF(false)
+    }
   }
 
   const getQualityBadge = (item) => {
@@ -193,8 +207,22 @@ const PurchaseReceiptDetails = () => {
               <Edit className="w-4 h-4" /> Modifier
             </button>
           )}
-          <button onClick={handlePrint} className="btn btn-primary btn-sm">
-            <Printer className="w-4 h-4" /> Imprimer
+          <button 
+            onClick={handleDownloadPDF} 
+            className="btn btn-primary btn-sm"
+            disabled={generatingPDF}
+          >
+            {generatingPDF ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Génération...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Télécharger PDF
+              </>
+            )}
           </button>
         </div>
       </div>
