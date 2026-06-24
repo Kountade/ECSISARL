@@ -53,6 +53,9 @@ import QuotationDetail from './components/sales/QuotationDetail'
 import SaleDetail from './components/sales/SaleDetail'
 import NotificationsPage from './components/notifications/NotificationsPage'
 import AuditLog from './components/audit/AuditLog'
+import Transferts from './components/inventory/Transferts'
+import TransfertDetail from './components/inventory/TransfertDetail'
+import TransfertForm from './components/inventory/TransfertForm'
 
 import { Routes, Route , useLocation} from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoutes'
@@ -126,7 +129,14 @@ function App() {
                          <Route path="/entrepots/:id/modifier" element={<WarehouseForm />} />
 
                        <Route path="/stocks/mouvements" element={<StockMovements />} />
-                        
+
+
+                         {/* Transfers */}
+            <Route path="/transferts" element={<Transferts />} />
+            <Route path="/transferts/nouveau" element={<TransfertForm />} />
+            <Route path="/transferts/:id" element={<TransfertDetail />} />
+            <Route path="/transferts/:id/modifier" element={<TransfertForm />} />
+            <Route path="/transferts/:id" element={<TransfertDetail />} />
 
                            {/* Fournisseurs (si page dédiée)  */}
                          <Route path="/fournisseurs" element={<Fournisseurs />} />

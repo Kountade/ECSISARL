@@ -1,0 +1,531 @@
+// src/components/inventory/TransfertDetail.jsx
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import AxiosInstance from '../AxiosInstance';
+import { generateTransferPDF } from './TransfertPDF';
+import {
+  ArrowLeft,
+  Building2,
+  Calendar,
+  Package,
+  Receipt,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  Truck,
+  Send,
+  Edit,
+  Trash2,
+  RefreshCw,
+  X,
+  Download,
+  Loader2,
+  Warehouse,
+  ArrowRight,
+  Ban,
+  Check,
+  Hourglass,
+  User
+} from 'lucide-react';
+
+const TransfertDetail = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  const [transfer, setTransfer] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveItems, setReceiveItems] = useState([]);
+
+  const statusConfig = {
+    draft: { label: 'Brouillon', color: 'badge-ghost', icon: Edit },
+    pending: { label: 'En attente', color: 'badge-warning', icon: Hourglass },
+    in_transit: { label: 'En transit', color: 'badge-info', icon: Truck },
+    partial: { label: 'Partiel', color: 'badge-warning', icon: Receipt },
+    completed: { label: 'Terminé', color: 'badge-success', icon: Check },
+    cancelled: { label: 'Annulé', color: 'badge-error', icon: Ban }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatNumber = (number) => {
+    if (typeof number !== 'number') number = parseFloat(number) || 0;
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(number);
+  };
+
+  const formatCurrency = (amount) => {
+    return `${formatNumber(amount)} FCFA`;
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 4000);
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await AxiosInstance.get(`/transfers/${id}/`);
+      setTransfer(response.data);
+      setReceiveItems(response.data.items?.map(item => ({
+        id: item.id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        quantity_received: item.quantity_received || 0,
+        remaining: item.quantity - (item.quantity_received || 0),
+        to_receive: item.quantity - (item.quantity_received || 0)
+      })) || []);
+    } catch (error) {
+      console.error('Erreur:', error);
+      showNotification('Erreur de chargement du transfert', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [id]);
+
+  const handleDownloadPDF = async () => {
+    if (!transfer) return;
+    setGeneratingPDF(true);
+    try {
+      await generateTransferPDF(transfer);
+      showNotification('PDF téléchargé avec succès', 'success');
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+      showNotification('Erreur lors de la génération du PDF', 'error');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
+  const handleStartTransfer = async () => {
+    try {
+      await AxiosInstance.post(`/transfers/${id}/start/`);
+      showNotification('Transfert démarré', 'success');
+      fetchData();
+    } catch (error) {
+      showNotification('Erreur lors du démarrage', 'error');
+    }
+  };
+
+  const handleCancelTransfer = async () => {
+    try {
+      await AxiosInstance.post(`/transfers/${id}/cancel/`);
+      showNotification('Transfert annulé', 'success');
+      fetchData();
+    } catch (error) {
+      showNotification('Erreur lors de l\'annulation', 'error');
+    }
+  };
+
+  const handleReceiveTransfer = async () => {
+    const itemsToReceive = receiveItems.filter(item => item.to_receive > 0);
+    if (itemsToReceive.length === 0) {
+      showNotification('Aucun article à réceptionner', 'error');
+      return;
+    }
+
+    try {
+      await AxiosInstance.post(`/transfers/${id}/receive/`, {
+        items: itemsToReceive.map(item => ({
+          id: item.id,
+          quantity_received: item.to_receive
+        }))
+      });
+      showNotification('Transfert réceptionné avec succès', 'success');
+      setShowReceiveModal(false);
+      fetchData();
+    } catch (error) {
+      console.error('Erreur:', error);
+      showNotification('Erreur lors de la réception', 'error');
+    }
+  };
+
+  const updateReceiveQuantity = (index, value) => {
+    const newItems = [...receiveItems];
+    const max = newItems[index].remaining;
+    newItems[index].to_receive = Math.min(Math.max(0, parseInt(value) || 0), max);
+    setReceiveItems(newItems);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    );
+  }
+
+  if (!transfer) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-error" />
+          <h2 className="text-xl font-bold mb-2">Transfert non trouvé</h2>
+          <button onClick={() => navigate('/transferts')} className="btn btn-primary">
+            Retour à la liste
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const status = statusConfig[transfer.status] || statusConfig.draft;
+  const StatusIcon = status.icon;
+  const totalItems = transfer.items?.length || 0;
+  const totalQuantity = transfer.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+  const totalReceived = transfer.items?.reduce((sum, item) => sum + (item.quantity_received || 0), 0) || 0;
+  const progress = totalQuantity > 0 ? (totalReceived / totalQuantity) * 100 : 0;
+
+  return (
+    <div className="w-full px-3 lg:px-6 py-3 space-y-4">
+      {/* Notification */}
+      {notification.show && (
+        <div className="fixed top-16 lg:top-20 right-3 lg:right-6 z-50 animate-slideDown w-[calc(100%-1.5rem)] lg:w-auto max-w-md">
+          <div className={`alert ${notification.type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg`}>
+            {notification.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            <span className="text-sm">{notification.message}</span>
+            <button className="btn btn-ghost btn-xs btn-circle" onClick={() => setNotification({ ...notification, show: false })}>
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* En-tête */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/transferts')} className="btn btn-ghost btn-sm btn-circle">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-xl lg:text-2xl font-bold flex items-center gap-2">
+              <Truck className="w-6 h-6 text-primary" />
+              Transfert {transfer.reference}
+            </h1>
+            <p className="text-sm text-base-content/60 mt-1">
+              Détails du transfert entre entrepôts
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={fetchData} className="btn btn-outline btn-sm">
+            <RefreshCw className="w-4 h-4" />
+          </button>
+
+          {transfer.status === 'draft' && (
+            <>
+              <button onClick={() => navigate(`/transferts/${id}/modifier`)} className="btn btn-outline btn-sm">
+                <Edit className="w-4 h-4" /> Modifier
+              </button>
+              <button onClick={handleStartTransfer} className="btn btn-primary btn-sm">
+                <Send className="w-4 h-4" /> Démarrer
+              </button>
+            </>
+          )}
+
+          {transfer.status === 'pending' && (
+            <button onClick={handleStartTransfer} className="btn btn-primary btn-sm">
+              <Send className="w-4 h-4" /> Démarrer
+            </button>
+          )}
+
+          {transfer.status === 'in_transit' && (
+            <button onClick={() => setShowReceiveModal(true)} className="btn btn-success btn-sm">
+              <Check className="w-4 h-4" /> Réceptionner
+            </button>
+          )}
+
+          {['pending', 'in_transit', 'partial'].includes(transfer.status) && (
+            <button onClick={handleCancelTransfer} className="btn btn-error btn-sm">
+              <Ban className="w-4 h-4" /> Annuler
+            </button>
+          )}
+
+          <button onClick={handleDownloadPDF} className="btn btn-primary btn-sm" disabled={generatingPDF}>
+            {generatingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Télécharger PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Résumé */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-primary p-3">
+          <div className="stat-figure text-primary"><Truck className="w-5 h-5" /></div>
+          <div className="stat-title text-xs">Référence</div>
+          <div className="stat-value text-base">{transfer.reference}</div>
+        </div>
+
+        <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-info p-3">
+          <div className="stat-figure text-info"><Package className="w-5 h-5" /></div>
+          <div className="stat-title text-xs">Articles</div>
+          <div className="stat-value text-base">{totalItems}</div>
+          <div className="stat-desc text-xs">{formatNumber(totalQuantity)} unités</div>
+        </div>
+
+        <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-warning p-3">
+          <div className="stat-figure text-warning"><Clock className="w-5 h-5" /></div>
+          <div className="stat-title text-xs">Statut</div>
+          <div className="stat-value text-sm">
+            <span className={`badge ${status.color} gap-1`}>
+              <StatusIcon className="w-3 h-3" /> {status.label}
+            </span>
+          </div>
+        </div>
+
+        <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-success p-3">
+          <div className="stat-figure text-success"><Check className="w-5 h-5" /></div>
+          <div className="stat-title text-xs">Progression</div>
+          <div className="stat-value text-base">{Math.round(progress)}%</div>
+          <div className="stat-desc text-xs">{formatNumber(totalReceived)} / {formatNumber(totalQuantity)} reçus</div>
+        </div>
+
+        <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-secondary p-3 col-span-2 lg:col-span-1">
+          <div className="stat-figure text-secondary"><FileText className="w-5 h-5" /></div>
+          <div className="stat-title text-xs">Valeur totale</div>
+          <div className="stat-value text-sm">
+            {formatCurrency(transfer.items?.reduce((sum, item) => sum + (item.quantity * item.unit_price || 0), 0) || 0)}
+          </div>
+        </div>
+      </div>
+
+      {/* Progression */}
+      {['in_transit', 'partial'].includes(transfer.status) && (
+        <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+          <h2 className="font-bold text-base mb-3 flex items-center gap-2">
+            <Truck className="w-5 h-5 text-warning" />
+            Progression de la réception
+          </h2>
+          <div className="w-full">
+            <progress className="progress progress-primary w-full" value={progress} max="100"></progress>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-base-content/60">Reçu</span>
+              <span className="font-semibold">{Math.round(progress)}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Informations générales */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+          <h2 className="font-bold text-base mb-3 flex items-center gap-2">
+            <Warehouse className="w-5 h-5 text-primary" />
+            Parcours
+          </h2>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 text-center">
+              <div className="text-4xl mb-2">🏠</div>
+              <div className="font-medium">{transfer.from_warehouse?.name || '-'}</div>
+              <div className="text-xs text-base-content/60">{transfer.from_warehouse?.code || '-'}</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <ArrowRight className="w-8 h-8 text-primary" />
+              <div className="text-xs text-base-content/60">Transfert</div>
+            </div>
+            <div className="flex-1 text-center">
+              <div className="text-4xl mb-2">🏢</div>
+              <div className="font-medium">{transfer.to_warehouse?.name || '-'}</div>
+              <div className="text-xs text-base-content/60">{transfer.to_warehouse?.code || '-'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+          <h2 className="font-bold text-base mb-3 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-info" />
+            Informations
+          </h2>
+
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-base-content/60">Date de création:</span>
+              <span>{formatDateTime(transfer.created_at)}</span>
+            </div>
+            {transfer.expected_date && (
+              <div className="flex justify-between">
+                <span className="text-base-content/60">Date prévue:</span>
+                <span>{formatDate(transfer.expected_date)}</span>
+              </div>
+            )}
+            {transfer.completed_date && (
+              <div className="flex justify-between">
+                <span className="text-base-content/60">Date de completion:</span>
+                <span>{formatDate(transfer.completed_date)}</span>
+              </div>
+            )}
+            {transfer.waybill && (
+              <div className="flex justify-between">
+                <span className="text-base-content/60">Bon de livraison:</span>
+                <span className="font-mono">{transfer.waybill}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-base-content/60">Créé par:</span>
+              <span className="flex items-center gap-1">
+                <User className="w-4 h-4 text-base-content/50" />
+                {transfer.created_by?.email || '-'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Articles */}
+      <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 overflow-hidden">
+        <div className="p-4 border-b border-base-300 bg-base-200/50">
+          <h2 className="font-bold text-base flex items-center gap-2">
+            <Package className="w-5 h-5 text-primary" />
+            Articles du transfert
+          </h2>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="table table-zebra">
+            <thead>
+              <tr className="bg-base-200">
+                <th>Produit</th>
+                <th>Référence</th>
+                <th className="text-center">Quantité</th>
+                <th className="text-center">Reçu</th>
+                <th className="text-center">Restant</th>
+                <th className="text-right">Prix unitaire</th>
+                <th className="text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transfer.items?.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-base-content/50">
+                    Aucun article dans ce transfert
+                  </td>
+                </tr>
+              ) : (
+                transfer.items?.map((item, idx) => {
+                  const remaining = item.quantity - (item.quantity_received || 0);
+                  return (
+                    <tr key={idx}>
+                      <td className="font-medium">{item.product_name || '-'}</td>
+                      <td>{item.product_reference || '-'}</td>
+                      <td className="text-center">{item.quantity}</td>
+                      <td className="text-center">{item.quantity_received || 0}</td>
+                      <td className="text-center">
+                        <span className={remaining > 0 ? 'text-warning font-semibold' : 'text-success'}>
+                          {remaining}
+                        </span>
+                      </td>
+                      <td className="text-right">{formatCurrency(item.unit_price)}</td>
+                      <td className="text-right font-semibold">{formatCurrency(item.quantity * item.unit_price)}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+            <tfoot className="bg-base-200">
+              <tr className="font-bold">
+                <td colSpan={6} className="text-right">Total</td>
+                <td className="text-right">
+                  {formatCurrency(transfer.items?.reduce((sum, item) => sum + (item.quantity * item.unit_price || 0), 0) || 0)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* Notes */}
+      {transfer.notes && (
+        <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 overflow-hidden">
+          <div className="p-4 border-b border-base-300 bg-base-200/50">
+            <h2 className="font-bold text-base flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Notes
+            </h2>
+          </div>
+          <div className="p-4">
+            <p className="text-sm whitespace-pre-wrap">{transfer.notes}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Réception */}
+      {showReceiveModal && (
+        <div className="modal modal-open">
+          <div className="modal-box w-11/12 max-w-2xl">
+            <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
+              <Check className="w-6 h-6 text-success" />
+              Réceptionner le transfert
+            </h3>
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {receiveItems.map((item, idx) => (
+                <div key={idx} className="bg-base-200 rounded-lg p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1">
+                      <div className="font-medium">{item.product_name}</div>
+                      <div className="text-sm text-base-content/60">
+                        Quantité totale: {item.quantity} | Reçu: {item.quantity_received} | Restant: {item.remaining}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm">À recevoir:</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.remaining}
+                        value={item.to_receive}
+                        onChange={(e) => updateReceiveQuantity(idx, e.target.value)}
+                        className="input input-bordered input-sm w-24"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="modal-action">
+              <button className="btn btn-ghost" onClick={() => setShowReceiveModal(false)}>
+                Annuler
+              </button>
+              <button className="btn btn-success" onClick={handleReceiveTransfer}>
+                <Check className="w-4 h-4" /> Réceptionner
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TransfertDetail;

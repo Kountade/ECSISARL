@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AxiosInstance from '../AxiosInstance'
+import { generateOrderPDF } from './PurchaseOrderPDF'
 import {
   Plus,
   Search,
@@ -27,7 +28,9 @@ import {
   FileText,
   Warehouse,
   Clock,
-  Package
+  Package,
+  Download,
+  Loader2
 } from 'lucide-react'
 
 const PurchaseOrders = () => {
@@ -39,6 +42,7 @@ const PurchaseOrders = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [orderToDelete, setOrderToDelete] = useState(null)
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+  const [downloadingPDF, setDownloadingPDF] = useState(null)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSupplier, setFilterSupplier] = useState('')
@@ -83,7 +87,7 @@ const PurchaseOrders = () => {
   }
 
   const formatCurrency = (amount) => {
-    return `${formatNumber(amount)} €`
+    return `${formatNumber(amount)} FCFA`
   }
 
   const formatDate = (dateString) => {
@@ -127,6 +131,21 @@ const PurchaseOrders = () => {
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Fonction pour télécharger le PDF
+  const handleDownloadPDF = async (order) => {
+    if (!order) return
+    setDownloadingPDF(order.id)
+    try {
+      await generateOrderPDF(order)
+      showNotification('PDF téléchargé avec succès', 'success')
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error)
+      showNotification('Erreur lors de la génération du PDF', 'error')
+    } finally {
+      setDownloadingPDF(null)
+    }
+  }
 
   const handleDelete = async () => {
     if (!orderToDelete) return
@@ -364,7 +383,7 @@ const PurchaseOrders = () => {
                 <th className="text-center">Statut</th>
                 <th className="text-center">Urgence</th>
                 <th><button className="flex items-center gap-1 font-semibold" onClick={() => handleSort('total')}>Montant <SortIcon field="total" /></button></th>
-                <th className="text-right">Actions</th>
+                <th className="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -423,9 +442,26 @@ const PurchaseOrders = () => {
                         )}
                       </td>
                       <td>
-                        <div className="flex justify-end gap-1">
-                          <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/commandes/${order.id}`)}>
+                        <div className="flex justify-center gap-1 flex-wrap">
+                          <button 
+                            className="btn btn-ghost btn-sm" 
+                            onClick={() => navigate(`/commandes/${order.id}`)}
+                            title="Voir les détails"
+                          >
                             <Eye className="w-4 h-4" />
+                          </button>
+                          
+                          <button 
+                            className="btn btn-ghost btn-sm text-primary" 
+                            onClick={() => handleDownloadPDF(order)}
+                            disabled={downloadingPDF === order.id}
+                            title="Télécharger PDF"
+                          >
+                            {downloadingPDF === order.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
                           </button>
                           
                           {order.status === 'draft' && (
@@ -512,12 +548,31 @@ const PurchaseOrders = () => {
                   </div>
                 )}
                 
-                <div className="flex justify-end gap-1 mt-3 pt-2 border-t border-base-200">
-                  <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/commandes/${order.id}`)}><Eye className="w-4 h-4" /> Voir</button>
+                <div className="flex flex-wrap justify-end gap-1 mt-3 pt-2 border-t border-base-200">
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/commandes/${order.id}`)}>
+                    <Eye className="w-4 h-4" /> Voir
+                  </button>
+                  
+                  <button 
+                    className="btn btn-ghost btn-sm text-primary" 
+                    onClick={() => handleDownloadPDF(order)}
+                    disabled={downloadingPDF === order.id}
+                  >
+                    {downloadingPDF === order.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                  </button>
+                  
                   {order.status === 'draft' && (
                     <>
-                      <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/commandes/${order.id}/modifier`)}><Edit className="w-4 h-4" /> Modifier</button>
-                      <button className="btn btn-ghost btn-sm text-error" onClick={() => { setOrderToDelete(order); setShowDeleteModal(true) }}><Trash2 className="w-4 h-4" /></button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/commandes/${order.id}/modifier`)}>
+                        <Edit className="w-4 h-4" /> Modifier
+                      </button>
+                      <button className="btn btn-ghost btn-sm text-error" onClick={() => { setOrderToDelete(order); setShowDeleteModal(true) }}>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </>
                   )}
                 </div>

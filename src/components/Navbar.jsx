@@ -138,6 +138,7 @@ export default function Navbar({ content, mode, toggleColorMode }) {
       'produits': 'Produits',
       'stocks': 'Stocks',
       'entrepots': 'Entrepôts',
+      'transferts': 'Transferts',
       'livraisons': 'Livraisons',
       'rapports-ventes': 'Rapports ventes',
       'statistiques': 'Statistiques',
@@ -182,50 +183,56 @@ export default function Navbar({ content, mode, toggleColorMode }) {
         { id: 'alertes', text: 'Alertes', icon: AlertTriangle, path: '/purchase-alerts', permission: canViewPurchases(), badge: alertsCount }
       ]
     },
-  // Version simplifiée - Menu STOCK & LOGISTIQUE
-{
-  name: 'STOCK & LOGISTIQUE',
-  icon: Package,
-  permission: canViewInventory(),
-  items: [
-    { 
-      id: 'produits', 
-      text: 'Produits', 
-      icon: Package, 
-      path: '/produits', 
-      permission: canViewInventory() 
+    {
+      name: 'STOCK & LOGISTIQUE',
+      icon: Package,
+      permission: canViewInventory(),
+      items: [
+        { 
+          id: 'produits', 
+          text: 'Produits', 
+          icon: Package, 
+          path: '/produits', 
+          permission: canViewInventory() 
+        },
+        { 
+          id: 'stocks', 
+          text: 'Stocks', 
+          icon: Boxes, 
+          path: '/stocks', 
+          permission: canViewInventory(), 
+          badge: stocksFaibles.length 
+        },
+        { 
+          id: 'mouvements', 
+          text: 'Mouvements de stock', 
+          icon: History, 
+          path: '/stocks/mouvements', 
+          permission: canViewInventory() 
+        },
+        { 
+          id: 'entrepots', 
+          text: 'Entrepôts', 
+          icon: Warehouse, 
+          path: '/entrepots', 
+          permission: canViewInventory() 
+        },
+        { 
+          id: 'transferts', 
+          text: 'Transferts', 
+          icon: ArrowLeftRight, 
+          path: '/transferts', 
+          permission: canViewInventory() 
+        },
+        { 
+          id: 'livraisons', 
+          text: 'Livraisons', 
+          icon: Truck, 
+          path: '/livraisons', 
+          permission: canViewInventory() 
+        }
+      ]
     },
-    { 
-      id: 'stocks', 
-      text: 'Stocks', 
-      icon: Boxes, 
-      path: '/stocks', 
-      permission: canViewInventory(), 
-      badge: stocksFaibles.length 
-    },
-    { 
-      id: 'mouvements', 
-      text: 'Mouvements de stock', 
-      icon: History, 
-      path: '/stocks/mouvements', 
-      permission: canViewInventory() 
-    },
-    { 
-      id: 'entrepots', 
-      text: 'Entrepôts', 
-      icon: Warehouse, 
-      path: '/entrepots', 
-      permission: canViewInventory() 
-    },
-    { 
-      id: 'livraisons', 
-      text: 'Livraisons', 
-      icon: Truck, 
-      path: '/livraisons', 
-      permission: canViewInventory() 
-    }
-  ]
-},
     {
       name: 'RAPPORTS',
       icon: PieChart,
@@ -236,16 +243,15 @@ export default function Navbar({ content, mode, toggleColorMode }) {
       ]
     },
     {
-  name: 'ADMIN',
-  icon: Settings,
-  permission: canViewAdmin(),
-  items: [
-    { id: 'utilisateurs', text: 'Utilisateurs', icon: Users2, path: '/utilisateurs', permission: canViewAdmin() },
-    { id: 'audit', text: 'Journal Audit', icon: History, path: '/audit', permission: canViewAdmin() },
-    { id: 'parametres', text: 'Paramètres', icon: Settings, path: '/parametres', permission: canViewAdmin() }
-  ]
-}
-   ,
+      name: 'ADMIN',
+      icon: Settings,
+      permission: canViewAdmin(),
+      items: [
+        { id: 'utilisateurs', text: 'Utilisateurs', icon: Users2, path: '/utilisateurs', permission: canViewAdmin() },
+        { id: 'audit', text: 'Journal Audit', icon: History, path: '/audit', permission: canViewAdmin() },
+        { id: 'parametres', text: 'Paramètres', icon: Settings, path: '/parametres', permission: canViewAdmin() }
+      ]
+    },
     {
       name: 'MON ESPACE',
       icon: User,
