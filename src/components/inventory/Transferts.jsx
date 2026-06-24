@@ -34,7 +34,8 @@ import {
   ArrowRight,
   Ban,
   Check,
-  Hourglass
+  Hourglass,
+  Box
 } from 'lucide-react';
 
 const Transferts = () => {
@@ -64,7 +65,9 @@ const Transferts = () => {
     pending: 0,
     in_transit: 0,
     completed: 0,
-    cancelled: 0
+    cancelled: 0,
+    total_items: 0,
+    total_quantity: 0
   });
 
   const statusConfig = {
@@ -90,7 +93,11 @@ const Transferts = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('fr-FR');
+    try {
+      return new Date(dateString).toLocaleDateString('fr-FR');
+    } catch {
+      return '-';
+    }
   };
 
   const showNotification = (message, type = 'success') => {
@@ -110,13 +117,28 @@ const Transferts = () => {
       setTransfers(transfersData);
       setWarehouses(warehousesRes.data || []);
 
+      // Calcul des statistiques
+      let totalItems = 0;
+      let totalQuantity = 0;
+
+      transfersData.forEach(transfer => {
+        if (transfer.items && transfer.items.length > 0) {
+          totalItems += transfer.items.length;
+          transfer.items.forEach(item => {
+            totalQuantity += (item.quantity || 0);
+          });
+        }
+      });
+
       setStats({
         total: transfersData.length,
         draft: transfersData.filter(t => t.status === 'draft').length,
         pending: transfersData.filter(t => t.status === 'pending').length,
         in_transit: transfersData.filter(t => t.status === 'in_transit').length,
         completed: transfersData.filter(t => t.status === 'completed').length,
-        cancelled: transfersData.filter(t => t.status === 'cancelled').length
+        cancelled: transfersData.filter(t => t.status === 'cancelled').length,
+        total_items: totalItems,
+        total_quantity: totalQuantity
       });
 
     } catch (error) {
@@ -271,7 +293,7 @@ const Transferts = () => {
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 lg:gap-4">
         <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-primary p-3 lg:p-4">
           <div className="stat-figure text-primary"><Truck className="w-6 h-6" /></div>
           <div className="stat-title text-sm">Total</div>
@@ -297,10 +319,16 @@ const Transferts = () => {
           <div className="stat-title text-sm">Terminés</div>
           <div className="stat-value text-xl lg:text-2xl">{stats.completed}</div>
         </div>
-        <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-error p-3 lg:p-4 col-span-2 lg:col-span-1">
+        <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-error p-3 lg:p-4">
           <div className="stat-figure text-error"><Ban className="w-6 h-6" /></div>
           <div className="stat-title text-sm">Annulés</div>
           <div className="stat-value text-xl lg:text-2xl">{stats.cancelled}</div>
+        </div>
+        <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-secondary p-3 lg:p-4 col-span-2 lg:col-span-1">
+          <div className="stat-figure text-secondary"><Box className="w-6 h-6" /></div>
+          <div className="stat-title text-sm">Articles</div>
+          <div className="stat-value text-lg lg:text-xl">{formatNumber(stats.total_items)}</div>
+          <div className="stat-desc text-xs">{formatNumber(stats.total_quantity)} unités</div>
         </div>
       </div>
 
@@ -369,17 +397,18 @@ const Transferts = () => {
               <tr className="bg-base-200">
                 <th><button className="flex items-center gap-1 font-semibold" onClick={() => handleSort('reference')}>Référence <SortIcon field="reference" /></button></th>
                 <th>Source</th>
-                <th><ArrowRight className="w-4 h-4 inline" /></th>
+                <th className="text-center">→</th>
                 <th>Destination</th>
                 <th><button className="flex items-center gap-1 font-semibold" onClick={() => handleSort('created_at')}>Date <SortIcon field="created_at" /></button></th>
                 <th className="text-center">Articles</th>
+                <th className="text-center">Quantité</th>
                 <th className="text-center">Statut</th>
                 <th className="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginatedTransfers.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-base-content/50">Aucun transfert trouvé</td></tr>
+                <tr><td colSpan={9} className="text-center py-12 text-base-content/50">Aucun transfert trouvé</td></tr>
               ) : (
                 paginatedTransfers.map((transfer) => {
                   const status = statusConfig[transfer.status] || statusConfig.draft;
@@ -392,12 +421,12 @@ const Transferts = () => {
                       <td>
                         <div className="flex items-center gap-2">
                           <div className="avatar placeholder">
-                            <div className="bg-primary/10 rounded-lg w-10 h-10">
+                            <div className="bg-primary/10 rounded-lg w-10 h-10 flex items-center justify-center">
                               <Truck className="w-5 h-5 text-primary" />
                             </div>
                           </div>
                           <div>
-                            <div className="font-medium">{transfer.reference}</div>
+                            <div className="font-medium">{transfer.reference || '-'}</div>
                             {transfer.waybill && (
                               <div className="text-xs text-base-content/60">BL: {transfer.waybill}</div>
                             )}
@@ -410,7 +439,9 @@ const Transferts = () => {
                           <span>{transfer.from_warehouse?.name || '-'}</span>
                         </div>
                       </td>
-                      <td><ArrowRight className="w-4 h-4 text-primary" /></td>
+                      <td className="text-center">
+                        <ArrowRight className="w-4 h-4 text-primary mx-auto" />
+                      </td>
                       <td>
                         <div className="flex items-center gap-1">
                           <Warehouse className="w-4 h-4 text-base-content/50" />
@@ -419,8 +450,10 @@ const Transferts = () => {
                       </td>
                       <td>{formatDate(transfer.created_at)}</td>
                       <td className="text-center">
-                        <span className="badge badge-outline">{totalItems} article(s)</span>
-                        <div className="text-xs text-base-content/60">{formatNumber(totalQuantity)} unités</div>
+                        <span className="badge badge-outline">{totalItems}</span>
+                      </td>
+                      <td className="text-center">
+                        <span className="text-sm font-medium">{formatNumber(totalQuantity)}</span>
                       </td>
                       <td className="text-center">
                         <span className={`badge ${status.color} gap-1`}>
@@ -464,7 +497,7 @@ const Transferts = () => {
                           )}
 
                           {transfer.status === 'in_transit' && (
-                            <button className="btn btn-ghost btn-sm text-success" onClick={() => navigate(`/transferts/${transfer.id}/reception`)} title="Réceptionner">
+                            <button className="btn btn-ghost btn-sm text-success" onClick={() => navigate(`/transferts/${transfer.id}`)} title="Réceptionner">
                               <Check className="w-4 h-4" />
                             </button>
                           )}
@@ -488,6 +521,7 @@ const Transferts = () => {
             const status = statusConfig[transfer.status] || statusConfig.draft;
             const StatusIcon = status.icon;
             const totalItems = transfer.items?.length || 0;
+            const totalQuantity = transfer.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
 
             return (
               <div key={transfer.id} className="bg-base-100 rounded-xl p-4 border border-base-300">
@@ -495,9 +529,9 @@ const Transferts = () => {
                   <div className="flex items-center gap-2">
                     <StatusIcon className="w-5 h-5" />
                     <div>
-                      <span className="font-bold">{transfer.reference}</span>
+                      <span className="font-bold">{transfer.reference || '-'}</span>
                       <p className="text-sm text-base-content/60">
-                        {transfer.from_warehouse?.name} → {transfer.to_warehouse?.name}
+                        {transfer.from_warehouse?.name || '-'} → {transfer.to_warehouse?.name || '-'}
                       </p>
                     </div>
                   </div>
@@ -507,6 +541,7 @@ const Transferts = () => {
                 <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                   <div><span className="text-base-content/60">Date:</span> {formatDate(transfer.created_at)}</div>
                   <div><span className="text-base-content/60">Articles:</span> {totalItems}</div>
+                  <div><span className="text-base-content/60">Quantité:</span> {formatNumber(totalQuantity)}</div>
                   {transfer.waybill && <div className="col-span-2"><span className="text-base-content/60">BL:</span> {transfer.waybill}</div>}
                 </div>
 

@@ -26,7 +26,12 @@ import {
   Ban,
   Check,
   Hourglass,
-  User
+  User,
+  Clock,
+  ArrowRightCircle,
+  Warehouse as WarehouseIcon,
+  Home,
+  Factory
 } from 'lucide-react';
 
 const TransfertDetail = () => {
@@ -35,6 +40,7 @@ const TransfertDetail = () => {
 
   const [transfer, setTransfer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [showReceiveModal, setShowReceiveModal] = useState(false);
@@ -51,22 +57,30 @@ const TransfertDetail = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return '-';
+    }
   };
 
   const formatDateTime = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      return new Date(dateString).toLocaleString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '-';
+    }
   };
 
   const formatNumber = (number) => {
@@ -88,19 +102,27 @@ const TransfertDetail = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await AxiosInstance.get(`/transfers/${id}/`);
-      setTransfer(response.data);
-      setReceiveItems(response.data.items?.map(item => ({
-        id: item.id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        quantity_received: item.quantity_received || 0,
-        remaining: item.quantity - (item.quantity_received || 0),
-        to_receive: item.quantity - (item.quantity_received || 0)
-      })) || []);
+      const data = response.data;
+      setTransfer(data);
+      
+      if (data.items && data.items.length > 0) {
+        setReceiveItems(data.items.map(item => ({
+          id: item.id,
+          product_name: item.product_name || 'Produit',
+          quantity: item.quantity || 0,
+          quantity_received: item.quantity_received || 0,
+          remaining: (item.quantity || 0) - (item.quantity_received || 0),
+          to_receive: (item.quantity || 0) - (item.quantity_received || 0)
+        })));
+      } else {
+        setReceiveItems([]);
+      }
     } catch (error) {
       console.error('Erreur:', error);
+      setError(error.response?.data?.detail || 'Erreur de chargement du transfert');
       showNotification('Erreur de chargement du transfert', 'error');
     } finally {
       setLoading(false);
@@ -108,7 +130,12 @@ const TransfertDetail = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    if (id) {
+      fetchData();
+    } else {
+      setError('ID de transfert manquant');
+      setLoading(false);
+    }
   }, [id]);
 
   const handleDownloadPDF = async () => {
@@ -126,6 +153,7 @@ const TransfertDetail = () => {
   };
 
   const handleStartTransfer = async () => {
+    if (!transfer) return;
     try {
       await AxiosInstance.post(`/transfers/${id}/start/`);
       showNotification('Transfert démarré', 'success');
@@ -136,6 +164,7 @@ const TransfertDetail = () => {
   };
 
   const handleCancelTransfer = async () => {
+    if (!transfer) return;
     try {
       await AxiosInstance.post(`/transfers/${id}/cancel/`);
       showNotification('Transfert annulé', 'success');
@@ -170,8 +199,9 @@ const TransfertDetail = () => {
 
   const updateReceiveQuantity = (index, value) => {
     const newItems = [...receiveItems];
-    const max = newItems[index].remaining;
-    newItems[index].to_receive = Math.min(Math.max(0, parseInt(value) || 0), max);
+    const max = newItems[index].remaining || 0;
+    const val = parseInt(value) || 0;
+    newItems[index].to_receive = Math.min(Math.max(0, val), max);
     setReceiveItems(newItems);
   };
 
@@ -183,12 +213,13 @@ const TransfertDetail = () => {
     );
   }
 
-  if (!transfer) {
+  if (error || !transfer) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
+        <div className="text-center bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg max-w-md">
           <AlertCircle className="w-16 h-16 mx-auto mb-4 text-error" />
-          <h2 className="text-xl font-bold mb-2">Transfert non trouvé</h2>
+          <h2 className="text-xl font-bold mb-2">Erreur</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error || 'Transfert non trouvé'}</p>
           <button onClick={() => navigate('/transferts')} className="btn btn-primary">
             Retour à la liste
           </button>
@@ -203,6 +234,7 @@ const TransfertDetail = () => {
   const totalQuantity = transfer.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
   const totalReceived = transfer.items?.reduce((sum, item) => sum + (item.quantity_received || 0), 0) || 0;
   const progress = totalQuantity > 0 ? (totalReceived / totalQuantity) * 100 : 0;
+  const totalValue = transfer.items?.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0) || 0;
 
   return (
     <div className="w-full px-3 lg:px-6 py-3 space-y-4">
@@ -228,7 +260,7 @@ const TransfertDetail = () => {
           <div>
             <h1 className="text-xl lg:text-2xl font-bold flex items-center gap-2">
               <Truck className="w-6 h-6 text-primary" />
-              Transfert {transfer.reference}
+              Transfert {transfer.reference || 'N/A'}
             </h1>
             <p className="text-sm text-base-content/60 mt-1">
               Détails du transfert entre entrepôts
@@ -282,7 +314,7 @@ const TransfertDetail = () => {
         <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-primary p-3">
           <div className="stat-figure text-primary"><Truck className="w-5 h-5" /></div>
           <div className="stat-title text-xs">Référence</div>
-          <div className="stat-value text-base">{transfer.reference}</div>
+          <div className="stat-value text-base">{transfer.reference || '-'}</div>
         </div>
 
         <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-info p-3">
@@ -312,9 +344,7 @@ const TransfertDetail = () => {
         <div className="stat bg-base-100 rounded-lg shadow-sm border-l-4 border-secondary p-3 col-span-2 lg:col-span-1">
           <div className="stat-figure text-secondary"><FileText className="w-5 h-5" /></div>
           <div className="stat-title text-xs">Valeur totale</div>
-          <div className="stat-value text-sm">
-            {formatCurrency(transfer.items?.reduce((sum, item) => sum + (item.quantity * item.unit_price || 0), 0) || 0)}
-          </div>
+          <div className="stat-value text-sm">{formatCurrency(totalValue)}</div>
         </div>
       </div>
 
@@ -335,32 +365,79 @@ const TransfertDetail = () => {
         </div>
       )}
 
-      {/* Informations générales */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
-          <h2 className="font-bold text-base mb-3 flex items-center gap-2">
-            <Warehouse className="w-5 h-5 text-primary" />
-            Parcours
-          </h2>
+      {/* ==================== PARCOURS AVEC ICÔNES LUCILE ==================== */}
+      <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+        <h2 className="font-bold text-base mb-4 flex items-center gap-2">
+          <ArrowRightCircle className="w-5 h-5 text-primary" />
+          Parcours du transfert
+        </h2>
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 text-center">
-              <div className="text-4xl mb-2">🏠</div>
-              <div className="font-medium">{transfer.from_warehouse?.name || '-'}</div>
-              <div className="text-xs text-base-content/60">{transfer.from_warehouse?.code || '-'}</div>
+        <div className="flex items-center justify-between gap-4">
+          {/* Entrepôt source */}
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20">
+                <WarehouseIcon className="w-8 h-8 text-primary" />
+              </div>
             </div>
-            <div className="flex flex-col items-center">
-              <ArrowRight className="w-8 h-8 text-primary" />
-              <div className="text-xs text-base-content/60">Transfert</div>
+            <div className="font-semibold text-base">
+              {transfer.from_warehouse?.name || '-'}
             </div>
-            <div className="flex-1 text-center">
-              <div className="text-4xl mb-2">🏢</div>
-              <div className="font-medium">{transfer.to_warehouse?.name || '-'}</div>
-              <div className="text-xs text-base-content/60">{transfer.to_warehouse?.code || '-'}</div>
+            <div className="text-sm text-base-content/60">
+              {transfer.from_warehouse?.code || '-'}
+            </div>
+            <div className="text-xs text-base-content/50 mt-1">
+              {transfer.from_warehouse?.city || ''} {transfer.from_warehouse?.country || ''}
+            </div>
+          </div>
+
+          {/* Flèche de transfert */}
+          <div className="flex flex-col items-center px-4">
+            <div className="relative">
+              <div className="w-20 h-0.5 bg-primary/30 absolute top-1/2 -translate-y-1/2"></div>
+              <ArrowRightCircle className="w-10 h-10 text-primary animate-pulse" />
+            </div>
+            <div className="text-xs font-medium text-primary mt-1">TRANSFERT</div>
+            <div className="text-xs text-base-content/50">
+              {formatDate(transfer.created_at)}
+            </div>
+          </div>
+
+          {/* Entrepôt destination */}
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center border-2 border-success/20">
+                <Building2 className="w-8 h-8 text-success" />
+              </div>
+            </div>
+            <div className="font-semibold text-base">
+              {transfer.to_warehouse?.name || '-'}
+            </div>
+            <div className="text-sm text-base-content/60">
+              {transfer.to_warehouse?.code || '-'}
+            </div>
+            <div className="text-xs text-base-content/50 mt-1">
+              {transfer.to_warehouse?.city || ''} {transfer.to_warehouse?.country || ''}
             </div>
           </div>
         </div>
 
+        {/* Statut du transfert */}
+        <div className="mt-4 text-center">
+          <span className={`badge ${status.color} gap-1 text-sm py-2 px-4`}>
+            <StatusIcon className="w-4 h-4" />
+            Statut: {status.label}
+          </span>
+          {transfer.waybill && (
+            <span className="badge badge-outline ml-2 text-sm py-2 px-4">
+              BL: {transfer.waybill}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Informations générales */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
           <h2 className="font-bold text-base mb-3 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-info" />
@@ -399,6 +476,33 @@ const TransfertDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Résumé des quantités */}
+        <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4">
+          <h2 className="font-bold text-base mb-3 flex items-center gap-2">
+            <Package className="w-5 h-5 text-primary" />
+            Résumé des quantités
+          </h2>
+
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-2 bg-base-200 rounded-lg">
+              <span className="text-base-content/60">Quantité totale</span>
+              <span className="font-bold">{formatNumber(totalQuantity)} unités</span>
+            </div>
+            <div className="flex justify-between items-center p-2 bg-success/10 rounded-lg">
+              <span className="text-success">✓ Quantité reçue</span>
+              <span className="font-bold text-success">{formatNumber(totalReceived)} unités</span>
+            </div>
+            <div className="flex justify-between items-center p-2 bg-warning/10 rounded-lg">
+              <span className="text-warning">⏳ Quantité restante</span>
+              <span className="font-bold text-warning">{formatNumber(totalQuantity - totalReceived)} unités</span>
+            </div>
+            <div className="flex justify-between items-center p-2 bg-primary/10 rounded-lg">
+              <span className="text-primary">💰 Valeur totale</span>
+              <span className="font-bold text-primary">{formatCurrency(totalValue)}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Articles */}
@@ -424,20 +528,20 @@ const TransfertDetail = () => {
               </tr>
             </thead>
             <tbody>
-              {transfer.items?.length === 0 ? (
+              {!transfer.items || transfer.items.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-base-content/50">
                     Aucun article dans ce transfert
                   </td>
                 </tr>
               ) : (
-                transfer.items?.map((item, idx) => {
-                  const remaining = item.quantity - (item.quantity_received || 0);
+                transfer.items.map((item, idx) => {
+                  const remaining = (item.quantity || 0) - (item.quantity_received || 0);
                   return (
                     <tr key={idx}>
                       <td className="font-medium">{item.product_name || '-'}</td>
                       <td>{item.product_reference || '-'}</td>
-                      <td className="text-center">{item.quantity}</td>
+                      <td className="text-center">{item.quantity || 0}</td>
                       <td className="text-center">{item.quantity_received || 0}</td>
                       <td className="text-center">
                         <span className={remaining > 0 ? 'text-warning font-semibold' : 'text-success'}>
@@ -445,7 +549,7 @@ const TransfertDetail = () => {
                         </span>
                       </td>
                       <td className="text-right">{formatCurrency(item.unit_price)}</td>
-                      <td className="text-right font-semibold">{formatCurrency(item.quantity * item.unit_price)}</td>
+                      <td className="text-right font-semibold">{formatCurrency((item.quantity || 0) * (item.unit_price || 0))}</td>
                     </tr>
                   );
                 })
@@ -454,9 +558,7 @@ const TransfertDetail = () => {
             <tfoot className="bg-base-200">
               <tr className="font-bold">
                 <td colSpan={6} className="text-right">Total</td>
-                <td className="text-right">
-                  {formatCurrency(transfer.items?.reduce((sum, item) => sum + (item.quantity * item.unit_price || 0), 0) || 0)}
-                </td>
+                <td className="text-right">{formatCurrency(totalValue)}</td>
               </tr>
             </tfoot>
           </table>
@@ -488,36 +590,46 @@ const TransfertDetail = () => {
             </h3>
 
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {receiveItems.map((item, idx) => (
-                <div key={idx} className="bg-base-200 rounded-lg p-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="flex-1">
-                      <div className="font-medium">{item.product_name}</div>
-                      <div className="text-sm text-base-content/60">
-                        Quantité totale: {item.quantity} | Reçu: {item.quantity_received} | Restant: {item.remaining}
+              {receiveItems.length === 0 ? (
+                <div className="text-center py-4 text-base-content/50">
+                  Aucun article à réceptionner
+                </div>
+              ) : (
+                receiveItems.map((item, idx) => (
+                  <div key={idx} className="bg-base-200 rounded-lg p-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex-1">
+                        <div className="font-medium">{item.product_name || 'Produit'}</div>
+                        <div className="text-sm text-base-content/60">
+                          Quantité totale: {item.quantity || 0} | Reçu: {item.quantity_received || 0} | Restant: {item.remaining || 0}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm">À recevoir:</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={item.remaining || 0}
+                          value={item.to_receive || 0}
+                          onChange={(e) => updateReceiveQuantity(idx, e.target.value)}
+                          className="input input-bordered input-sm w-24"
+                        />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm">À recevoir:</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={item.remaining}
-                        value={item.to_receive}
-                        onChange={(e) => updateReceiveQuantity(idx, e.target.value)}
-                        className="input input-bordered input-sm w-24"
-                      />
-                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             <div className="modal-action">
               <button className="btn btn-ghost" onClick={() => setShowReceiveModal(false)}>
                 Annuler
               </button>
-              <button className="btn btn-success" onClick={handleReceiveTransfer}>
+              <button 
+                className="btn btn-success" 
+                onClick={handleReceiveTransfer}
+                disabled={receiveItems.every(item => item.to_receive === 0)}
+              >
                 <Check className="w-4 h-4" /> Réceptionner
               </button>
             </div>

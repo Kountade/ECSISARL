@@ -136,7 +136,7 @@ function App() {
             <Route path="/transferts/nouveau" element={<TransfertForm />} />
             <Route path="/transferts/:id" element={<TransfertDetail />} />
             <Route path="/transferts/:id/modifier" element={<TransfertForm />} />
-            <Route path="/transferts/:id" element={<TransfertDetail />} />
+           
 
                            {/* Fournisseurs (si page dédiée)  */}
                          <Route path="/fournisseurs" element={<Fournisseurs />} />
